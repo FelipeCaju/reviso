@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { Plus, ChevronLeft, ChevronRight, Car, GripVertical, FileText, Pencil } from "lucide-react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { Plus, ChevronLeft, ChevronRight, Car, GripVertical, FileText, FilePlus, Pencil } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ function useIsDesktop() {
 
 export default function Appointments() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const [appointments, setAppointments] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -314,18 +315,18 @@ export default function Appointments() {
                     </Link>
                   );
                 })()}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button variant="secondary" onClick={() => { setEditingAppt(detail); setDetail(null); setFormOpen(true); }}>
                     <Pencil className="w-4 h-4 mr-1" /> Editar
                   </Button>
-                  {detail.status !== "confirmado" && <Button variant="outline" onClick={() => updateStatus(detail, "confirmado")}>Confirmar</Button>}
-                  {detail.status !== "veiculo_recebido" && detail.status !== "em_atendimento" && detail.status !== "concluido" && (
-                    <Button onClick={() => updateStatus(detail, "veiculo_recebido", { actual_arrival: new Date().toISOString() })}>Veículo Chegou</Button>
+                  {detail.status !== "cancelado" && detail.status !== "concluido" && (
+                    <Button variant="destructive" onClick={() => updateStatus(detail, "cancelado")}>Cancelar</Button>
                   )}
-                  {detail.status === "veiculo_recebido" && <Button onClick={() => updateStatus(detail, "em_atendimento")}>Iniciar Atendimento</Button>}
-                  {detail.status !== "concluido" && detail.status !== "cancelado" && <Button variant="outline" onClick={() => updateStatus(detail, "concluido")}>Concluir</Button>}
-                  {detail.status !== "nao_compareceu" && detail.status !== "concluido" && <Button variant="outline" onClick={() => updateStatus(detail, "nao_compareceu")}>Não Compareceu</Button>}
-                  {detail.status !== "cancelado" && detail.status !== "concluido" && <Button variant="destructive" onClick={() => updateStatus(detail, "cancelado")}>Cancelar</Button>}
+                  {!detail.quote_id && (
+                    <Button onClick={() => navigate(`/orcamentos/novo?cliente=${detail.customer_id}&veiculo=${detail.vehicle_id}`)}>
+                      <FilePlus className="w-4 h-4 mr-1" /> Orçamento
+                    </Button>
+                  )}
                 </div>
               </div>
               <DialogFooter>

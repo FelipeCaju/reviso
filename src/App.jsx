@@ -29,9 +29,12 @@ import Materials from '@/pages/Materials';
 import Services from '@/pages/Services';
 import Settings from '@/pages/Settings';
 import AdminOnboarding from '@/pages/AdminOnboarding';
+import DemoExpired from '@/components/DemoExpired';
+import { useDemoStatus } from '@/hooks/useDemoStatus';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isDemo, isExpired } = useDemoStatus();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -52,6 +55,9 @@ const AuthenticatedApp = () => {
       return null;
     }
   }
+
+  // Demo expired — show contact card
+  if (isDemo && isExpired) return <DemoExpired />;
 
   // Render the main app
   return (

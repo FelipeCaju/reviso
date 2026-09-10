@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { setWorkshopId } from '@/lib/workshop';
+import { setDemoModeActive, isDemoUser } from '@/lib/demoMode';
 
 const AuthContext = createContext();
 
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setWorkshopId(currentUser?.workshop_id);
+      setDemoModeActive(isDemoUser(currentUser));
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);

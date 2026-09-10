@@ -21,6 +21,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import QuickSearch from "@/components/QuickSearch";
 import { Image as ImgCmp } from "@/components/ui/image";
+import DemoBanner from "@/components/DemoBanner";
+import { useDemoStatus } from "@/hooks/useDemoStatus";
 
 const SIDEBAR_LOGO_URL = "https://media.base44.com/images/public/6aa29ae2c83b44fa65bdbaa2/a428f7140_NovoProjeto.png";
 
@@ -73,6 +75,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isDemo, hoursRemaining } = useDemoStatus();
 
   const handleLogout = () => logout();
 
@@ -154,6 +157,7 @@ export default function Layout() {
       {/* Main content */}
       <main className="lg:ml-60 pb-20 lg:pb-8 min-h-screen">
         <div className="px-4 lg:px-6 py-4 lg:py-6 max-w-7xl mx-auto">
+          {isDemo && <DemoBanner hoursRemaining={hoursRemaining} />}
           <Outlet />
         </div>
       </main>

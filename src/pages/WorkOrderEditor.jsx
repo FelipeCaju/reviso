@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Check, AlertTriangle, Play, PackageCheck,
+  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Check, AlertTriangle, Play, PackageCheck, Camera, X,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import QuoteItemPicker from "@/components/QuoteItemPicker";
 import VoiceInput from "@/components/VoiceInput";
+import CurrencyInput from "@/components/CurrencyInput";
+import { Image as ImgCmp } from "@/components/ui/image";
 import { WorkOrderStatusBadge, workOrderStatusInfo } from "@/components/StatusBadge";
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDateTime, todayISO,
@@ -46,6 +48,7 @@ export default function WorkOrderEditor() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [plateQ, setPlateQ] = useState("");
   const [showPlateResults, setShowPlateResults] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -108,7 +111,7 @@ export default function WorkOrderEditor() {
             entry_date: new Date().toISOString(), expected_delivery: "",
             customer_report: "", diagnosis: "", mechanic_id: "",
             internal_notes: "", customer_notes: "", status: "aberta",
-            discount: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0,
+            discount: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0, images: [],
           });
         }
       } finally {
@@ -164,6 +167,19 @@ export default function WorkOrderEditor() {
   };
 
   const removeItem = (idx) => setItems((arr) => arr.filter((_, i) => i !== idx));
+
+  const quickLaborItem = items.find((it) => it.type === "servico" && !it.service_id && it.description === "Mão de Obra");
+  const quickLaborValue = quickLaborItem?.unit_price || 0;
+  const setQuickLabor = (value) => {
+    setItems((arr) => {
+      const others = arr.filter((it) => !(it.type === "servico" && !it.service_id && it.description === "Mão de Obra"));
+      if (!value || value === 0) return others;
+      const flags = pastApproval
+        ? { added_after_approval: true, approval_status: "aguardando" }
+        : { added_after_approval: false, approval_status: "aprovado" };
+      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit_price: value, discount: 0, total: value, service_id: "", ...flags }];
+    });
+  };
 
   const generateNumber = async () => {
     const all = await base44.entities.WorkOrder.list("-created_date", 500);
@@ -235,6 +251,26 @@ export default function WorkOrderEditor() {
       if (updated.length) await base44.entities.WorkOrderItem.bulkCreate(updated.map((it) => withWorkshop({ ...it, work_order_id: id })));
     }
     await changeStatus("em_execucao");
+  };
+
+  const handleImageUpload = async (files) => {
+    setUploadingImages(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+        urls.push(file_url);
+      }
+      setWo((w) => ({ ...w, images: [...(w.images || []), ...urls] }));
+    } catch (e) {
+      toast({ title: "Erro ao enviar imagem", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (idx) => {
+    setWo((w) => ({ ...w, images: (w.images || []).filter((_, i) => i !== idx) }));
   };
 
   const exportPDF = () => {
@@ -336,6 +372,42 @@ export default function WorkOrderEditor() {
         <Textarea rows={3} className="text-base" value={wo.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} placeholder="Diagnóstico técnico..." />
       </div>
 
+      {/* Fotos anexadas */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <Label>Fotos Anexadas ({(wo.images || []).length})</Label>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {(wo.images || []).map((url, i) => (
+            <div key={i} className="relative group aspect-square">
+              <ImgCmp src={url} alt={`Foto ${i + 1}`} className="w-full h-full rounded-lg" fittingType="fill" />
+              <button
+                onClick={() => removeImage(i)}
+                className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length) handleImageUpload(files);
+                e.target.value = "";
+              }}
+            />
+            {uploadingImages ? (
+              <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-6 h-6 text-muted-foreground" />
+            )}
+          </label>
+        </div>
+      </div>
+
       {/* Items */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -368,9 +440,9 @@ export default function WorkOrderEditor() {
                   <div><Label className="text-[10px] text-muted-foreground">Qtd</Label>
                     <Input type="number" className="h-9 text-sm" value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })} /></div>
                   <div><Label className="text-[10px] text-muted-foreground">Unit.</Label>
-                    <Input type="number" className="h-9 text-sm" value={it.unit_price} onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })} /></div>
+                    <CurrencyInput className="h-9 text-sm" value={it.unit_price} onValueChange={(v) => updateItem(idx, { unit_price: v })} /></div>
                   <div><Label className="text-[10px] text-muted-foreground">Desc.</Label>
-                    <Input type="number" className="h-9 text-sm" value={it.discount} onChange={(e) => updateItem(idx, { discount: Number(e.target.value) })} /></div>
+                    <CurrencyInput className="h-9 text-sm" value={it.discount} onValueChange={(v) => updateItem(idx, { discount: v })} /></div>
                 </div>
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
               </div>
@@ -382,6 +454,19 @@ export default function WorkOrderEditor() {
             <Plus className="w-4 h-4 mr-2" /> Adicionar Peça / Serviço
           </Button>
         </div>
+      </div>
+
+      {/* Quick labor input */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <Label className="text-xs">Mão de Obra</Label>
+        <CurrencyInput className="h-11" value={quickLaborValue} onValueChange={setQuickLabor} />
+        <p className="text-xs text-muted-foreground">Valor direto da mão de obra. Para detalhar por serviço, use "Adicionar Peça / Serviço" acima.</p>
+      </div>
+
+      {/* Discount */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <Label className="text-xs">Desconto sobre o total</Label>
+        <CurrencyInput className="h-11" value={wo.discount} onValueChange={(v) => set("discount", v)} />
       </div>
 
       {/* Internal notes */}

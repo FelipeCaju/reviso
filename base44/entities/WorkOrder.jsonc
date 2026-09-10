@@ -112,6 +112,13 @@
     "appointment_id": {
       "type": "string",
       "title": "Agendamento de Origem"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Fotos Anexadas"
     }
   },
   "required": [

@@ -2,6 +2,10 @@
   "name": "Customer",
   "type": "object",
   "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
     "name": {
       "type": "string",
       "title": "Nome / Raz\u00e3o Social"
@@ -62,5 +66,19 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
 }

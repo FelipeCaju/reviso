@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import QuickSearch from "@/components/QuickSearch";
+import Logo from "@/components/Logo";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true, roles: ["admin", "user"] },
@@ -82,12 +83,10 @@ export default function Layout() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-            OF
-          </div>
+          <Logo className="w-9 h-9 shrink-0" />
           <div className="font-heading font-semibold leading-tight text-white">
-            <div className="text-sm">Oficina</div>
-            <div className="text-xs text-sidebar-foreground font-normal">Gestão</div>
+            <div className="text-sm">Revisô</div>
+            <div className="text-xs text-sidebar-foreground font-normal">Gestão Mecânica</div>
           </div>
         </div>
         <div className="px-3 pt-3 pb-2 space-y-2">
@@ -127,9 +126,7 @@ export default function Layout() {
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-30 bg-sidebar border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-3 h-14">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
-            OF
-          </div>
+          <Logo className="w-8 h-8 shrink-0" />
           <div className="flex-1 min-w-0">
             <QuickSearch />
           </div>

@@ -1,15 +1,18 @@
 import React from "react";
+import Logo from "@/components/Logo";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ title, subtitle, footer, children }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center mb-3">
+            <Logo className="w-16 h-16" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-          {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Revisô</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Gestão Mecânica</p>
+          {title && <p className="text-sm text-muted-foreground mt-3">{title}</p>}
+          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         </div>
         <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
           {children}

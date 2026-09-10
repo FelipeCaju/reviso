@@ -38,8 +38,8 @@ export const normalizePlate = (p) => (p || "").toUpperCase().replace(/[^A-Z0-9]/
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
-export const addDaysISO = (days) => {
-  const d = new Date();
+export const addDaysISO = (days, base) => {
+  const d = base ? new Date(base) : new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 };

@@ -145,14 +145,29 @@ export default function QuoteEditor() {
 
   const set = (k, v) => setQuote((q) => ({ ...q, [k]: v }));
 
-  const plateResults = useMemo(() => {
+  const searchResults = useMemo(() => {
     const s = plateQ.trim().toLowerCase();
     const np = normalizePlate(plateQ);
-    if (!s) return [];
-    return vehicles
-      .filter((v) => normalizePlate(v.plate).includes(np) || (v.brand || "").toLowerCase().includes(s) || (v.model || "").toLowerCase().includes(s))
-      .slice(0, 6);
-  }, [plateQ, vehicles]);
+    if (!s) return { vehicles: [], customers: [] };
+    return {
+      vehicles: vehicles
+        .filter((v) => normalizePlate(v.plate).includes(np) || (v.brand || "").toLowerCase().includes(s) || (v.model || "").toLowerCase().includes(s))
+        .slice(0, 4),
+      customers: customers
+        .filter((c) => (c.name || "").toLowerCase().includes(s))
+        .slice(0, 4),
+    };
+  }, [plateQ, vehicles, customers]);
+
+  const applyCustomer = (cust) => {
+    setQuote((q) => ({
+      ...q,
+      customer_id: cust.id,
+      customer_name_snapshot: cust.name,
+    }));
+    setPlateQ("");
+    setShowPlateResults(false);
+  };
 
   // Totals
   const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
@@ -171,6 +186,16 @@ export default function QuoteEditor() {
   const removeItem = (idx) => setItems((arr) => arr.filter((_, i) => i !== idx));
 
   const addItem = (item) => setItems((arr) => [...arr, item]);
+
+  const quickLaborItem = items.find((it) => it.type === "servico" && !it.service_id && it.description === "Mão de Obra");
+  const quickLaborValue = quickLaborItem?.unit_price || 0;
+  const setQuickLabor = (value) => {
+    setItems((arr) => {
+      const others = arr.filter((it) => !(it.type === "servico" && !it.service_id && it.description === "Mão de Obra"));
+      if (!value || value === 0) return others;
+      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit_price: value, discount: 0, total: value, service_id: "" }];
+    });
+  };
 
   const generateNumber = async () => {
     const all = await base44.entities.Quote.list("-created_date", 500);
@@ -361,32 +386,45 @@ export default function QuoteEditor() {
 
       {/* Vehicle selection */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <Label>Veículo (busca por placa) *</Label>
+        <Label>Buscar veículo ou cliente *</Label>
         {!quote.vehicle_id ? (
           <div className="relative">
             <Input
               className="h-12 text-base"
-              placeholder="Digite a placa (ex: ABC1D23)"
+              placeholder="Digite a placa, marca, modelo ou nome do cliente"
               value={plateQ}
               onChange={(e) => { setPlateQ(e.target.value.toUpperCase()); setShowPlateResults(true); }}
               onFocus={() => setShowPlateResults(true)}
             />
             {showPlateResults && plateQ && (
               <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg max-h-64 overflow-auto">
-                {plateResults.length === 0 ? (
+                {searchResults.vehicles.length === 0 && searchResults.customers.length === 0 ? (
                   <div className="p-3 text-sm text-muted-foreground">
-                    Nenhum veículo.{" "}
-                    <button className="text-primary underline" onClick={() => navigate("/veiculos/novo")}>Cadastrar</button>
+                    Nenhum resultado.{" "}
+                    <button className="text-primary underline" onClick={() => navigate("/veiculos/novo")}>Cadastrar veículo</button>
                   </div>
-                ) : plateResults.map((v) => (
-                  <button key={v.id} onClick={() => applyVehicle(v)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
-                    <Car className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{vehicleDescription(v)}</div>
-                      <div className="text-xs text-muted-foreground">{normalizePlate(v.plate)}</div>
-                    </div>
-                  </button>
-                ))}
+                ) : (
+                  <>
+                    {searchResults.vehicles.map((v) => (
+                      <button key={v.id} onClick={() => applyVehicle(v)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
+                        <Car className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{vehicleDescription(v)}</div>
+                          <div className="text-xs text-muted-foreground">{normalizePlate(v.plate)}</div>
+                        </div>
+                      </button>
+                    ))}
+                    {searchResults.customers.map((c) => (
+                      <button key={c.id} onClick={() => applyCustomer(c)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
+                        <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{c.name}</div>
+                          <div className="text-xs text-muted-foreground">{c.phone || c.whatsapp || ""}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -420,6 +458,26 @@ export default function QuoteEditor() {
               <SelectContent>
                 <SelectItem value="nenhum">—</SelectItem>
                 {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Vehicle picker for selected customer */}
+        {quote.customer_id && !quote.vehicle_id && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Veículo do cliente</Label>
+            <Select value="nenhum" onValueChange={(v) => {
+              if (v === "nenhum") return;
+              const veh = vehicles.find((x) => x.id === v);
+              if (veh) applyVehicle(veh);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Selecione o veículo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">—</SelectItem>
+                {vehicles.filter((v) => v.current_owner_id === quote.customer_id).map((v) => 
+                  <SelectItem key={v.id} value={v.id}>{vehicleDescription(v)} · {normalizePlate(v.plate)}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -551,6 +609,13 @@ export default function QuoteEditor() {
             <Plus className="w-4 h-4 mr-2" /> Adicionar Peça / Serviço
           </Button>
         </div>
+      </div>
+
+      {/* Quick labor input */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <Label className="text-xs">Mão de Obra</Label>
+        <CurrencyInput className="h-11" value={quickLaborValue} onValueChange={setQuickLabor} />
+        <p className="text-xs text-muted-foreground">Valor direto da mão de obra. Para detalhar por serviço, use "Adicionar Peça / Serviço" acima.</p>
       </div>
 
       {/* Quote-level discount */}

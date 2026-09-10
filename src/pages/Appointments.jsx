@@ -221,28 +221,24 @@ export default function Appointments() {
                 ref={prov.innerRef} {...prov.droppableProps}
                 className={`border border-t-0 border-border rounded-b-lg bg-card min-h-[120px] p-1.5 space-y-1.5 ${snap.isDraggingOver ? "bg-primary/5" : ""}`}
               >
-                {list.length === 0 ? (
-                  isPast ? (
-                    <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
-                  ) : (
-                    <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-4 hover:bg-accent rounded">+ agendar</button>
-                  )
+                {!isPast && (
+                  <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>
+                )}
+                {isPast && list.length === 0 ? (
+                  <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
                 ) : list.map((a) => renderCard(a, true))}
                 {prov.placeholder}
-                {!isPast && <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>}
               </div>
             )}
           </Droppable>
         ) : (
           <div className="border border-t-0 border-border rounded-b-lg bg-card min-h-[120px] p-1.5 space-y-1.5">
-            {list.length === 0 ? (
-              isPast ? (
-                <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
-              ) : (
-                <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-4 hover:bg-accent rounded">+ agendar</button>
-              )
+            {!isPast && (
+              <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>
+            )}
+            {isPast && list.length === 0 ? (
+              <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
             ) : list.map((a) => renderCard(a, false))}
-            {!isPast && <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>}
           </div>
         )}
       </div>

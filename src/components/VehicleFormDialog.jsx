@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,15 +51,15 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
     setSaving(true);
     try {
       const payload = { ...form, plate };
-      const saved = await base44.entities.Vehicle.create(payload);
+      const saved = await base44.entities.Vehicle.create(withWorkshop(payload));
       if (form.current_owner_id) {
-        await base44.entities.VehicleOwner.create({
+        await base44.entities.VehicleOwner.create(withWorkshop({
           vehicle_id: saved.id,
           customer_id: form.current_owner_id,
           customer_name_snapshot: customers.find((c) => c.id === form.current_owner_id)?.name || "",
           start_date: new Date().toISOString(),
           active: true,
-        });
+        }));
       }
       onOpenChange?.(false);
       onSaved?.(saved);

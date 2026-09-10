@@ -2,6 +2,10 @@
   "name": "WorkOrder",
   "type": "object",
   "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
     "number": {
       "type": "string",
       "title": "N\u00famero"
@@ -112,5 +116,19 @@
   },
   "required": [
     "number"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
 }

@@ -4,6 +4,7 @@ import {
   ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Check, AlertTriangle, Play, PackageCheck,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -170,7 +171,7 @@ export default function WorkOrderEditor() {
   const persistItems = async (woId) => {
     await base44.entities.WorkOrderItem.deleteMany({ work_order_id: woId });
     if (items.length) {
-      await base44.entities.WorkOrderItem.bulkCreate(items.map((it) => ({ ...it, work_order_id: woId })));
+      await base44.entities.WorkOrderItem.bulkCreate(items.map((it) => withWorkshop({ ...it, work_order_id: woId })));
     }
   };
 
@@ -190,7 +191,7 @@ export default function WorkOrderEditor() {
         await persistItems(id);
       } else {
         payload.number = await generateNumber();
-        const created = await base44.entities.WorkOrder.create(payload);
+        const created = await base44.entities.WorkOrder.create(withWorkshop(payload));
         woId = created.id;
         await persistItems(woId);
         if (fromQuoteId) {
@@ -227,7 +228,7 @@ export default function WorkOrderEditor() {
     setItems(updated);
     if (editing) {
       await base44.entities.WorkOrderItem.deleteMany({ work_order_id: id });
-      if (updated.length) await base44.entities.WorkOrderItem.bulkCreate(updated.map((it) => ({ ...it, work_order_id: id })));
+      if (updated.length) await base44.entities.WorkOrderItem.bulkCreate(updated.map((it) => withWorkshop({ ...it, work_order_id: id })));
     }
     await changeStatus("em_execucao");
   };

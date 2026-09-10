@@ -2,6 +2,10 @@
   "name": "Material",
   "type": "object",
   "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
     "code": {
       "type": "string",
       "title": "C\u00f3digo Interno"
@@ -45,5 +49,19 @@
   },
   "required": [
     "description"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
 }

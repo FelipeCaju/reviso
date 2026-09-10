@@ -2,6 +2,10 @@
   "name": "Appointment",
   "type": "object",
   "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
     "customer_id": {
       "type": "string",
       "title": "Cliente"
@@ -85,5 +89,19 @@
     "customer_id",
     "vehicle_id",
     "scheduled_date"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
 }

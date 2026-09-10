@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Search, Wrench } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +51,7 @@ export default function Services() {
     setSaving(true);
     try {
       if (editingId) await base44.entities.Service.update(editingId, form);
-      else await base44.entities.Service.create(form);
+      else await base44.entities.Service.create(withWorkshop(form));
       setOpen(false);
       await load();
     } finally {

@@ -14,13 +14,23 @@ export default function DemoExpired() {
         <p className="text-slate-600 mb-6">
           Seu período de demonstração de 24 horas terminou. Para continuar usando o Revisô com acesso completo, entre em contato com a equipe.
         </p>
-        <div className="p-4 bg-slate-50 rounded-lg text-sm text-slate-600 mb-6">
-          <p className="font-medium text-slate-700 mb-1">Entre em contato:</p>
-          <p>Solicite seu cadastro oficial com o administrador do sistema.</p>
+        <div className="p-4 bg-slate-50 rounded-lg text-sm text-slate-600 mb-6 space-y-1">
+          <p className="font-medium text-slate-700">Leizen Dev</p>
+          <p>Luiz Felipe Saraiva</p>
+          <a href="https://wa.me/55199971729402" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">
+            +55 19 97172-9402
+          </a>
         </div>
-        <Button onClick={() => logout()} className="w-full">
-          <LogOut className="w-4 h-4 mr-2" /> Sair
-        </Button>
+        <div className="space-y-2">
+          <a href="https://wa.me/55199971729402" target="_blank" rel="noopener noreferrer">
+            <Button className="w-full">
+              <Mail className="w-4 h-4 mr-2" /> Falar no WhatsApp
+            </Button>
+          </a>
+          <Button variant="outline" onClick={() => logout()} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" /> Sair
+          </Button>
+        </div>
       </div>
     </div>
   );

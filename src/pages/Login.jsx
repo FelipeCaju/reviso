@@ -43,12 +43,14 @@ export default function Login() {
       footer={
         <>
           Não tem uma conta?{" "}
-          <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
+          <a
+            href="https://wa.me/55199971729402"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-primary font-medium hover:underline"
           >
-            Criar conta
-          </Link>
+            Entre em contato
+          </a>
         </>
       }
     >

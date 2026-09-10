@@ -90,10 +90,12 @@ export const AuthProvider = ({ children }) => {
       let demoActive = false;
       const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
       if (currentUser?.workshop_id) {
-        try {
-          const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
-          demoActive = settings?.is_demo === true;
-        } catch (e) {}
+        if (currentUser?.role !== 'admin') {
+          try {
+            const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
+            demoActive = settings?.is_demo === true;
+          } catch (e) {}
+        }
       } else if (!isPlatformOwner) {
         demoActive = true;
       }

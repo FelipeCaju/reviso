@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import DemoUserManager from "@/components/DemoUserManager";
 import { toast } from "@/components/ui/use-toast";
 
 const DEFAULT = {
@@ -156,6 +157,7 @@ export default function Settings() {
           </div>
           <Switch checked={form.is_demo} onCheckedChange={(v) => set("is_demo", v)} />
         </div>
+        {form.is_demo && <DemoUserManager />}
       </section>
 
       <div className="flex justify-end">

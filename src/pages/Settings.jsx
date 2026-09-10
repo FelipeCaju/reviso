@@ -149,6 +149,43 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
+        <h2 className="font-medium">Categorias de Despesa</h2>
+        <p className="text-xs text-muted-foreground">Categorias usadas no cadastro de despesas. Adicione ou remova conforme necessário.</p>
+        <div className="flex flex-wrap gap-2">
+          {(form.expense_categories || []).map((cat, idx) => (
+            <div key={idx} className="flex items-center gap-1 rounded-lg bg-accent/50 px-2 py-1">
+              <span className="text-sm">{cat}</span>
+              <button onClick={() => set("expense_categories", form.expense_categories.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive text-xs">✕</button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Nova categoria..."
+            id="new-category"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const val = e.target.value.trim();
+                if (val && !(form.expense_categories || []).includes(val)) {
+                  set("expense_categories", [...(form.expense_categories || []), val]);
+                }
+                e.target.value = "";
+              }
+            }}
+          />
+          <Button type="button" variant="outline" onClick={() => {
+            const input = document.getElementById("new-category");
+            const val = input?.value?.trim();
+            if (val && !(form.expense_categories || []).includes(val)) {
+              set("expense_categories", [...(form.expense_categories || []), val]);
+              input.value = "";
+            }
+          }}>Adicionar</Button>
+        </div>
+      </section>
+
       <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 md:p-5">
         <h2 className="font-medium">Modo Demonstração</h2>
         <div className="flex items-center justify-between gap-4">

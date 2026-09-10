@@ -22,6 +22,8 @@ import {
 } from "@/lib/format";
 import { generateWorkOrderPDF } from "@/lib/pdf";
 import { toast } from "@/components/ui/use-toast";
+import OSPayments from "@/components/OSPayments";
+import OSNotification from "@/components/OSNotification";
 
 const STATUS_OPTIONS = [
   "aberta", "aguardando_pecas", "em_execucao", "aguardando_aprovacao_adicional",
@@ -92,6 +94,7 @@ export default function WorkOrderEditor() {
             customer_notes: "",
             status: "aberta",
             discount: 0,
+            socorro: q.socorro || 0,
             subtotal_parts: 0,
             subtotal_labor: 0,
             total: 0,
@@ -111,7 +114,7 @@ export default function WorkOrderEditor() {
             entry_date: new Date().toISOString(), expected_delivery: "",
             customer_report: "", diagnosis: "", mechanic_id: "",
             internal_notes: "", customer_notes: "", status: "aberta",
-            discount: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0, images: [],
+            discount: 0, socorro: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0, images: [],
           });
         }
       } finally {
@@ -146,7 +149,7 @@ export default function WorkOrderEditor() {
 
   const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
-  const grandTotal = Math.max(0, partsSub + laborSub - (wo?.discount || 0));
+  const grandTotal = Math.max(0, partsSub + laborSub + (wo?.socorro || 0) - (wo?.discount || 0));
 
   const pastApproval = editing && wo && ["em_execucao", "aguardando_pecas", "pronta_retirada", "aguardando_aprovacao_adicional"].includes(wo.status);
 
@@ -477,6 +480,13 @@ export default function WorkOrderEditor() {
         <p className="text-xs text-muted-foreground">Valor direto da mão de obra. Para detalhar por serviço, use "Adicionar Peça / Serviço" acima.</p>
       </div>
 
+      {/* Socorro */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <Label className="text-xs">Socorro (deslocamento / atendimento externo)</Label>
+        <CurrencyInput className="h-11" value={wo.socorro} onValueChange={(v) => set("socorro", v)} />
+        <p className="text-xs text-muted-foreground">Valor de deslocamento, busca de veículo ou assistência fora da oficina.</p>
+      </div>
+
       {/* Discount */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-2">
         <Label className="text-xs">Desconto sobre o total</Label>
@@ -537,12 +547,21 @@ export default function WorkOrderEditor() {
         </div>
       )}
 
+      {/* Payments + Notification (editing only) */}
+      {editing && (
+        <>
+          <OSPayments workOrderId={id} wo={wo} />
+          <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} />
+        </>
+      )}
+
       {/* Totals */}
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 md:static z-20 bg-background/95 backdrop-blur border-t md:border border-border px-4 py-3 md:rounded-xl">
         <div className="md:max-w-7xl md:mx-auto flex items-center justify-between gap-3">
           <div className="text-sm">
             <div className="text-muted-foreground">Peças: <span className="text-foreground font-medium">{formatCurrency(partsSub)}</span></div>
             <div className="text-muted-foreground">Mão de obra: <span className="text-foreground font-medium">{formatCurrency(laborSub)}</span></div>
+            {wo.socorro > 0 && <div className="text-muted-foreground">Socorro: <span className="text-foreground font-medium">{formatCurrency(wo.socorro)}</span></div>}
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">TOTAL</div>

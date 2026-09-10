@@ -108,6 +108,7 @@ export default function QuoteEditor() {
             forecast: "",
             status: "rascunho",
             discount: 0,
+            socorro: 0,
             subtotal_parts: 0,
             subtotal_labor: 0,
             total: 0,
@@ -172,7 +173,7 @@ export default function QuoteEditor() {
   // Totals
   const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
-  const grandTotal = Math.max(0, partsSub + laborSub - (quote?.discount || 0));
+  const grandTotal = Math.max(0, partsSub + laborSub + (quote?.socorro || 0) - (quote?.discount || 0));
 
   const updateItem = (idx, patch) => {
     setItems((arr) => arr.map((it, i) => {
@@ -632,6 +633,13 @@ export default function QuoteEditor() {
         <p className="text-xs text-muted-foreground">Valor direto da mão de obra. Para detalhar por serviço, use "Adicionar Peça / Serviço" acima.</p>
       </div>
 
+      {/* Socorro */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <Label className="text-xs">Socorro (deslocamento / atendimento externo)</Label>
+        <CurrencyInput className="h-11" value={quote.socorro} onValueChange={(v) => set("socorro", v)} />
+        <p className="text-xs text-muted-foreground">Valor de deslocamento, busca de veículo ou assistência fora da oficina.</p>
+      </div>
+
       {/* Quote-level discount */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-2">
         <Label className="text-xs">Desconto sobre o total</Label>
@@ -686,6 +694,7 @@ export default function QuoteEditor() {
           <div className="text-sm">
             <div className="text-muted-foreground">Peças: <span className="text-foreground font-medium">{formatCurrency(partsSub)}</span></div>
             <div className="text-muted-foreground">Mão de obra: <span className="text-foreground font-medium">{formatCurrency(laborSub)}</span></div>
+            {quote.socorro > 0 && <div className="text-muted-foreground">Socorro: <span className="text-foreground font-medium">{formatCurrency(quote.socorro)}</span></div>}
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">TOTAL</div>

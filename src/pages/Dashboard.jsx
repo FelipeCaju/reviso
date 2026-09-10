@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { todayISO, addDaysISO, formatDate, normalizePlate, vehicleDescription, formatCurrency } from "@/lib/format";
 import { AppointmentStatusBadge, appointmentTypeInfo } from "@/components/StatusBadge";
 
@@ -12,6 +13,7 @@ export default function Dashboard() {
   const [quotes, setQuotes] = useState([]);
   const [workOrders, setWorkOrders] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,12 +28,14 @@ export default function Dashboard() {
           base44.entities.Quote.list("-date", 200),
           base44.entities.WorkOrder.list("-entry_date", 200),
           base44.entities.WorkshopSetting.list("-updated_date", 1),
+          base44.entities.FinancialTransaction.list("-date", 1000),
         ]);
         setToday(todayAppts);
         setTomorrow(tomorrowAppts);
         setQuotes(allQuotes);
         setWorkOrders(allWO);
         setSettings(settingsList[0] || null);
+        setTransactions(allTx);
       } finally {
         setLoading(false);
       }
@@ -64,6 +68,18 @@ export default function Dashboard() {
     return w.status === "finalizada" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
   const monthRevenue = monthWO.reduce((s, w) => s + (w.total || 0), 0);
+
+  // Financial indicators
+  const monthTx = transactions.filter((t) => {
+    const d = new Date(t.date);
+    return t.status === "ativo" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const monthEntradas = monthTx.filter((t) => t.type === "entrada").reduce((s, t) => s + (t.amount || 0), 0);
+  const monthSaidas = monthTx.filter((t) => t.type === "saida").reduce((s, t) => s + (t.amount || 0), 0);
+  const monthResultado = monthEntradas - monthSaidas;
+  const aReceber = workOrders
+    .filter((w) => w.total > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada")
+    .reduce((s, w) => s + ((w.total || 0) - (w.paid_amount || 0)), 0);
 
   const withTime = activeToday.filter((a) => a.scheduled_time).sort((a, b) => (a.scheduled_time || "").localeCompare(b.scheduled_time || ""));
   const noTime = activeToday.filter((a) => !a.scheduled_time);
@@ -98,7 +114,21 @@ export default function Dashboard() {
         <Stat label="OS em Execução" value={execWO} accent="teal" onClick={() => navigate("/os")} />
         <Stat label="Veículos Prontos" value={readyWO} accent="emerald" onClick={() => navigate("/os")} />
         <Stat label="OS Finalizadas (mês)" value={monthWO.length} accent="slate" />
-        <Stat label="Faturamento (mês)" value={formatCurrency(monthRevenue)} wide accent="amber" />
+        <Stat label="Faturamento (mês)" value={formatCurrency(monthRevenue)} accent="amber" />
+      </div>
+
+      {/* Financial indicators */}
+      <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-sm">Financeiro do Mês</h2>
+          <Button size="sm" variant="outline" onClick={() => navigate("/financeiro")}>Ver Financeiro</Button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat label="Recebido" value={formatCurrency(monthEntradas)} accent="emerald" />
+          <Stat label="A Receber" value={formatCurrency(aReceber)} accent="amber" />
+          <Stat label="Saídas" value={formatCurrency(monthSaidas)} accent="slate" />
+          <Stat label="Resultado" value={formatCurrency(monthResultado)} accent={monthResultado >= 0 ? "emerald" : "amber"} />
+        </div>
       </div>
 
       {/* Today list */}

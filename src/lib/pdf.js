@@ -72,7 +72,7 @@ function itemsTable(doc, y, items) {
 }
 
 function totals(doc, y, data, partsSub, laborSub) {
-  const total = Math.max(0, partsSub + laborSub - (data.discount || 0));
+  const total = Math.max(0, partsSub + laborSub + (data.socorro || 0) - (data.discount || 0));
   doc.setFontSize(9);
   doc.text("Subtotal Peças:", pageW - margin - 40, y, { align: "right" });
   doc.text(formatCurrency(partsSub), pageW - margin, y, { align: "right" });
@@ -80,6 +80,11 @@ function totals(doc, y, data, partsSub, laborSub) {
   doc.text("Subtotal Mão de Obra:", pageW - margin - 40, y, { align: "right" });
   doc.text(formatCurrency(laborSub), pageW - margin, y, { align: "right" });
   y += 5;
+  if (data.socorro) {
+    doc.text("Socorro:", pageW - margin - 40, y, { align: "right" });
+    doc.text(formatCurrency(data.socorro), pageW - margin, y, { align: "right" });
+    y += 5;
+  }
   if (data.discount) {
     doc.text("Desconto:", pageW - margin - 40, y, { align: "right" });
     doc.text(formatCurrency(data.discount), pageW - margin, y, { align: "right" });
@@ -208,7 +213,7 @@ export function generateWorkOrderPDF(wo, items, settings) {
   y = itemsTable(doc, y, items);
   const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
-  y = totals(doc, y, { ...wo, discount: 0 }, partsSub, laborSub);
+  y = totals(doc, y, wo, partsSub, laborSub);
   if (wo.internal_notes) {
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     doc.text("Observações Internas:", margin, y); y += 4.5;

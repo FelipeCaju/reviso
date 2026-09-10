@@ -2,10 +2,6 @@
   "name": "Vehicle",
   "type": "object",
   "properties": {
-    "workshop_id": {
-      "type": "string",
-      "title": "Oficina"
-    },
     "type": {
       "type": "string",
       "enum": [
@@ -80,19 +76,5 @@
   },
   "required": [
     "plate"
-  ],
-  "rls": {
-    "read": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "update": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    }
-  }
+  ]
 }

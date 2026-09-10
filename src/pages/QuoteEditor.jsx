@@ -4,7 +4,6 @@ import {
   ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -193,11 +192,11 @@ export default function QuoteEditor() {
         await base44.entities.QuoteItem.deleteMany({ quote_id: id });
       } else {
         payload.number = await generateNumber();
-        const created = await base44.entities.Quote.create(withWorkshop(payload));
+        const created = await base44.entities.Quote.create(payload);
         quoteId = created.id;
       }
       if (items.length) {
-        await base44.entities.QuoteItem.bulkCreate(items.map((it) => withWorkshop({ ...it, quote_id: quoteId })));
+        await base44.entities.QuoteItem.bulkCreate(items.map((it) => ({ ...it, quote_id: quoteId })));
       }
       toast({ title: "Orçamento salvo" });
       navigate(`/orcamentos/${quoteId}`);
@@ -226,7 +225,7 @@ export default function QuoteEditor() {
         // persist items
         if (editing) {
           await base44.entities.QuoteItem.deleteMany({ quote_id: id });
-          if (updatedItems.length) await base44.entities.QuoteItem.bulkCreate(updatedItems.map((it) => withWorkshop({ ...it, quote_id: id })));
+          if (updatedItems.length) await base44.entities.QuoteItem.bulkCreate(updatedItems.map((it) => ({ ...it, quote_id: id })));
         }
       }
       if (editing) await base44.entities.Quote.update(id, patch);
@@ -243,7 +242,7 @@ export default function QuoteEditor() {
     if (!editing) return;
     setSaving(true);
     try {
-      const appt = await base44.entities.Appointment.create(withWorkshop({
+      const appt = await base44.entities.Appointment.create({
         customer_id: quote.customer_id,
         customer_name_snapshot: quote.customer_name_snapshot,
         vehicle_id: quote.vehicle_id,
@@ -255,7 +254,7 @@ export default function QuoteEditor() {
         reason: `Orçamento #${quote.number}`,
         status: "agendado",
         quote_id: id,
-      }));
+      });
       await base44.entities.Quote.update(id, { status: "agendado", appointment_id: appt.id });
       setQuote((q) => ({ ...q, status: "agendado", appointment_id: appt.id }));
       toast({ title: `Agendado para ${formatDate(date)}` });

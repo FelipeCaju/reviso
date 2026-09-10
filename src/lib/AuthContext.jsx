@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { setWorkshopId } from '@/lib/workshop';
 
 const AuthContext = createContext();
 
@@ -84,7 +83,6 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       setUser(currentUser);
-      setWorkshopId(currentUser?.workshop_id);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
@@ -107,7 +105,6 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    setWorkshopId(null);
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect

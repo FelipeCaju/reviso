@@ -2,10 +2,6 @@
   "name": "VehicleOwner",
   "type": "object",
   "properties": {
-    "workshop_id": {
-      "type": "string",
-      "title": "Oficina"
-    },
     "vehicle_id": {
       "type": "string",
       "title": "Ve\u00edculo"
@@ -37,19 +33,5 @@
   "required": [
     "vehicle_id",
     "customer_id"
-  ],
-  "rls": {
-    "read": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "update": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    }
-  }
+  ]
 }

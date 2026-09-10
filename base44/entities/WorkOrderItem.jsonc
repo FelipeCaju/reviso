@@ -2,10 +2,6 @@
   "name": "WorkOrderItem",
   "type": "object",
   "properties": {
-    "workshop_id": {
-      "type": "string",
-      "title": "Oficina"
-    },
     "work_order_id": {
       "type": "string",
       "title": "OS"
@@ -70,19 +66,5 @@
     "work_order_id",
     "type",
     "description"
-  ],
-  "rls": {
-    "read": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "update": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    }
-  }
+  ]
 }

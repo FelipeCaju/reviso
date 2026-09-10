@@ -7,11 +7,6 @@
         "admin",
         "user"
       ]
-    },
-    "workshop_id": {
-      "type": "string",
-      "title": "Oficina",
-      "description": "ID da oficina (tenant) \u00e0 qual este usu\u00e1rio pertence"
     }
   },
   "required": [

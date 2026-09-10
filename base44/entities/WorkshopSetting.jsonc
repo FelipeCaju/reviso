@@ -87,24 +87,5 @@
       "default": 0,
       "title": "Capacidade Domingo"
     }
-  },
-  "required": [],
-  "rls": {
-    "read": {
-      "id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "update": {
-      "id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    }
   }
 }

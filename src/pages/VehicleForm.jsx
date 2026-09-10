@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,15 +66,15 @@ export default function VehicleForm() {
         await syncOwner(id, form.current_owner_id);
         navigate(`/veiculos/${id}`);
       } else {
-        saved = await base44.entities.Vehicle.create(withWorkshop(payload));
+        saved = await base44.entities.Vehicle.create(payload);
         if (form.current_owner_id) {
-          await base44.entities.VehicleOwner.create(withWorkshop({
+          await base44.entities.VehicleOwner.create({
             vehicle_id: saved.id,
             customer_id: form.current_owner_id,
             customer_name_snapshot: customers.find((c) => c.id === form.current_owner_id)?.name || "",
             start_date: new Date().toISOString(),
             active: true,
-          }));
+          });
         }
         navigate(`/veiculos/${saved.id}`);
       }

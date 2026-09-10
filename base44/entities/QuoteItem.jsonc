@@ -2,10 +2,6 @@
   "name": "QuoteItem",
   "type": "object",
   "properties": {
-    "workshop_id": {
-      "type": "string",
-      "title": "Oficina"
-    },
     "quote_id": {
       "type": "string",
       "title": "Or\u00e7amento"
@@ -60,19 +56,5 @@
     "quote_id",
     "type",
     "description"
-  ],
-  "rls": {
-    "read": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "update": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    }
-  }
+  ]
 }

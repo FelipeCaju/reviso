@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +60,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
         plate_snapshot: normalizePlate(veh?.plate || ""),
         vehicle_description_snapshot: vehicleDescription(veh),
       };
-      await base44.entities.Appointment.create(withWorkshop(payload));
+      await base44.entities.Appointment.create(payload);
       onSaved?.();
       onClose();
     } finally {

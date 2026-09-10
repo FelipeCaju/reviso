@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Search, Users, ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,7 +54,7 @@ export default function Customers() {
     try {
       const data = editingId
         ? await base44.entities.Customer.update(editingId, form)
-        : await base44.entities.Customer.create(withWorkshop(form));
+        : await base44.entities.Customer.create(form);
       setOpen(false);
       await load();
       if (!editingId && data?.id) navigate(`/clientes/${data.id}`);

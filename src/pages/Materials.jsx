@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Search, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +51,7 @@ export default function Materials() {
     setSaving(true);
     try {
       if (editingId) await base44.entities.Material.update(editingId, form);
-      else await base44.entities.Material.create(withWorkshop(form));
+      else await base44.entities.Material.create(form);
       setOpen(false);
       await load();
     } finally {

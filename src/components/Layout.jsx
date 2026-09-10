@@ -83,13 +83,17 @@ export default function Layout() {
   const isPlatformOwner = userRole === "admin" && !user?.workshop_id;
   const visibleNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
-    : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
+    : isDemo
+      ? NAV
+      : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
   const visibleSecondary = isPlatformOwner
     ? []
     : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
   const visibleBottomNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
-    : MOBILE_BOTTOM_NAV.filter((item) => !item.roles || item.roles.includes(userRole));
+    : isDemo
+      ? MOBILE_BOTTOM_NAV
+      : MOBILE_BOTTOM_NAV.filter((item) => !item.roles || item.roles.includes(userRole));
   const canCreateQuote = userRole === "admin" && !isPlatformOwner;
 
   return (

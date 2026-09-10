@@ -1,0 +1,37 @@
+{
+  "name": "VehicleOwner",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "title": "Ve\u00edculo"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name_snapshot": {
+      "type": "string",
+      "title": "Nome do Propriet\u00e1rio (snapshot)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "In\u00edcio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Fim"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Ativo"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "customer_id"
+  ]
+}

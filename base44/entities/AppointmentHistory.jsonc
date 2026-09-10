@@ -1,0 +1,36 @@
+{
+  "name": "AppointmentHistory",
+  "type": "object",
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "title": "Agendamento"
+    },
+    "previous_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data Anterior"
+    },
+    "new_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Nova Data"
+    },
+    "changed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Quando"
+    },
+    "changed_by": {
+      "type": "string",
+      "title": "Usu\u00e1rio"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Motivo"
+    }
+  },
+  "required": [
+    "appointment_id"
+  ]
+}

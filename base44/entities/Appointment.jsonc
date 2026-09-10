@@ -1,0 +1,89 @@
+{
+  "name": "Appointment",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name_snapshot": {
+      "type": "string",
+      "title": "Cliente (snapshot)"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "title": "Ve\u00edculo"
+    },
+    "plate_snapshot": {
+      "type": "string",
+      "title": "Placa (snapshot)"
+    },
+    "vehicle_description_snapshot": {
+      "type": "string",
+      "title": "Ve\u00edculo (snapshot)"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data Prevista"
+    },
+    "scheduled_time": {
+      "type": "string",
+      "title": "Hor\u00e1rio"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "avaliacao",
+        "orcamento",
+        "manutencao",
+        "revisao",
+        "retorno",
+        "servico_agendado",
+        "outro"
+      ],
+      "default": "manutencao",
+      "title": "Tipo"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Motivo"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "agendado",
+        "confirmado",
+        "veiculo_recebido",
+        "em_atendimento",
+        "concluido",
+        "cancelado",
+        "nao_compareceu"
+      ],
+      "default": "agendado",
+      "title": "Status"
+    },
+    "quote_id": {
+      "type": "string",
+      "title": "Or\u00e7amento Relacionado"
+    },
+    "work_order_id": {
+      "type": "string",
+      "title": "OS Relacionada"
+    },
+    "actual_arrival": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Chegada Real"
+    }
+  },
+  "required": [
+    "customer_id",
+    "vehicle_id",
+    "scheduled_date"
+  ]
+}

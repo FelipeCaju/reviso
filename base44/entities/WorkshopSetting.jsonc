@@ -1,0 +1,91 @@
+{
+  "name": "WorkshopSetting",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome da Oficina"
+    },
+    "razao_social": {
+      "type": "string",
+      "title": "Raz\u00e3o Social"
+    },
+    "cnpj": {
+      "type": "string",
+      "title": "CNPJ"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Telefone"
+    },
+    "whatsapp": {
+      "type": "string",
+      "title": "WhatsApp"
+    },
+    "email": {
+      "type": "string",
+      "title": "E-mail"
+    },
+    "address": {
+      "type": "string",
+      "title": "Endere\u00e7o"
+    },
+    "logo_url": {
+      "type": "string",
+      "title": "Logo"
+    },
+    "default_quote_text": {
+      "type": "string",
+      "title": "Texto Padr\u00e3o Or\u00e7amento"
+    },
+    "default_validity_days": {
+      "type": "number",
+      "default": 15,
+      "title": "Validade Padr\u00e3o (dias)"
+    },
+    "default_os_note": {
+      "type": "string",
+      "title": "Observa\u00e7\u00e3o Padr\u00e3o OS"
+    },
+    "default_capacity": {
+      "type": "number",
+      "default": 8,
+      "title": "Capacidade Padr\u00e3o"
+    },
+    "capacity_monday": {
+      "type": "number",
+      "default": 8,
+      "title": "Capacidade Segunda"
+    },
+    "capacity_tuesday": {
+      "type": "number",
+      "default": 8,
+      "title": "Capacidade Ter\u00e7a"
+    },
+    "capacity_wednesday": {
+      "type": "number",
+      "default": 8,
+      "title": "Capacidade Quarta"
+    },
+    "capacity_thursday": {
+      "type": "number",
+      "default": 8,
+      "title": "Capacidade Quinta"
+    },
+    "capacity_friday": {
+      "type": "number",
+      "default": 6,
+      "title": "Capacidade Sexta"
+    },
+    "capacity_saturday": {
+      "type": "number",
+      "default": 3,
+      "title": "Capacidade S\u00e1bado"
+    },
+    "capacity_sunday": {
+      "type": "number",
+      "default": 0,
+      "title": "Capacidade Domingo"
+    }
+  }
+}

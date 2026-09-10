@@ -1,0 +1,128 @@
+{
+  "name": "Quote",
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "title": "Validade"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name_snapshot": {
+      "type": "string",
+      "title": "Cliente (snapshot)"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "title": "Ve\u00edculo"
+    },
+    "plate_snapshot": {
+      "type": "string",
+      "title": "Placa (snapshot)"
+    },
+    "vehicle_description_snapshot": {
+      "type": "string",
+      "title": "Ve\u00edculo (snapshot)"
+    },
+    "mileage": {
+      "type": "number",
+      "default": 0,
+      "title": "Quilometragem"
+    },
+    "customer_report": {
+      "type": "string",
+      "title": "Relato do Cliente"
+    },
+    "diagnosis": {
+      "type": "string",
+      "title": "Diagn\u00f3stico / Observa\u00e7\u00e3o"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es Adicionais"
+    },
+    "forecast": {
+      "type": "string",
+      "title": "Previs\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "aguardando_aprovacao",
+        "aprovado",
+        "parcialmente_aprovado",
+        "aguardando_agendamento",
+        "agendado",
+        "recusado",
+        "convertido_os",
+        "cancelado"
+      ],
+      "default": "rascunho",
+      "title": "Status"
+    },
+    "subtotal_parts": {
+      "type": "number",
+      "default": 0,
+      "title": "Subtotal Pe\u00e7as"
+    },
+    "subtotal_labor": {
+      "type": "number",
+      "default": 0,
+      "title": "Subtotal M\u00e3o de Obra"
+    },
+    "discount": {
+      "type": "number",
+      "default": 0,
+      "title": "Desconto"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "approval_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Data da Aprova\u00e7\u00e3o"
+    },
+    "approval_method": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "telefone",
+        "presencial",
+        "email",
+        "outro"
+      ],
+      "title": "Forma da Aprova\u00e7\u00e3o"
+    },
+    "approval_user": {
+      "type": "string",
+      "title": "Usu\u00e1rio da Aprova\u00e7\u00e3o"
+    },
+    "approval_notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00e3o da Aprova\u00e7\u00e3o"
+    },
+    "appointment_id": {
+      "type": "string",
+      "title": "Agendamento Relacionado"
+    }
+  },
+  "required": [
+    "number"
+  ]
+}

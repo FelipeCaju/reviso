@@ -1,0 +1,116 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name_snapshot": {
+      "type": "string",
+      "title": "Cliente (snapshot)"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "title": "Ve\u00edculo"
+    },
+    "plate_snapshot": {
+      "type": "string",
+      "title": "Placa (snapshot)"
+    },
+    "vehicle_description_snapshot": {
+      "type": "string",
+      "title": "Ve\u00edculo (snapshot)"
+    },
+    "mileage_in": {
+      "type": "number",
+      "default": 0,
+      "title": "Km Entrada"
+    },
+    "entry_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Entrada"
+    },
+    "expected_delivery": {
+      "type": "string",
+      "format": "date",
+      "title": "Previs\u00e3o Entrega"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Conclus\u00e3o"
+    },
+    "customer_report": {
+      "type": "string",
+      "title": "Relato"
+    },
+    "diagnosis": {
+      "type": "string",
+      "title": "Diagn\u00f3stico"
+    },
+    "mechanic_id": {
+      "type": "string",
+      "title": "Mec\u00e2nico Respons\u00e1vel"
+    },
+    "internal_notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es Internas"
+    },
+    "customer_notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es Cliente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aberta",
+        "aguardando_pecas",
+        "em_execucao",
+        "aguardando_aprovacao_adicional",
+        "finalizada",
+        "pronta_retirada",
+        "entregue",
+        "cancelada"
+      ],
+      "default": "aberta",
+      "title": "Status"
+    },
+    "subtotal_parts": {
+      "type": "number",
+      "default": 0,
+      "title": "Subtotal Pe\u00e7as"
+    },
+    "subtotal_labor": {
+      "type": "number",
+      "default": 0,
+      "title": "Subtotal M\u00e3o de Obra"
+    },
+    "discount": {
+      "type": "number",
+      "default": 0,
+      "title": "Desconto"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "quote_id": {
+      "type": "string",
+      "title": "Or\u00e7amento de Origem"
+    },
+    "appointment_id": {
+      "type": "string",
+      "title": "Agendamento de Origem"
+    }
+  },
+  "required": [
+    "number"
+  ]
+}

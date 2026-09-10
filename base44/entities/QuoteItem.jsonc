@@ -1,0 +1,60 @@
+{
+  "name": "QuoteItem",
+  "type": "object",
+  "properties": {
+    "quote_id": {
+      "type": "string",
+      "title": "Or\u00e7amento"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "material",
+        "servico"
+      ],
+      "title": "Tipo"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "title": "Quantidade"
+    },
+    "unit_price": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Unit\u00e1rio"
+    },
+    "discount": {
+      "type": "number",
+      "default": 0,
+      "title": "Desconto"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "material_id": {
+      "type": "string",
+      "title": "Material (origem)"
+    },
+    "service_id": {
+      "type": "string",
+      "title": "Servi\u00e7o (origem)"
+    },
+    "approved": {
+      "type": "boolean",
+      "default": true,
+      "title": "Aprovado"
+    }
+  },
+  "required": [
+    "quote_id",
+    "type",
+    "description"
+  ]
+}

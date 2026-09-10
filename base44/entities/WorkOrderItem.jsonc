@@ -1,0 +1,70 @@
+{
+  "name": "WorkOrderItem",
+  "type": "object",
+  "properties": {
+    "work_order_id": {
+      "type": "string",
+      "title": "OS"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "material",
+        "servico"
+      ],
+      "title": "Tipo"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "title": "Quantidade"
+    },
+    "unit_price": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Unit\u00e1rio"
+    },
+    "discount": {
+      "type": "number",
+      "default": 0,
+      "title": "Desconto"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "material_id": {
+      "type": "string",
+      "title": "Material (origem)"
+    },
+    "service_id": {
+      "type": "string",
+      "title": "Servi\u00e7o (origem)"
+    },
+    "added_after_approval": {
+      "type": "boolean",
+      "default": false,
+      "title": "Adicionado Ap\u00f3s Aprova\u00e7\u00e3o"
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": [
+        "aprovado",
+        "aguardando",
+        "recusado"
+      ],
+      "default": "aprovado",
+      "title": "Status de Aprova\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "work_order_id",
+    "type",
+    "description"
+  ]
+}

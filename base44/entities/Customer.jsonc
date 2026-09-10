@@ -1,0 +1,66 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome / Raz\u00e3o Social"
+    },
+    "cpf_cnpj": {
+      "type": "string",
+      "title": "CPF / CNPJ"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Telefone"
+    },
+    "whatsapp": {
+      "type": "string",
+      "title": "WhatsApp"
+    },
+    "email": {
+      "type": "string",
+      "title": "E-mail"
+    },
+    "cep": {
+      "type": "string",
+      "title": "CEP"
+    },
+    "address": {
+      "type": "string",
+      "title": "Endere\u00e7o"
+    },
+    "number": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "complement": {
+      "type": "string",
+      "title": "Complemento"
+    },
+    "neighborhood": {
+      "type": "string",
+      "title": "Bairro"
+    },
+    "city": {
+      "type": "string",
+      "title": "Cidade"
+    },
+    "state": {
+      "type": "string",
+      "title": "Estado"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Ativo"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

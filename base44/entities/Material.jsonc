@@ -1,0 +1,49 @@
+{
+  "name": "Material",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "title": "C\u00f3digo Interno"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "category": {
+      "type": "string",
+      "title": "Categoria"
+    },
+    "brand": {
+      "type": "string",
+      "title": "Marca"
+    },
+    "unit": {
+      "type": "string",
+      "default": "un",
+      "title": "Unidade"
+    },
+    "cost": {
+      "type": "number",
+      "default": 0,
+      "title": "Custo"
+    },
+    "sale_price": {
+      "type": "number",
+      "default": 0,
+      "title": "Pre\u00e7o de Venda"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00e3o"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Ativo"
+    }
+  },
+  "required": [
+    "description"
+  ]
+}

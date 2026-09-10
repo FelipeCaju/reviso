@@ -1,0 +1,80 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "carro",
+        "moto",
+        "caminhonete",
+        "van",
+        "caminhao",
+        "outro"
+      ],
+      "default": "carro",
+      "title": "Tipo"
+    },
+    "plate": {
+      "type": "string",
+      "title": "Placa"
+    },
+    "brand": {
+      "type": "string",
+      "title": "Marca"
+    },
+    "model": {
+      "type": "string",
+      "title": "Modelo"
+    },
+    "version": {
+      "type": "string",
+      "title": "Vers\u00e3o"
+    },
+    "year_manufacture": {
+      "type": "number",
+      "title": "Ano Fabrica\u00e7\u00e3o"
+    },
+    "year_model": {
+      "type": "number",
+      "title": "Ano Modelo"
+    },
+    "color": {
+      "type": "string",
+      "title": "Cor"
+    },
+    "fuel": {
+      "type": "string",
+      "title": "Combust\u00edvel"
+    },
+    "mileage": {
+      "type": "number",
+      "default": 0,
+      "title": "Quilometragem"
+    },
+    "chassis": {
+      "type": "string",
+      "title": "Chassi"
+    },
+    "renavam": {
+      "type": "string",
+      "title": "Renavam"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    },
+    "current_owner_id": {
+      "type": "string",
+      "title": "Propriet\u00e1rio Atual"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Ativo"
+    }
+  },
+  "required": [
+    "plate"
+  ]
+}

@@ -20,7 +20,9 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import QuickSearch from "@/components/QuickSearch";
-import Logo from "@/components/Logo";
+import { Image as ImgCmp } from "@/components/ui/image";
+
+const SIDEBAR_LOGO_URL = "https://media.base44.com/images/public/6aa29ae2c83b44fa65bdbaa2/a428f7140_NovoProjeto.png";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true, roles: ["admin", "user"] },
@@ -83,7 +85,7 @@ export default function Layout() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
-          <Logo className="w-9 h-9 shrink-0" />
+          <ImgCmp src={SIDEBAR_LOGO_URL} alt="Revisô" fittingType="fit" className="w-9 h-9 shrink-0 rounded-lg" />
           <div className="font-heading font-semibold leading-tight text-white">
             <div className="text-sm">Revisô</div>
             <div className="text-xs text-sidebar-foreground font-normal">Gestão Mecânica</div>
@@ -126,7 +128,7 @@ export default function Layout() {
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-30 bg-sidebar border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-3 h-14">
-          <Logo className="w-8 h-8 shrink-0" />
+          <ImgCmp src={SIDEBAR_LOGO_URL} alt="Revisô" fittingType="fit" className="w-8 h-8 shrink-0 rounded-lg" />
           <div className="flex-1 min-w-0">
             <QuickSearch />
           </div>

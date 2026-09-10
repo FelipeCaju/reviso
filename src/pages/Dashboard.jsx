@@ -80,42 +80,40 @@ export default function Dashboard() {
       {/* Capacity highlight */}
       <button
         onClick={() => navigate("/agenda")}
-        className="w-full rounded-xl border border-border bg-gradient-to-br from-primary to-primary/90 text-primary-foreground p-5 text-left hover:opacity-95 transition"
+        className="w-full rounded-2xl bg-sidebar border border-sidebar-border border-l-4 border-l-primary p-5 text-left hover:shadow-lg transition flex items-center justify-between"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm opacity-80">Hoje na Oficina</div>
-            <div className="text-3xl font-bold mt-1">{activeToday.length} / {todayCap}</div>
-            <div className="text-sm opacity-80 mt-1">veículos agendados</div>
-          </div>
-          <div className="text-5xl opacity-30">🔧</div>
+        <div>
+          <div className="text-sm text-sidebar-foreground">Hoje na Oficina</div>
+          <div className="text-3xl font-bold mt-1 text-white">{activeToday.length} / {todayCap}</div>
+          <div className="text-sm text-sidebar-foreground mt-1">veículos agendados</div>
         </div>
+        <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center text-2xl shrink-0">🔧</div>
       </button>
 
       {/* Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <Stat label="Aguardando Aprovação" value={waitingApproval} onClick={() => navigate("/orcamentos?status=aguardando_aprovacao")} />
-        <Stat label="Aprovados p/ Agendar" value={approvedWaitingSched} onClick={() => navigate("/orcamentos?status=aprovado")} />
-        <Stat label="OS Abertas" value={openWO} onClick={() => navigate("/os")} />
-        <Stat label="OS em Execução" value={execWO} onClick={() => navigate("/os")} />
-        <Stat label="Veículos Prontos" value={readyWO} onClick={() => navigate("/os")} />
-        <Stat label="OS Finalizadas (mês)" value={monthWO.length} />
-        <Stat label="Faturamento (mês)" value={formatCurrency(monthRevenue)} wide />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat label="Aguardando Aprovação" value={waitingApproval} accent="amber" onClick={() => navigate("/orcamentos?status=aguardando_aprovacao")} />
+        <Stat label="Aprovados p/ Agendar" value={approvedWaitingSched} accent="emerald" onClick={() => navigate("/orcamentos?status=aprovado")} />
+        <Stat label="OS Abertas" value={openWO} accent="slate" onClick={() => navigate("/os")} />
+        <Stat label="OS em Execução" value={execWO} accent="teal" onClick={() => navigate("/os")} />
+        <Stat label="Veículos Prontos" value={readyWO} accent="emerald" onClick={() => navigate("/os")} />
+        <Stat label="OS Finalizadas (mês)" value={monthWO.length} accent="slate" />
+        <Stat label="Faturamento (mês)" value={formatCurrency(monthRevenue)} wide accent="amber" />
       </div>
 
       {/* Today list */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="font-medium text-sm">Hoje na Oficina</h2>
-          <span className="text-xs text-muted-foreground">{activeToday.length}/{todayCap}</span>
+      <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 bg-accent/40 border-b border-border">
+          <h2 className="font-semibold text-sm">Hoje na Oficina</h2>
+          <span className="text-xs font-medium text-muted-foreground bg-card px-2 py-0.5 rounded-full border border-border">{activeToday.length}/{todayCap}</span>
         </div>
         {activeToday.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum veículo agendado para hoje.</div>
         ) : (
           <div>
             {withTime.map((a) => (
-              <button key={a.id} onClick={() => navigate("/agenda")} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent border-b border-border">
-                <div className="text-sm font-mono font-medium w-12 shrink-0">{a.scheduled_time}</div>
+              <button key={a.id} onClick={() => navigate("/agenda")} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-accent/30 border-b border-border transition">
+                <div className="text-sm font-mono font-medium w-12 shrink-0 text-primary">{a.scheduled_time}</div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">{a.customer_name_snapshot}</div>
                   <div className="text-xs text-muted-foreground truncate">{a.vehicle_description_snapshot} · {normalizePlate(a.plate_snapshot)}</div>
@@ -127,7 +125,7 @@ export default function Dashboard() {
               <div className="px-4 py-1.5 text-xs uppercase tracking-wide text-muted-foreground bg-muted/40">Sem horário</div>
             )}
             {noTime.map((a) => (
-              <button key={a.id} onClick={() => navigate("/agenda")} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent border-b border-border last:border-0">
+              <button key={a.id} onClick={() => navigate("/agenda")} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-accent/30 border-b border-border last:border-0 transition">
                 <div className="text-xs text-muted-foreground w-12 shrink-0">—</div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">{a.customer_name_snapshot}</div>
@@ -141,20 +139,20 @@ export default function Dashboard() {
       </div>
 
       {/* Tomorrow */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="font-medium text-sm">Amanhã</h2>
-          <span className="text-xs text-muted-foreground">{tomorrow.length}/{capacityFor(addDaysISO(1))}</span>
+      <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 bg-accent/40 border-b border-border">
+          <h2 className="font-semibold text-sm">Amanhã</h2>
+          <span className="text-xs font-medium text-muted-foreground bg-card px-2 py-0.5 rounded-full border border-border">{tomorrow.length}/{capacityFor(addDaysISO(1))}</span>
         </div>
         {tomorrow.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum veículo previsto.</div>
         ) : (
           <div>
             {tomorrow.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0">
-                <div className="text-xs font-mono w-12 shrink-0">{a.scheduled_time || "—"}</div>
+              <div key={a.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
+                <div className="text-xs font-mono w-12 shrink-0 text-primary">{a.scheduled_time || "—"}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm truncate">{a.customer_name_snapshot}</div>
+                  <div className="text-sm font-medium truncate">{a.customer_name_snapshot}</div>
                   <div className="text-xs text-muted-foreground truncate">{normalizePlate(a.plate_snapshot)}</div>
                 </div>
                 <span className="text-xs text-muted-foreground">{appointmentTypeInfo[a.type]}</span>
@@ -167,15 +165,21 @@ export default function Dashboard() {
   );
 }
 
-function Stat({ label, value, onClick, wide }) {
+function Stat({ label, value, onClick, wide, accent = "slate" }) {
   const Comp = onClick ? "button" : "div";
+  const accentBorder = {
+    amber: "border-l-amber-500",
+    emerald: "border-l-emerald-500",
+    teal: "border-l-teal-500",
+    slate: "border-l-slate-400",
+  }[accent];
   return (
     <Comp
       onClick={onClick}
-      className={`text-left rounded-xl border border-border bg-card p-3 ${onClick ? "hover:bg-accent" : ""} ${wide ? "col-span-2" : ""}`}
+      className={`text-left rounded-xl bg-card border border-border border-l-4 ${accentBorder} p-3.5 ${onClick ? "hover:shadow-md hover:-translate-y-0.5" : ""} transition-all ${wide ? "col-span-2" : ""}`}
     >
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg md:text-xl font-semibold mt-1">{value}</div>
+      <div className="text-lg md:text-xl font-bold mt-1 text-foreground">{value}</div>
     </Comp>
   );
 }

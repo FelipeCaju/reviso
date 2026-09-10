@@ -45,15 +45,15 @@ export const workOrderStatusInfo = {
 
 export function QuoteStatusBadge({ status }) {
   const info = quoteStatusInfo[status] || { label: status, className: "bg-slate-100 text-slate-700" };
-  return <Badge className={info.className + " font-normal"}>{info.label}</Badge>;
+  return <Badge className={info.className + " font-normal rounded-full border-0"}>{info.label}</Badge>;
 }
 
 export function AppointmentStatusBadge({ status }) {
   const info = appointmentStatusInfo[status] || { label: status, className: "bg-slate-100 text-slate-700" };
-  return <Badge className={info.className + " font-normal"}>{info.label}</Badge>;
+  return <Badge className={info.className + " font-normal rounded-full border-0"}>{info.label}</Badge>;
 }
 
 export function WorkOrderStatusBadge({ status }) {
   const info = workOrderStatusInfo[status] || { label: status, className: "bg-slate-100 text-slate-700" };
-  return <Badge className={info.className + " font-normal"}>{info.label}</Badge>;
+  return <Badge className={info.className + " font-normal rounded-full border-0"}>{info.label}</Badge>;
 }

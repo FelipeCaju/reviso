@@ -46,8 +46,8 @@ function NavItem({ item, onNavigate }) {
       className={({ isActive }) =>
         `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           isActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            ? "bg-primary/15 text-primary"
+            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-white"
         }`
       }
     >
@@ -67,44 +67,50 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-border bg-sidebar">
-        <div className="flex items-center gap-2 px-5 h-16 border-b border-border">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
+        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
             OF
           </div>
-          <div className="font-heading font-semibold leading-tight">
+          <div className="font-heading font-semibold leading-tight text-white">
             <div className="text-sm">Oficina</div>
-            <div className="text-xs text-muted-foreground font-normal">Gestão</div>
+            <div className="text-xs text-sidebar-foreground font-normal">Gestão</div>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        <div className="px-3 pt-3 pb-2 space-y-2">
+          <QuickSearch />
+          <Button onClick={() => navigate("/orcamentos/novo")} className="w-full">
+            <Plus className="w-4 h-4 mr-2" /> Novo Orçamento
+          </Button>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 pb-2 space-y-0.5">
           {NAV.map((item) => (
             <NavItem key={item.to} item={item} />
           ))}
-          <div className="pt-2 mt-2 border-t border-border space-y-1">
+          <div className="pt-2 mt-2 border-t border-sidebar-border space-y-0.5">
             {NAV_SECONDARY.map((item) => (
               <NavItem key={item.to} item={item} />
             ))}
           </div>
         </nav>
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
-            <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-xs font-semibold">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
               {(user?.full_name || user?.email || "?").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-medium truncate">{user?.full_name || "Usuário"}</div>
-              <div className="text-[11px] text-muted-foreground truncate">{user?.email}</div>
+              <div className="text-xs font-medium truncate text-white">{user?.full_name || "Usuário"}</div>
+              <div className="text-[11px] text-sidebar-foreground truncate">{user?.email}</div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
+          <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" /> Sair
           </Button>
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
+      <header className="md:hidden sticky top-0 z-30 bg-sidebar border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-3 h-14">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
             OF
@@ -112,18 +118,6 @@ export default function Layout() {
           <div className="flex-1 min-w-0">
             <QuickSearch />
           </div>
-        </div>
-      </header>
-
-      {/* Desktop top search bar */}
-      <header className="hidden md:block sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="ml-60 px-6 h-16 flex items-center gap-4">
-          <div className="flex-1 max-w-xl">
-            <QuickSearch />
-          </div>
-          <Button onClick={() => navigate("/orcamentos/novo")} className="ml-auto">
-            <Plus className="w-4 h-4 mr-2" /> Novo Orçamento
-          </Button>
         </div>
       </header>
 
@@ -135,7 +129,7 @@ export default function Layout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-background border-t border-border">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
         <div className="grid grid-cols-6">
           {NAV.slice(0, 5).map((item) => {
             const Icon = item.icon;

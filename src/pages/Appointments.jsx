@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Plus, ChevronLeft, ChevronRight, Car, GripVertical } from "lucide-react";
+import { useSearchParams, Link } from "react-router-dom";
+import { Plus, ChevronLeft, ChevronRight, Car, GripVertical, FileText, Pencil } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -48,17 +48,20 @@ export default function Appointments() {
   const [formPrefill, setFormPrefill] = useState({});
   const [detail, setDetail] = useState(null);
   const [detailNotes, setDetailNotes] = useState("");
+  const [quotes, setQuotes] = useState([]);
+  const [editingAppt, setEditingAppt] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [a, c, v, s] = await Promise.all([
+      const [a, c, v, s, q] = await Promise.all([
         base44.entities.Appointment.list("-updated_date", 500),
         base44.entities.Customer.list("-updated_date", 500),
         base44.entities.Vehicle.list("-updated_date", 500),
         base44.entities.WorkshopSetting.list("-updated_date", 1),
+        base44.entities.Quote.list("-updated_date", 500),
       ]);
-      setAppointments(a); setCustomers(c); setVehicles(v); setSettings(s[0] || null);
+      setAppointments(a); setCustomers(c); setVehicles(v); setSettings(s[0] || null); setQuotes(q);
     } finally {
       setLoading(false);
     }
@@ -94,6 +97,13 @@ export default function Appointments() {
     appointments
       .filter((a) => a.scheduled_date === dateStr && !["cancelado"].includes(a.status))
       .sort((a, b) => (a.scheduled_time || "99").localeCompare(b.scheduled_time || "99"));
+
+  const cardStyle = (a) => {
+    if (a.quote_id) return "bg-emerald-50 hover:bg-emerald-100 border-emerald-300";
+    if (a.status === "agendado" && !a.quote_id) return "bg-rose-50 hover:bg-rose-100 border-rose-300";
+    if (a.scheduled_date === todayISO()) return "bg-amber-50 hover:bg-amber-100 border-amber-300";
+    return "bg-accent/40 hover:bg-accent border-border";
+  };
 
   const thisWeekStart = mondayOf(todayISO());
   const nextWeekStart = addDaysISO(7, new Date(thisWeekStart + "T00:00:00"));
@@ -141,7 +151,10 @@ export default function Appointments() {
       <>
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-medium">{a.scheduled_time || "s/ horário"}</span>
-          <AppointmentStatusBadge status={a.status} />
+          <div className="flex items-center gap-1">
+            {a.quote_id && <FileText className="w-3 h-3 text-emerald-600" />}
+            <AppointmentStatusBadge status={a.status} />
+          </div>
         </div>
         <div className="text-sm font-medium truncate mt-0.5">{a.customer_name_snapshot}</div>
         <div className="text-xs text-muted-foreground truncate">{a.vehicle_description_snapshot} · {normalizePlate(a.plate_snapshot)}</div>
@@ -151,7 +164,7 @@ export default function Appointments() {
     if (!draggable) {
       return (
         <button key={a.id} onClick={() => { setDetail(a); setDetailNotes(a.notes || ""); }}
-          className="w-full text-left rounded-lg bg-accent/40 hover:bg-accent p-2 border border-border">
+          className={`w-full text-left rounded-lg p-2 border ${cardStyle(a)}`}>
           {inner}
         </button>
       );
@@ -162,7 +175,7 @@ export default function Appointments() {
           <div
             ref={prov.innerRef} {...prov.draggableProps}
             onClick={() => { setDetail(a); setDetailNotes(a.notes || ""); }}
-            className={`rounded-lg bg-accent/40 hover:bg-accent p-2 border border-border cursor-grab ${snap.isDragging ? "shadow-lg ring-1 ring-primary opacity-90" : ""}`}
+            className={`rounded-lg p-2 border cursor-grab ${cardStyle(a)} ${snap.isDragging ? "shadow-lg ring-1 ring-primary opacity-90" : ""}`}
           >
             <div {...prov.dragHandleProps} className="flex justify-center mb-0.5">
               <GripVertical className="w-3 h-3 text-muted-foreground/40" />
@@ -268,7 +281,7 @@ export default function Appointments() {
         )}
       </div>
 
-      <AppointmentFormDialog open={formOpen} onClose={() => setFormOpen(false)} onSaved={load} prefill={formPrefill} customers={customers} vehicles={vehicles} />
+      <AppointmentFormDialog open={formOpen} onClose={() => { setFormOpen(false); setEditingAppt(null); }} onSaved={load} prefill={formPrefill} appointment={editingAppt} customers={customers} vehicles={vehicles} />
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-w-md">
@@ -293,7 +306,18 @@ export default function Appointments() {
                   <Label className="text-xs font-medium">Observação</Label>
                   <Textarea rows={2} value={detailNotes} onChange={(e) => setDetailNotes(e.target.value)} />
                 </div>
+                {detail.quote_id && (() => {
+                  const q = quotes.find((x) => x.id === detail.quote_id);
+                  return (
+                    <Link to={`/orcamentos/${detail.quote_id}`} className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5" /> Orçamento vinculado: {q?.number || "ver"}
+                    </Link>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-2">
+                  <Button variant="secondary" onClick={() => { setEditingAppt(detail); setDetail(null); setFormOpen(true); }}>
+                    <Pencil className="w-4 h-4 mr-1" /> Editar
+                  </Button>
                   {detail.status !== "confirmado" && <Button variant="outline" onClick={() => updateStatus(detail, "confirmado")}>Confirmar</Button>}
                   {detail.status !== "veiculo_recebido" && detail.status !== "em_atendimento" && detail.status !== "concluido" && (
                     <Button onClick={() => updateStatus(detail, "veiculo_recebido", { actual_arrival: new Date().toISOString() })}>Veículo Chegou</Button>

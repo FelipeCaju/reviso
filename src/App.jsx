@@ -16,6 +16,9 @@ import Dashboard from '@/pages/Dashboard';
 import Appointments from '@/pages/Appointments';
 import Quotes from '@/pages/Quotes';
 import QuoteEditor from '@/pages/QuoteEditor';
+import WorkOrders from '@/pages/WorkOrders';
+import WorkOrderEditor from '@/pages/WorkOrderEditor';
+import Reports from '@/pages/Reports';
 import Customers from '@/pages/Customers';
 import CustomerDetail from '@/pages/CustomerDetail';
 import CustomerForm from '@/pages/CustomerForm';
@@ -63,6 +66,10 @@ const AuthenticatedApp = () => {
           <Route path="/orcamentos" element={<Quotes />} />
           <Route path="/orcamentos/novo" element={<QuoteEditor />} />
           <Route path="/orcamentos/:id" element={<QuoteEditor />} />
+          <Route path="/os" element={<WorkOrders />} />
+          <Route path="/os/novo" element={<WorkOrderEditor />} />
+          <Route path="/os/:id" element={<WorkOrderEditor />} />
+          <Route path="/relatorios" element={<Reports />} />
           <Route path="/clientes" element={<Customers />} />
           <Route path="/clientes/novo" element={<CustomerForm />} />
           <Route path="/clientes/:id" element={<CustomerDetail />} />

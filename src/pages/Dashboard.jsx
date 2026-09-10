@@ -96,9 +96,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <Stat label="Aguardando Aprovação" value={waitingApproval} onClick={() => navigate("/orcamentos?status=aguardando_aprovacao")} />
         <Stat label="Aprovados p/ Agendar" value={approvedWaitingSched} onClick={() => navigate("/orcamentos?status=aprovado")} />
-        <Stat label="OS Abertas" value={openWO} />
-        <Stat label="OS em Execução" value={execWO} />
-        <Stat label="Veículos Prontos" value={readyWO} />
+        <Stat label="OS Abertas" value={openWO} onClick={() => navigate("/os")} />
+        <Stat label="OS em Execução" value={execWO} onClick={() => navigate("/os")} />
+        <Stat label="Veículos Prontos" value={readyWO} onClick={() => navigate("/os")} />
         <Stat label="OS Finalizadas (mês)" value={monthWO.length} />
         <Stat label="Faturamento (mês)" value={formatCurrency(monthRevenue)} wide />
       </div>

@@ -24,19 +24,16 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/orcamentos", label: "Orçamentos", icon: FileText },
+  { to: "/os", label: "Ordens de Serviço", icon: ClipboardList },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/veiculos", label: "Veículos", icon: Car },
   { to: "/materiais", label: "Materiais", icon: Package },
   { to: "/servicos", label: "Serviços", icon: Wrench },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
 const NAV_SECONDARY = [
   { to: "/configuracoes", label: "Configurações", icon: SettingsIcon },
-];
-
-const COMING_SOON = [
-  { label: "Ordens de Serviço", icon: ClipboardList },
-  { label: "Relatórios", icon: BarChart3 },
 ];
 
 function NavItem({ item, onNavigate }) {
@@ -88,20 +85,6 @@ export default function Layout() {
             {NAV_SECONDARY.map((item) => (
               <NavItem key={item.to} item={item} />
             ))}
-            {COMING_SOON.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground/60 cursor-not-allowed"
-                  title="Em breve"
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                  <span className="ml-auto text-[10px] uppercase tracking-wide">em breve</span>
-                </div>
-              );
-            })}
           </div>
         </nav>
         <div className="p-3 border-t border-border">
@@ -196,6 +179,9 @@ export default function Layout() {
               </button>
             </div>
             <div className="space-y-1">
+              {NAV.slice(5).map((item) => (
+                <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
+              ))}
               {NAV_SECONDARY.map((item) => (
                 <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
               ))}
@@ -208,18 +194,6 @@ export default function Layout() {
               >
                 <Plus className="w-4 h-4" /> Novo Orçamento
               </button>
-              {COMING_SOON.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground/60"
-                  >
-                    <Icon className="w-4 h-4" /> {item.label}
-                    <span className="ml-auto text-[10px] uppercase">em breve</span>
-                  </div>
-                );
-              })}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent w-full"

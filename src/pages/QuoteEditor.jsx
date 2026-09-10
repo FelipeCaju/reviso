@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown,
+  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { QuoteStatusBadge, quoteStatusInfo } from "@/components/StatusBadge";
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
+import { generateQuotePDF } from "@/lib/pdf";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -277,8 +278,18 @@ export default function QuoteEditor() {
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {editing && <QuoteStatusBadge status={quote.status} />}
+          {editing && (
+            <Button size="sm" variant="outline" onClick={() => generateQuotePDF(quote, items, settings)}>
+              <FileDown className="w-4 h-4 mr-1" /> PDF
+            </Button>
+          )}
+          {editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento", "agendado"].includes(quote.status) && (
+            <Button size="sm" variant="secondary" onClick={() => navigate(`/os/novo?orcamento=${id}`)}>
+              <ClipboardList className="w-4 h-4 mr-1" /> Converter em OS
+            </Button>
+          )}
           <Button size="sm" onClick={() => save()} disabled={saving}>
             <Save className="w-4 h-4 mr-1" /> Salvar
           </Button>

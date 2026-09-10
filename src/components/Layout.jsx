@@ -35,6 +35,7 @@ const NAV = [
 
 const NAV_SECONDARY = [
   { to: "/configuracoes", label: "Configurações", icon: SettingsIcon, roles: ["admin"] },
+  { to: "/admin", label: "Nova Oficina", icon: Building2, roles: ["admin"] },
 ];
 
 function NavItem({ item, onNavigate }) {
@@ -70,7 +71,9 @@ export default function Layout() {
   const visibleNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
     : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
-  const visibleSecondary = isPlatformOwner ? [] : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
+  const visibleSecondary = isPlatformOwner
+    ? []
+    : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
   const canCreateQuote = userRole === "admin" && !isPlatformOwner;
   const hasMore = visibleNav.length > 5 || visibleSecondary.length > 0;
 

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/format";
+import CurrencyInput from "@/components/CurrencyInput";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
@@ -145,12 +146,12 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
                     <Input type="number" className="h-11" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Valor unit.</Label>
-                    <Input type="number" className="h-11" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+                    <Label className="text-xs">Valor</Label>
+                    <CurrencyInput className="h-11" value={price} onValueChange={setPrice} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Desc.</Label>
-                    <Input type="number" className="h-11" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} />
+                    <CurrencyInput className="h-11" value={discount} onValueChange={setDiscount} />
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -189,12 +190,12 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Valor unit.</Label>
-                <Input type="number" className="h-11" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+                <Label className="text-xs">Valor</Label>
+                <CurrencyInput className="h-11" value={price} onValueChange={setPrice} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Desc.</Label>
-                <Input type="number" className="h-11" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} />
+                <CurrencyInput className="h-11" value={discount} onValueChange={setDiscount} />
               </div>
             </div>
             <div className="flex items-center justify-between">

@@ -8,6 +8,7 @@ import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import CurrencyInput from "@/components/CurrencyInput";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -530,12 +531,12 @@ export default function QuoteEditor() {
                     <Input type="number" className="h-9 text-sm" value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })} />
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Unit.</Label>
-                    <Input type="number" className="h-9 text-sm" value={it.unit_price} onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) })} />
+                    <Label className="text-[10px] text-muted-foreground">Valor</Label>
+                    <CurrencyInput className="h-9 text-sm" value={it.unit_price} onValueChange={(v) => updateItem(idx, { unit_price: v })} />
                   </div>
                   <div>
                     <Label className="text-[10px] text-muted-foreground">Desc.</Label>
-                    <Input type="number" className="h-9 text-sm" value={it.discount} onChange={(e) => updateItem(idx, { discount: Number(e.target.value) })} />
+                    <CurrencyInput className="h-9 text-sm" value={it.discount} onValueChange={(v) => updateItem(idx, { discount: v })} />
                   </div>
                 </div>
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
@@ -553,7 +554,7 @@ export default function QuoteEditor() {
       {/* Quote-level discount */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-2">
         <Label className="text-xs">Desconto sobre o total</Label>
-        <Input type="number" className="h-11" value={quote.discount} onChange={(e) => set("discount", Number(e.target.value))} />
+        <CurrencyInput className="h-11" value={quote.discount} onValueChange={(v) => set("discount", v)} />
       </div>
 
       {/* Status (editing) */}

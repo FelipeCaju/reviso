@@ -40,12 +40,6 @@ export default function WorkOrders() {
     });
   }, [orders, q, statusFilter]);
 
-  const counts = useMemo(() => {
-    const c = { aberta: 0, em_execucao: 0, aguardando_pecas: 0, pronta_retirada: 0, finalizada: 0 };
-    orders.forEach((w) => { if (c[w.status] != null) c[w.status]++; });
-    return c;
-  }, [orders]);
-
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
   return (
@@ -58,25 +52,6 @@ export default function WorkOrders() {
         <Button onClick={() => navigate("/os/novo")}>
           <Plus className="w-4 h-4 mr-2" /> Nova OS
         </Button>
-      </div>
-
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-        {[
-          { k: "aberta", label: "Abertas" },
-          { k: "em_execucao", label: "Em Execução" },
-          { k: "aguardando_pecas", label: "Aguard. Peças" },
-          { k: "pronta_retirada", label: "Prontas" },
-          { k: "finalizada", label: "Finalizadas" },
-        ].map((s) => (
-          <button
-            key={s.k}
-            onClick={() => setStatusFilter(statusFilter === s.k ? "" : s.k)}
-            className={`rounded-xl border p-2.5 text-center transition ${statusFilter === s.k ? "border-primary bg-primary/5" : "border-border bg-card"}`}
-          >
-            <div className="text-lg font-bold">{counts[s.k] || 0}</div>
-            <div className="text-[10px] text-muted-foreground">{s.label}</div>
-          </button>
-        ))}
       </div>
 
       <div className="relative">

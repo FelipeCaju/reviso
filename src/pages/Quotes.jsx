@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, FileText, ChevronRight } from "lucide-react";
+import { Plus, Search, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,18 +83,25 @@ export default function Quotes() {
           <p className="text-sm">Nenhum orçamento encontrado.</p>
         </div>
       ) : (
-        <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+        <div className="space-y-2">
           {filtered.map((it) => (
-            <button key={it.id} onClick={() => navigate(`/orcamentos/${it.id}`)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent">
-              <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-xs font-mono font-semibold shrink-0">
-                #{it.number}
+            <button
+              key={it.id}
+              onClick={() => navigate(`/orcamentos/${it.id}`)}
+              className="w-full text-left rounded-xl border border-border bg-card p-3 hover:bg-accent transition"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium text-sm">#{it.number}</div>
+                <QuoteStatusBadge status={it.status} />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{it.customer_name_snapshot || "—"} · {normalizePlate(it.plate_snapshot)}</div>
-                <div className="text-xs text-muted-foreground">{formatDate(it.date)} · {formatCurrency(it.total)}</div>
+              <div className="mt-1 text-sm font-medium truncate">{it.customer_name_snapshot || "—"}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {it.vehicle_description_snapshot} · {normalizePlate(it.plate_snapshot)}
               </div>
-              <QuoteStatusBadge status={it.status} />
-              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{formatDate(it.date)}</span>
+                <span className="font-medium text-foreground">{formatCurrency(it.total)}</span>
+              </div>
             </button>
           ))}
         </div>

@@ -22,7 +22,7 @@ export default function Dashboard() {
       try {
         const t = todayISO();
         const tm = addDaysISO(1);
-        const [todayAppts, tomorrowAppts, allQuotes, allWO, settingsList] = await Promise.all([
+        const [todayAppts, tomorrowAppts, allQuotes, allWO, settingsList, allTx] = await Promise.all([
           base44.entities.Appointment.filter({ scheduled_date: t }, "scheduled_time", 50),
           base44.entities.Appointment.filter({ scheduled_date: tm }, "scheduled_time", 50),
           base44.entities.Quote.list("-date", 200),

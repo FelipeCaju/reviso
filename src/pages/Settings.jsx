@@ -18,6 +18,7 @@ const DEFAULT = {
   demo_email: "", demo_password: "",
   capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
   capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+  expense_categories: ["Água", "Energia", "Internet", "Aluguel", "Funcionários", "Impostos", "Contabilidade", "Material de limpeza", "Combustível", "Ferramentas", "Manutenção", "Alimentação", "Compras", "Outros"],
 };
 
 const DAYS = [

@@ -1,0 +1,547 @@
+import { useEffect, useState, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { withWorkshop } from "@/lib/workshop";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { formatCurrency, formatDate, todayISO } from "@/lib/format";
+import { toast } from "@/components/ui/use-toast";
+
+const STATUS_OPTIONS = [
+  "rascunho", "cotacao", "aguardando_resposta", "aprovado", "pedido_realizado", "parcialmente_recebido", "recebido", "cancelado",
+];
+
+const STATUS_LABELS = {
+  rascunho: "Rascunho", cotacao: "Cotação", aguardando_resposta: "Aguardando Resposta",
+  aprovado: "Aprovado", pedido_realizado: "Pedido Realizado",
+  parcialmente_recebido: "Parcialmente Recebido", recebido: "Recebido", cancelado: "Cancelado",
+};
+
+export default function PurchaseRequestEditor() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editing = !!id;
+
+  const [materials, setMaterials] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [request, setRequest] = useState(null);
+  const [items, setItems] = useState([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualDesc, setManualDesc] = useState("");
+  const [manualQty, setManualQty] = useState(1);
+  const [manualUnit, setManualUnit] = useState("un");
+  const [quoteOpen, setQuoteOpen] = useState(null); // item index
+  const [generated, setGenerated] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [m, s] = await Promise.all([
+          base44.entities.Material.list("-updated_date", 500),
+          base44.entities.Supplier.list("-updated_date", 500),
+        ]);
+        setMaterials(m);
+        setSuppliers(s.filter((sup) => sup.active));
+
+        if (editing) {
+          const [r, ri] = await Promise.all([
+            base44.entities.PurchaseRequest.get(id),
+            base44.entities.PurchaseRequestItem.filter({ request_id: id }, "-updated_date", 500),
+          ]);
+          setRequest(r);
+          setItems(ri);
+        } else {
+          const preselectedSupplier = searchParams.get("fornecedor");
+          setRequest({
+            number: "",
+            date: todayISO(),
+            responsible: "",
+            notes: "",
+            status: "rascunho",
+            supplier_ids: preselectedSupplier ? [preselectedSupplier] : [],
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  const set = (k, v) => setRequest((r) => ({ ...r, [k]: v }));
+
+  const generateNumber = async () => {
+    const all = await base44.entities.PurchaseRequest.list("-created_date", 500);
+    const nums = all.map((r) => parseInt((r.number || "0").replace(/\D/g, ""), 10)).filter((n) => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return String(next).padStart(5, "0");
+  };
+
+  const addMaterial = (mat) => {
+    setItems((arr) => [...arr, {
+      request_id: editing ? id : "",
+      material_id: mat.id,
+      description: mat.description,
+      quantity: 1,
+      unit: mat.unit || "un",
+      notes: "",
+      supplier_quotes: [],
+      selected_supplier_id: "",
+      selected_unit_price: 0,
+    }]);
+    setPickerOpen(false);
+  };
+
+  const addManual = () => {
+    if (!manualDesc.trim()) return;
+    setItems((arr) => [...arr, {
+      request_id: editing ? id : "",
+      material_id: "",
+      description: manualDesc,
+      quantity: manualQty,
+      unit: manualUnit,
+      notes: "",
+      supplier_quotes: [],
+      selected_supplier_id: "",
+      selected_unit_price: 0,
+    }]);
+    setManualDesc(""); setManualQty(1); setManualUnit("un");
+    setManualOpen(false);
+  };
+
+  const updateItem = (idx, patch) => setItems((arr) => arr.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const removeItem = (idx) => setItems((arr) => arr.filter((_, i) => i !== idx));
+
+  const toggleSupplier = (supId) => {
+    setRequest((r) => {
+      const ids = r.supplier_ids || [];
+      return { ...r, supplier_ids: ids.includes(supId) ? ids.filter((x) => x !== supId) : [...ids, supId] };
+    });
+  };
+
+  // Update quote for a specific item + supplier
+  const setQuote = (itemIdx, supplierId, field, value) => {
+    setItems((arr) => arr.map((it, i) => {
+      if (i !== itemIdx) return it;
+      const quotes = [...(it.supplier_quotes || [])];
+      const qIdx = quotes.findIndex((q) => q.supplier_id === supplierId);
+      if (qIdx === -1) {
+        const sup = suppliers.find((s) => s.id === supplierId);
+        quotes.push({ supplier_id: supplierId, supplier_name_snapshot: sup?.name || "", unit_price: field === "unit_price" ? value : 0, notes: "" });
+      } else {
+        quotes[qIdx] = { ...quotes[qIdx], [field]: value };
+      }
+      return { ...it, supplier_quotes: quotes };
+    }));
+  };
+
+  // Select winning supplier for an item
+  const selectWinner = (itemIdx, supplierId) => {
+    setItems((arr) => arr.map((it, i) => {
+      if (i !== itemIdx) return it;
+      const quote = (it.supplier_quotes || []).find((q) => q.supplier_id === supplierId);
+      return { ...it, selected_supplier_id: supplierId, selected_unit_price: quote?.unit_price || 0 };
+    }));
+  };
+
+  // Generate text for sending
+  const generateText = () => {
+    const lines = items.map((it) => `${it.quantity}x ${it.description}`);
+    const text = `Cotação #${request.number}\n\nOlá, gostaria de orçamento para:\n\n${lines.join("\n")}\n\nFavor informar:\n- Preço unitário\n- Disponibilidade\n- Prazo de entrega\n\nObrigado.`;
+    return text;
+  };
+
+  const copyText = () => {
+    navigator.clipboard.writeText(generateText());
+    toast({ title: "Texto copiado!" });
+  };
+
+  const sendWhatsApp = (supplierId) => {
+    const sup = suppliers.find((s) => s.id === supplierId);
+    let phone = (sup?.whatsapp || sup?.phone || "").replace(/\D/g, "");
+    if (!phone) { toast({ title: "Fornecedor sem WhatsApp/telefone", variant: "destructive" }); return; }
+    if (!phone.startsWith("55")) phone = "55" + phone;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(generateText())}`, "_blank");
+  };
+
+  // Generate purchase orders from selected winners
+  const generateOrders = async () => {
+    const itemsWithWinner = items.filter((it) => it.selected_supplier_id);
+    if (itemsWithWinner.length === 0) {
+      toast({ title: "Selecione o fornecedor vencedor em pelo menos um item", variant: "destructive" });
+      return;
+    }
+
+    // Group by supplier
+    const bySupplier = {};
+    itemsWithWinner.forEach((it) => {
+      if (!bySupplier[it.selected_supplier_id]) bySupplier[it.selected_supplier_id] = [];
+      bySupplier[it.selected_supplier_id].push(it);
+    });
+
+    setSaving(true);
+    try {
+      // Generate order numbers
+      const allOrders = await base44.entities.PurchaseOrder.list("-created_date", 500);
+      const maxNum = allOrders.reduce((max, o) => Math.max(max, parseInt((o.number || "0").replace(/\D/g, ""), 10) || 0), 0);
+
+      let orderNum = maxNum + 1;
+      for (const [supId, supItems] of Object.entries(bySupplier)) {
+        const sup = suppliers.find((s) => s.id === supId);
+        const subtotal = supItems.reduce((s, it) => s + (it.quantity || 0) * (it.selected_unit_price || 0), 0);
+        const orderData = withWorkshop({
+          number: String(orderNum).padStart(5, "0"),
+          date: todayISO(),
+          supplier_id: supId,
+          supplier_name_snapshot: sup?.name || "",
+          request_id: id,
+          expected_delivery: "",
+          notes: "",
+          responsible: request.responsible || "",
+          status: "pedido_realizado",
+          subtotal,
+          discount: 0,
+          total: subtotal,
+          payment_status: "nao_pago",
+          paid_amount: 0,
+        });
+        const order = await base44.entities.PurchaseOrder.create(orderData);
+
+        // Create order items
+        const orderItems = supItems.map((it) => withWorkshop({
+          order_id: order.id,
+          material_id: it.material_id || "",
+          description: it.description,
+          quantity: it.quantity,
+          unit: it.unit,
+          unit_price: it.selected_unit_price,
+          total: (it.quantity || 0) * (it.selected_unit_price || 0),
+          received_quantity: 0,
+          received: false,
+        }));
+        await base44.entities.PurchaseOrderItem.bulkCreate(orderItems);
+
+        // Update SupplierMaterial last price
+        for (const it of supItems) {
+          if (it.material_id) {
+            const existing = await base44.entities.SupplierMaterial.filter({ supplier_id: supId, material_id: it.material_id });
+            if (existing.length) {
+              const sm = existing[0];
+              const history = [...(sm.price_history || []), { date: new Date().toISOString(), price: it.selected_unit_price }];
+              await base44.entities.SupplierMaterial.update(sm.id, { last_price: it.selected_unit_price, last_price_date: new Date().toISOString(), price_history: history });
+            } else {
+              await base44.entities.SupplierMaterial.create(withWorkshop({
+                supplier_id: supId,
+                material_id: it.material_id,
+                last_price: it.selected_unit_price,
+                last_price_date: new Date().toISOString(),
+                price_history: [{ date: new Date().toISOString(), price: it.selected_unit_price }],
+                active: true,
+              }));
+            }
+          }
+        }
+
+        orderNum++;
+      }
+
+      // Update request status
+      await base44.entities.PurchaseRequest.update(id, { status: "pedido_realizado" });
+      setRequest((r) => ({ ...r, status: "pedido_realizado" }));
+      setGenerated(true);
+      toast({ title: `${Object.keys(bySupplier).length} pedido(s) gerado(s)` });
+    } catch (e) {
+      toast({ title: "Erro ao gerar pedidos", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const save = async () => {
+    if (!request.date) return;
+    setSaving(true);
+    try {
+      let reqId = id;
+      if (editing) {
+        await base44.entities.PurchaseRequest.update(id, request);
+        // Re-save items
+        await base44.entities.PurchaseRequestItem.deleteMany({ request_id: id });
+        if (items.length) {
+          await base44.entities.PurchaseRequestItem.bulkCreate(items.map((it) => withWorkshop({ ...it, request_id: id })));
+        }
+      } else {
+        const num = await generateNumber();
+        const created = await base44.entities.PurchaseRequest.create(withWorkshop({ ...request, number: num }));
+        reqId = created.id;
+        if (items.length) {
+          await base44.entities.PurchaseRequestItem.bulkCreate(items.map((it) => withWorkshop({ ...it, request_id: reqId })));
+        }
+      }
+      toast({ title: "Cotação salva" });
+      if (!editing) navigate(`/compras/${reqId}`);
+    } catch (e) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !request) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
+
+  const selectedSuppliers = (request.supplier_ids || []).map((sid) => suppliers.find((s) => s.id === sid)).filter(Boolean);
+  const allItemsHaveWinner = items.length > 0 && items.every((it) => it.selected_supplier_id);
+
+  return (
+    <div className="space-y-4 pb-20 lg:pb-6">
+      <div className="flex items-center justify-between gap-2">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
+        <Button size="sm" onClick={save} disabled={saving}>
+          <Save className="w-4 h-4 mr-1" /> Salvar
+        </Button>
+      </div>
+
+      <div>
+        <h1 className="text-xl md:text-2xl font-heading font-semibold">
+          {editing ? `Cotação #${request.number}` : "Nova Solicitação de Cotação"}
+        </h1>
+        <p className="text-sm text-muted-foreground">{formatDate(request.date)}</p>
+      </div>
+
+      {/* Dados gerais */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data</Label>
+              <Input type="date" value={request.date} onChange={(e) => set("date", e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Responsável</Label>
+              <Input value={request.responsible} onChange={(e) => set("responsible", e.target.value)} placeholder="Nome" />
+            </div>
+          </div>
+          {editing && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={request.status} onValueChange={(v) => set("status", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Observação</Label>
+            <Textarea rows={2} value={request.notes} onChange={(e) => set("notes", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Itens */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium text-sm">Itens ({items.length})</h2>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Material
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Manual
+              </Button>
+            </div>
+          </div>
+          {items.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">Nenhum item adicionado.</div>
+          ) : (
+            <div className="space-y-2">
+              {items.map((it, idx) => {
+                const quotes = it.supplier_quotes || [];
+                const lowest = quotes.length ? Math.min(...quotes.filter((q) => q.unit_price > 0).map((q) => q.unit_price)) : 0;
+                return (
+                  <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium">{it.description}</div>
+                        <div className="text-xs text-muted-foreground">{it.quantity} {it.unit}</div>
+                      </div>
+                      <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {/* Cotações por fornecedor */}
+                    {selectedSuppliers.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Cotações:</div>
+                        {selectedSuppliers.map((sup) => {
+                          const quote = quotes.find((q) => q.supplier_id === sup.id);
+                          const isLowest = quote && lowest > 0 && quote.unit_price === lowest && quote.unit_price > 0;
+                          const isSelected = it.selected_supplier_id === sup.id;
+                          return (
+                            <div key={sup.id} className={`flex items-center gap-2 rounded px-2 py-1.5 ${isSelected ? "bg-emerald-50 border border-emerald-200" : "bg-accent/30"}`}>
+                              <button
+                                onClick={() => selectWinner(idx, sup.id)}
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "bg-emerald-500 border-emerald-500" : "border-border"}`}
+                              >
+                                {isSelected && <Check className="w-3 h-3 text-white" />}
+                              </button>
+                              <span className="text-xs flex-1 truncate">{sup.name}</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="h-8 w-24 text-sm"
+                                placeholder="R$"
+                                value={quote?.unit_price || ""}
+                                onChange={(e) => setQuote(idx, sup.id, "unit_price", Number(e.target.value))}
+                              />
+                              {isLowest && <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-200 text-emerald-800 font-medium">MENOR</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {it.selected_supplier_id && (
+                      <div className="text-xs text-emerald-700 font-medium">
+                        Selecionado: {suppliers.find((s) => s.id === it.selected_supplier_id)?.name} — {formatCurrency(it.selected_unit_price)} / {it.unit}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Seleção de fornecedores */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <h2 className="font-medium text-sm">Fornecedores para Cotação ({selectedSuppliers.length})</h2>
+          {suppliers.length === 0 ? (
+            <div className="text-sm text-muted-foreground">Nenhum fornecedor cadastrado.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {suppliers.map((sup) => {
+                const checked = (request.supplier_ids || []).includes(sup.id);
+                return (
+                  <label key={sup.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer border ${checked ? "border-primary bg-primary/5" : "border-border"}`}>
+                    <input type="checkbox" checked={checked} onChange={() => toggleSupplier(sup.id)} className="w-4 h-4" />
+                    <span className="text-sm truncate">{sup.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Gerar texto para envio */}
+      {editing && items.length > 0 && selectedSuppliers.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h2 className="font-medium text-sm">Enviar Solicitação</h2>
+            <div className="rounded-lg bg-accent/30 p-3 text-sm whitespace-pre-wrap font-mono text-xs max-h-48 overflow-y-auto">
+              {generateText()}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={copyText}><Copy className="w-4 h-4 mr-1" /> Copiar Texto</Button>
+              {selectedSuppliers.map((sup) => (
+                <Button key={sup.id} size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)}>
+                  <Send className="w-4 h-4 mr-1" /> {sup.name}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Gerar pedido de compra */}
+      {editing && items.length > 0 && request.status !== "pedido_realizado" && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h2 className="font-medium text-sm">Gerar Pedido de Compra</h2>
+            <p className="text-xs text-muted-foreground">
+              {allItemsHaveWinner
+                ? "Todos os itens têm fornecedor selecionado. Você pode gerar os pedidos."
+                : "Selecione o fornecedor vencedor em cada item (clicando no círculo verde)."}
+            </p>
+            <Button onClick={generateOrders} disabled={saving || !items.some((it) => it.selected_supplier_id)}>
+              <ShoppingCart className="w-4 h-4 mr-2" /> Gerar Pedido(s)
+            </Button>
+            {generated && (
+              <div className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                <Check className="w-4 h-4" /> Pedidos gerados! Verifique em Compras → Pedidos.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Material picker */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setPickerOpen(false)}>
+          <div className="bg-card w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[80vh] overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium">Selecionar Material</h3>
+              <button onClick={() => setPickerOpen(false)} className="text-muted-foreground">✕</button>
+            </div>
+            <Input placeholder="Buscar..." className="mb-2" id="mat-search" />
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {materials.map((m) => (
+                <button key={m.id} onClick={() => addMaterial(m)} className="flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-accent text-left">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{m.description}</div>
+                    <div className="text-xs text-muted-foreground">{[m.code, m.brand].filter(Boolean).join(" · ")}</div>
+                  </div>
+                  <Package className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+              {materials.length === 0 && <div className="text-sm text-muted-foreground text-center py-4">Nenhum material cadastrado.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual item dialog */}
+      {manualOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setManualOpen(false)}>
+          <div className="bg-card w-full sm:max-w-md sm:rounded-xl rounded-t-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium">Adicionar Item Manual</h3>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Input value={manualDesc} onChange={(e) => setManualDesc(e.target.value)} autoFocus />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Quantidade</Label>
+                <Input type="number" value={manualQty} onChange={(e) => setManualQty(Number(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Unidade</Label>
+                <Input value={manualUnit} onChange={(e) => setManualUnit(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setManualOpen(false)}>Cancelar</Button>
+              <Button onClick={addManual} disabled={!manualDesc.trim()}>Adicionar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

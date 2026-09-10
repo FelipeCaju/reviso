@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 
 const DEFAULT = {
@@ -12,6 +13,7 @@ const DEFAULT = {
   address: "", logo_url: "", default_quote_text: "Orçamento válido por {validade} dias a partir da data de emissão.",
   default_validity_days: 15, default_os_note: "",
   default_capacity: 8,
+  is_demo: false,
   capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
   capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
 };
@@ -142,6 +144,17 @@ export default function Settings() {
               <Input type="number" value={form[key]} onChange={(e) => set(key, Number(e.target.value))} />
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 md:p-5">
+        <h2 className="font-medium">Modo Demonstração</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm text-slate-700">Oficina de demonstração</p>
+            <p className="text-xs text-muted-foreground">Usuários desta oficina veem todos os dados mas não podem salvar (acesso demo de 24h).</p>
+          </div>
+          <Switch checked={form.is_demo} onCheckedChange={(v) => set("is_demo", v)} />
         </div>
       </section>
 

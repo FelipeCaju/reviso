@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { setWorkshopId } from '@/lib/workshop';
-import { setDemoModeActive, isDemoUser } from '@/lib/demoMode';
+import { setDemoModeActive } from '@/lib/demoMode';
 
 const AuthContext = createContext();
 
@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
@@ -86,7 +87,18 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setWorkshopId(currentUser?.workshop_id);
-      setDemoModeActive(isDemoUser(currentUser));
+      let demoActive = false;
+      const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
+      if (currentUser?.workshop_id) {
+        try {
+          const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
+          demoActive = settings?.is_demo === true;
+        } catch (e) {}
+      } else if (!isPlatformOwner) {
+        demoActive = true;
+      }
+      setDemoModeActive(demoActive);
+      setIsDemo(demoActive);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
@@ -134,6 +146,7 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       authChecked,
+      isDemo,
       logout,
       navigateToLogin,
       checkUserAuth,

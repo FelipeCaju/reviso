@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { isDemoUser, isDemoExpired, getDemoHoursRemaining } from "@/lib/demoMode";
+import { isDemoExpired, getDemoHoursRemaining } from "@/lib/demoMode";
 import { useAuth } from "@/lib/AuthContext";
 
 export function useDemoStatus() {
-  const { user } = useAuth();
-  const isDemo = isDemoUser(user);
+  const { isDemo } = useAuth();
   const [, setTick] = useState(0);
 
   useEffect(() => {

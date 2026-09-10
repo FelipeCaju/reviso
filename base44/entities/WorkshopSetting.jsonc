@@ -91,6 +91,14 @@
       "type": "boolean",
       "default": false,
       "title": "Oficina de Demonstra\u00e7\u00e3o"
+    },
+    "demo_email": {
+      "type": "string",
+      "title": "E-mail Demo"
+    },
+    "demo_password": {
+      "type": "string",
+      "title": "Senha Demo"
     }
   },
   "required": [],

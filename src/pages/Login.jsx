@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   // Post-login destination (e.g. the MCP OAuth consent page sends users here
   // with returnTo so the grant flow can resume). Same-origin paths only.
   const returnTo = safeReturnTo();
@@ -29,6 +30,24 @@ export default function Login() {
       setError(err.message || "E-mail ou senha inválidos");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemo = async () => {
+    setDemoLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("getDemoAccess", {});
+      if (!res.data?.email) {
+        setError("Modo demo não configurado. Contate o administrador.");
+        return;
+      }
+      await base44.auth.loginViaEmailPassword(res.data.email, res.data.password);
+      window.location.href = returnTo;
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Modo demo indisponível");
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -128,6 +147,27 @@ export default function Login() {
           )}
         </Button>
       </form>
+
+      <div className="mt-6 pt-6 border-t border-border">
+        <Button
+          variant="secondary"
+          className="w-full h-12 font-medium"
+          onClick={handleDemo}
+          disabled={demoLoading}
+        >
+          {demoLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Entrando em modo demo...
+            </>
+          ) : (
+            "Entrar em Modo Demo"
+          )}
+        </Button>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Acesse o sistema com dados de demonstração por 24h
+        </p>
+      </div>
     </AuthLayout>
   );
 }

@@ -15,6 +15,7 @@ const DEFAULT = {
   default_validity_days: 15, default_os_note: "",
   default_capacity: 8,
   is_demo: false,
+  demo_email: "", demo_password: "",
   capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
   capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
 };
@@ -157,7 +158,24 @@ export default function Settings() {
           </div>
           <Switch checked={form.is_demo} onCheckedChange={(v) => set("is_demo", v)} />
         </div>
-        {form.is_demo && <DemoUserManager />}
+        {form.is_demo && (
+          <>
+            <DemoUserManager />
+            <div className="space-y-3 pt-4 border-t border-amber-200">
+              <div className="space-y-1.5">
+                <Label>E-mail demo (login compartilhado)</Label>
+                <Input value={form.demo_email} onChange={(e) => set("demo_email", e.target.value)} placeholder="demo@email.com" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Senha demo</Label>
+                <Input value={form.demo_password} onChange={(e) => set("demo_password", e.target.value)} placeholder="senha do usuário demo" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Crie o usuário demo acima com este e-mail e defina a mesma senha no convite. Estes dados serão usados pelo botão "Modo Demo" na tela de login.
+              </p>
+            </div>
+          </>
+        )}
       </section>
 
       <div className="flex justify-end">

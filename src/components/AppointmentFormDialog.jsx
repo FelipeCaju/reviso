@@ -12,8 +12,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { normalizePlate, vehicleDescription, todayISO, appointmentTypeInfo } from "@/lib/format";
+import { toast } from "@/components/ui/use-toast";
 
-const TYPES = Object.entries(appointmentTypeInfo).map(([k, v]) => ({ value: k, label: v }));
+const TYPES = Object.entries(appointmentTypeInfo).map(([k, v]) => ({ value: k, label: v.label }));
 
 export default function AppointmentFormDialog({ open, onClose, onSaved, prefill = {}, customers = [], vehicles = [] }) {
   const [form, setForm] = useState({
@@ -49,8 +50,25 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     ? vehicles.filter((v) => v.current_owner_id === form.customer_id)
     : vehicles;
 
+  const isPastDateTime = () => {
+    const today = todayISO();
+    if (form.scheduled_date < today) return true;
+    if (form.scheduled_date === today && form.scheduled_time) {
+      const now = new Date();
+      const [h, m] = form.scheduled_time.split(":").map(Number);
+      const scheduled = new Date();
+      scheduled.setHours(h, m, 0, 0);
+      if (scheduled <= now) return true;
+    }
+    return false;
+  };
+
   const save = async () => {
     if (!form.customer_id || !form.vehicle_id || !form.scheduled_date) return;
+    if (isPastDateTime()) {
+      toast({ title: "Não é possível agendar no passado", description: "Selecione uma data e horário futuros.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const cust = customers.find((c) => c.id === form.customer_id);
@@ -102,11 +120,11 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label>Data *</Label>
-              <Input type="date" value={form.scheduled_date} onChange={(e) => set("scheduled_date", e.target.value)} />
+              <Input type="date" min={todayISO()} value={form.scheduled_date} onChange={(e) => set("scheduled_date", e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>Horário</Label>
-              <Input type="time" value={form.scheduled_time} onChange={(e) => set("scheduled_time", e.target.value)} />
+              <Input type="time" min={form.scheduled_date === todayISO() ? new Date().toTimeString().slice(0, 5) : undefined} value={form.scheduled_time} onChange={(e) => set("scheduled_time", e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -129,7 +147,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-          <Button onClick={save} disabled={saving || !form.customer_id || !form.vehicle_id || !form.scheduled_date}>
+          <Button onClick={save} disabled={saving || !form.customer_id || !form.vehicle_id || !form.scheduled_date || isPastDateTime()}>
             {saving ? "Salvando..." : "Agendar"}
           </Button>
         </DialogFooter>

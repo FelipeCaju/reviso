@@ -26,13 +26,13 @@ export default function Reports() {
     (async () => {
       try {
         const [o, q, m, s, c, v, a] = await Promise.all([
-          base44.entities.WorkOrder.list("-entry_date", 500),
-          base44.entities.Quote.list("-date", 500),
-          base44.entities.Material.list("-updated_date", 500),
-          base44.entities.Service.list("-updated_date", 500),
-          base44.entities.Customer.list("-updated_date", 500),
-          base44.entities.Vehicle.list("-updated_date", 500),
-          base44.entities.Appointment.list("-updated_date", 500),
+          base44.entities.WorkOrder.list("-entry_date", 200),
+          base44.entities.Quote.list("-date", 200),
+          base44.entities.Material.list("-updated_date", 200),
+          base44.entities.Service.list("-updated_date", 200),
+          base44.entities.Customer.list("-updated_date", 200),
+          base44.entities.Vehicle.list("-updated_date", 200),
+          base44.entities.Appointment.list("-updated_date", 200),
         ]);
         setOrders(o); setQuotes(q); setMaterials(m); setServices(s);
         setCustomers(c); setVehicles(v); setAppointments(a);

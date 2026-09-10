@@ -49,20 +49,19 @@ export default function Appointments() {
   const [formPrefill, setFormPrefill] = useState({});
   const [detail, setDetail] = useState(null);
   const [detailNotes, setDetailNotes] = useState("");
-  const [quotes, setQuotes] = useState([]);
+  const [detailQuote, setDetailQuote] = useState(null);
   const [editingAppt, setEditingAppt] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [a, c, v, s, q] = await Promise.all([
+      const [a, c, v, s] = await Promise.all([
         base44.entities.Appointment.list("-updated_date", 500),
         base44.entities.Customer.list("-updated_date", 500),
         base44.entities.Vehicle.list("-updated_date", 500),
         base44.entities.WorkshopSetting.list("-updated_date", 1),
-        base44.entities.Quote.list("-updated_date", 500),
       ]);
-      setAppointments(a); setCustomers(c); setVehicles(v); setSettings(s[0] || null); setQuotes(q);
+      setAppointments(a); setCustomers(c); setVehicles(v); setSettings(s[0] || null);
     } finally {
       setLoading(false);
     }
@@ -98,6 +97,14 @@ export default function Appointments() {
     appointments
       .filter((a) => a.scheduled_date === dateStr && !["cancelado"].includes(a.status))
       .sort((a, b) => (a.scheduled_time || "99").localeCompare(b.scheduled_time || "99"));
+
+  useEffect(() => {
+    if (detail?.quote_id) {
+      base44.entities.Quote.get(detail.quote_id).then(setDetailQuote).catch(() => setDetailQuote(null));
+    } else {
+      setDetailQuote(null);
+    }
+  }, [detail]);
 
   const cardStyle = (a) => {
     if (a.quote_id) return "bg-emerald-50 hover:bg-emerald-100 border-emerald-300";
@@ -307,14 +314,11 @@ export default function Appointments() {
                   <Label className="text-xs font-medium">Observação</Label>
                   <Textarea rows={2} value={detailNotes} onChange={(e) => setDetailNotes(e.target.value)} />
                 </div>
-                {detail.quote_id && (() => {
-                  const q = quotes.find((x) => x.id === detail.quote_id);
-                  return (
-                    <Link to={`/orcamentos/${detail.quote_id}`} className="text-sm text-primary hover:underline flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> Orçamento vinculado: {q?.number || "ver"}
-                    </Link>
-                  );
-                })()}
+                {detail.quote_id && (
+                  <Link to={`/orcamentos/${detail.quote_id}`} className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Orçamento vinculado: {detailQuote?.number || "ver"}
+                  </Link>
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   <Button variant="secondary" onClick={() => { setEditingAppt(detail); setDetail(null); setFormOpen(true); }}>
                     <Pencil className="w-4 h-4 mr-1" /> Editar

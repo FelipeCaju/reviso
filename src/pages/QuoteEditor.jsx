@@ -84,8 +84,10 @@ export default function QuoteEditor() {
         setSettings(st);
 
         if (editing) {
-          const q = await base44.entities.Quote.get(id);
-          const qi = await base44.entities.QuoteItem.filter({ quote_id: id }, "-updated_date", 200);
+          const [q, qi] = await Promise.all([
+            base44.entities.Quote.get(id),
+            base44.entities.QuoteItem.filter({ quote_id: id }, "-updated_date", 200),
+          ]);
           setQuote(q);
           setItems(qi);
         } else {

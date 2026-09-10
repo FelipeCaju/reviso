@@ -61,13 +61,17 @@ export default function WorkOrderEditor() {
         setSettings(sl[0] || null);
 
         if (editing) {
-          const w = await base44.entities.WorkOrder.get(id);
-          const wi = await base44.entities.WorkOrderItem.filter({ work_order_id: id }, "-updated_date", 300);
+          const [w, wi] = await Promise.all([
+            base44.entities.WorkOrder.get(id),
+            base44.entities.WorkOrderItem.filter({ work_order_id: id }, "-updated_date", 300),
+          ]);
           setWo(w);
           setItems(wi);
         } else if (fromQuoteId) {
-          const q = await base44.entities.Quote.get(fromQuoteId);
-          const qi = await base44.entities.QuoteItem.filter({ quote_id: fromQuoteId }, "-updated_date", 300);
+          const [q, qi] = await Promise.all([
+            base44.entities.Quote.get(fromQuoteId),
+            base44.entities.QuoteItem.filter({ quote_id: fromQuoteId }, "-updated_date", 300),
+          ]);
           setWo({
             number: "",
             customer_id: q.customer_id,

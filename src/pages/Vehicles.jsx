@@ -21,15 +21,14 @@ export default function Vehicles() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Vehicle.list("-updated_date", 500);
+      const [data, customers] = await Promise.all([
+        base44.entities.Vehicle.list("-updated_date", 500),
+        base44.entities.Customer.list("-updated_date", 500),
+      ]);
       setItems(data);
-      const ownerIds = [...new Set(data.map((v) => v.current_owner_id).filter(Boolean))];
-      if (ownerIds.length) {
-        const customers = await base44.entities.Customer.list("-updated_date", 500);
-        const map = {};
-        customers.forEach((c) => { map[c.id] = c; });
-        setOwners(map);
-      }
+      const map = {};
+      customers.forEach((c) => { map[c.id] = c; });
+      setOwners(map);
     } finally {
       setLoading(false);
     }

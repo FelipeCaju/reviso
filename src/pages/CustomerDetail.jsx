@@ -23,14 +23,14 @@ export default function CustomerDetail() {
     (async () => {
       setLoading(true);
       try {
-        const c = await base44.entities.Customer.get(id);
-        setCustomer(c);
-        const [v, q, a, w] = await Promise.all([
+        const [c, v, q, a, w] = await Promise.all([
+          base44.entities.Customer.get(id),
           base44.entities.Vehicle.filter({ current_owner_id: id }, "-updated_date", 100),
           base44.entities.Quote.filter({ customer_id: id }, "-date", 100),
           base44.entities.Appointment.filter({ customer_id: id }, "-scheduled_date", 100),
           base44.entities.WorkOrder.filter({ customer_id: id }, "-entry_date", 100),
         ]);
+        setCustomer(c);
         setVehicles(v); setQuotes(q); setAppointments(a); setWorkOrders(w);
       } finally {
         setLoading(false);

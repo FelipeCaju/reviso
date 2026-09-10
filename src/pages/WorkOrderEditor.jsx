@@ -406,6 +406,20 @@ export default function WorkOrderEditor() {
             )}
           </label>
         </div>
+        <label className="flex items-center justify-center gap-2 w-full h-11 rounded-lg border border-border bg-card cursor-pointer hover:bg-accent transition text-sm font-medium">
+          <Camera className="w-4 h-4" /> Tirar Foto
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files);
+              if (files.length) handleImageUpload(files);
+              e.target.value = "";
+            }}
+          />
+        </label>
       </div>
 
       {/* Items */}

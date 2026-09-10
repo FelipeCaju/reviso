@@ -21,19 +21,19 @@ import { Button } from "@/components/ui/button";
 import QuickSearch from "@/components/QuickSearch";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/orcamentos", label: "Orçamentos", icon: FileText },
-  { to: "/os", label: "Ordens de Serviço", icon: ClipboardList },
-  { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/veiculos", label: "Veículos", icon: Car },
-  { to: "/materiais", label: "Materiais", icon: Package },
-  { to: "/servicos", label: "Serviços", icon: Wrench },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true, roles: ["admin", "user"] },
+  { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["admin", "user"] },
+  { to: "/orcamentos", label: "Orçamentos", icon: FileText, roles: ["admin"] },
+  { to: "/os", label: "Ordens de Serviço", icon: ClipboardList, roles: ["admin", "user"] },
+  { to: "/clientes", label: "Clientes", icon: Users, roles: ["admin", "user"] },
+  { to: "/veiculos", label: "Veículos", icon: Car, roles: ["admin", "user"] },
+  { to: "/materiais", label: "Materiais", icon: Package, roles: ["admin"] },
+  { to: "/servicos", label: "Serviços", icon: Wrench, roles: ["admin"] },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
 ];
 
 const NAV_SECONDARY = [
-  { to: "/configuracoes", label: "Configurações", icon: SettingsIcon },
+  { to: "/configuracoes", label: "Configurações", icon: SettingsIcon, roles: ["admin"] },
 ];
 
 function NavItem({ item, onNavigate }) {
@@ -64,6 +64,12 @@ export default function Layout() {
 
   const handleLogout = () => logout();
 
+  const userRole = user?.role || "user";
+  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(userRole));
+  const visibleSecondary = NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
+  const canCreateQuote = userRole === "admin";
+  const hasMore = visibleNav.length > 5 || visibleSecondary.length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
@@ -79,16 +85,18 @@ export default function Layout() {
         </div>
         <div className="px-3 pt-3 pb-2 space-y-2">
           <QuickSearch />
-          <Button onClick={() => navigate("/orcamentos/novo")} className="w-full">
-            <Plus className="w-4 h-4 mr-2" /> Novo Orçamento
-          </Button>
+          {canCreateQuote && (
+            <Button onClick={() => navigate("/orcamentos/novo")} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Novo Orçamento
+            </Button>
+          )}
         </div>
         <nav className="flex-1 overflow-y-auto px-3 pb-2 space-y-0.5">
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <NavItem key={item.to} item={item} />
           ))}
           <div className="pt-2 mt-2 border-t border-sidebar-border space-y-0.5">
-            {NAV_SECONDARY.map((item) => (
+            {visibleSecondary.map((item) => (
               <NavItem key={item.to} item={item} />
             ))}
           </div>
@@ -130,8 +138,8 @@ export default function Layout() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-        <div className="grid grid-cols-6">
-          {NAV.slice(0, 5).map((item) => {
+        <div className={`grid ${hasMore ? "grid-cols-6" : "grid-cols-5"}`}>
+          {visibleNav.slice(0, 5).map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -149,13 +157,15 @@ export default function Layout() {
               </NavLink>
             );
           })}
-          <button
-            onClick={() => setMoreOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground"
-          >
-            <Menu className="w-5 h-5" />
-            Mais
-          </button>
+          {hasMore && (
+            <button
+              onClick={() => setMoreOpen(true)}
+              className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground"
+            >
+              <Menu className="w-5 h-5" />
+              Mais
+            </button>
+          )}
         </div>
       </nav>
 
@@ -173,21 +183,23 @@ export default function Layout() {
               </button>
             </div>
             <div className="space-y-1">
-              {NAV.slice(5).map((item) => (
+              {visibleNav.slice(5).map((item) => (
                 <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
               ))}
-              {NAV_SECONDARY.map((item) => (
+              {visibleSecondary.map((item) => (
                 <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
               ))}
-              <button
-                onClick={() => {
-                  setMoreOpen(false);
-                  navigate("/orcamentos/novo");
-                }}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary hover:bg-accent w-full"
-              >
-                <Plus className="w-4 h-4" /> Novo Orçamento
-              </button>
+              {canCreateQuote && (
+                <button
+                  onClick={() => {
+                    setMoreOpen(false);
+                    navigate("/orcamentos/novo");
+                  }}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary hover:bg-accent w-full"
+                >
+                  <Plus className="w-4 h-4" /> Novo Orçamento
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent w-full"

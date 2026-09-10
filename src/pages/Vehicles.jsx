@@ -5,14 +5,18 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizePlate, vehicleDescription, vehicleTypeLabel } from "@/lib/format";
+import VehicleFormDialog from "@/components/VehicleFormDialog";
 
 export default function Vehicles() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const shouldOpenNew = searchParams.get("novo") === "1";
   const [items, setItems] = useState([]);
   const [owners, setOwners] = useState({});
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState(searchParams.get("q") || "");
+  const [q, setQ] = useState(shouldOpenNew ? "" : (searchParams.get("q") || ""));
+  const [newOpen, setNewOpen] = useState(shouldOpenNew);
+  const [prePlate, setPrePlate] = useState(shouldOpenNew ? (searchParams.get("q") || "") : "");
 
   const load = async () => {
     setLoading(true);
@@ -50,7 +54,7 @@ export default function Vehicles() {
           <h1 className="text-xl md:text-2xl font-heading font-semibold">Veículos</h1>
           <p className="text-sm text-muted-foreground">{items.length} cadastrados</p>
         </div>
-        <Button onClick={() => navigate("/veiculos/novo")} className="shrink-0">
+        <Button onClick={() => { setPrePlate(""); setNewOpen(true); }} className="shrink-0">
           <Plus className="w-4 h-4 mr-2" /> Novo
         </Button>
       </div>
@@ -90,6 +94,13 @@ export default function Vehicles() {
           ))}
         </div>
       )}
+
+      <VehicleFormDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        prePlate={prePlate}
+        onSaved={(v) => { load(); if (v?.id) navigate(`/veiculos/${v.id}`); }}
+      />
     </div>
   );
 }

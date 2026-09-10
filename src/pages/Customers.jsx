@@ -112,7 +112,7 @@ export default function Customers() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
           </DialogHeader>

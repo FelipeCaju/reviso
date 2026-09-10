@@ -28,6 +28,7 @@ import VehicleForm from '@/pages/VehicleForm';
 import Materials from '@/pages/Materials';
 import Services from '@/pages/Services';
 import Settings from '@/pages/Settings';
+import AdminOnboarding from '@/pages/AdminOnboarding';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -81,6 +82,7 @@ const AuthenticatedApp = () => {
           <Route path="/materiais" element={<Materials />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/admin" element={<AdminOnboarding />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

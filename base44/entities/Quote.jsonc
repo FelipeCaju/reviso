@@ -2,6 +2,10 @@
   "name": "Quote",
   "type": "object",
   "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
     "number": {
       "type": "string",
       "title": "N\u00famero"
@@ -56,6 +60,13 @@
     "forecast": {
       "type": "string",
       "title": "Previs\u00e3o"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Fotos Anexadas"
     },
     "status": {
       "type": "string",
@@ -124,5 +135,19 @@
   },
   "required": [
     "number"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
 }

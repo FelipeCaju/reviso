@@ -92,7 +92,22 @@ function totals(doc, y, data, partsSub, laborSub) {
   return y + 8;
 }
 
-export function generateQuotePDF(quote, items, settings) {
+async function fetchImageAsDataURL(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function buildQuoteDoc(quote, items, settings) {
   const doc = new jsPDF();
   let y = header(doc, settings, "Orçamento", quote.number, quote.date);
   y = clientBlock(doc, y, quote);
@@ -123,7 +138,48 @@ export function generateQuotePDF(quote, items, settings) {
     doc.setFontSize(8);
     doc.splitTextToSize(settings.default_quote_text, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
   }
-  doc.save(`orcamento-${quote.number}.pdf`);
+
+  // Fotos anexadas
+  if (quote.images && quote.images.length) {
+    doc.addPage();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Fotos Anexadas", margin, margin + 5);
+    let imgY = margin + 10;
+    const colW = 90;
+    const maxH = 65;
+    let col = 0;
+    for (const imgUrl of quote.images) {
+      const dataUrl = await fetchImageAsDataURL(imgUrl);
+      if (!dataUrl) continue;
+      const img = new Image();
+      await new Promise((r) => { img.onload = r; img.onerror = r; img.src = dataUrl; });
+      if (!img.width || !img.height) continue;
+      const ratio = Math.min(colW / img.width, maxH / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      const x = col === 0 ? margin : margin + colW + 5;
+      if (imgY + h > 280) { doc.addPage(); imgY = margin; }
+      doc.addImage(dataUrl, "JPEG", x, imgY, w, h);
+      if (col === 1) { imgY += maxH + 5; col = 0; } else { col = 1; }
+    }
+  }
+
+  return doc;
+}
+
+export async function generateQuotePDF(quote, items, settings) {
+  try {
+    const doc = await buildQuoteDoc(quote, items, settings);
+    doc.save(`orcamento-${quote.number}.pdf`);
+  } catch (e) {
+    console.error("Erro ao gerar PDF:", e);
+  }
+}
+
+export async function generateQuotePDFBlob(quote, items, settings) {
+  const doc = await buildQuoteDoc(quote, items, settings);
+  return doc.output("blob");
 }
 
 export function generateWorkOrderPDF(wo, items, settings) {

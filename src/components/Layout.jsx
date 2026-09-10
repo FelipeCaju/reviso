@@ -11,6 +11,7 @@ import {
   ClipboardList,
   BarChart3,
   Settings as SettingsIcon,
+  Building2,
   Plus,
   LogOut,
   Menu,
@@ -65,9 +66,12 @@ export default function Layout() {
   const handleLogout = () => logout();
 
   const userRole = user?.role || "user";
-  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(userRole));
-  const visibleSecondary = NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
-  const canCreateQuote = userRole === "admin";
+  const isPlatformOwner = userRole === "admin" && !user?.workshop_id;
+  const visibleNav = isPlatformOwner
+    ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
+    : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
+  const visibleSecondary = isPlatformOwner ? [] : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
+  const canCreateQuote = userRole === "admin" && !isPlatformOwner;
   const hasMore = visibleNav.length > 5 || visibleSecondary.length > 0;
 
   return (

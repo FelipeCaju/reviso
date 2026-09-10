@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList,
+  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList, Camera, Send,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,13 +16,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import VoiceInput from "@/components/VoiceInput";
+import { Image as ImgCmp } from "@/components/ui/image";
 import QuoteItemPicker from "@/components/QuoteItemPicker";
 import SchedulePicker from "@/components/SchedulePicker";
 import { QuoteStatusBadge, quoteStatusInfo } from "@/components/StatusBadge";
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
-import { generateQuotePDF } from "@/lib/pdf";
+import { generateQuotePDF, generateQuotePDFBlob } from "@/lib/pdf";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -59,6 +61,8 @@ export default function QuoteEditor() {
   const [approvalMethod, setApprovalMethod] = useState("whatsapp");
   const [approvalNotes, setApprovalNotes] = useState("");
   const [partialSelection, setPartialSelection] = useState({});
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // vehicle search
   const [plateQ, setPlateQ] = useState("");
@@ -104,6 +108,7 @@ export default function QuoteEditor() {
             subtotal_parts: 0,
             subtotal_labor: 0,
             total: 0,
+            images: [],
           });
           // pre-fill from vehicle if provided
           if (searchParams.get("veiculo")) {
@@ -192,11 +197,11 @@ export default function QuoteEditor() {
         await base44.entities.QuoteItem.deleteMany({ quote_id: id });
       } else {
         payload.number = await generateNumber();
-        const created = await base44.entities.Quote.create(payload);
+        const created = await base44.entities.Quote.create(withWorkshop(payload));
         quoteId = created.id;
       }
       if (items.length) {
-        await base44.entities.QuoteItem.bulkCreate(items.map((it) => ({ ...it, quote_id: quoteId })));
+        await base44.entities.QuoteItem.bulkCreate(items.map((it) => withWorkshop({ ...it, quote_id: quoteId })));
       }
       toast({ title: "Orçamento salvo" });
       navigate(`/orcamentos/${quoteId}`);
@@ -225,7 +230,7 @@ export default function QuoteEditor() {
         // persist items
         if (editing) {
           await base44.entities.QuoteItem.deleteMany({ quote_id: id });
-          if (updatedItems.length) await base44.entities.QuoteItem.bulkCreate(updatedItems.map((it) => ({ ...it, quote_id: id })));
+          if (updatedItems.length) await base44.entities.QuoteItem.bulkCreate(updatedItems.map((it) => withWorkshop({ ...it, quote_id: id })));
         }
       }
       if (editing) await base44.entities.Quote.update(id, patch);
@@ -242,7 +247,7 @@ export default function QuoteEditor() {
     if (!editing) return;
     setSaving(true);
     try {
-      const appt = await base44.entities.Appointment.create({
+      const appt = await base44.entities.Appointment.create(withWorkshop({
         customer_id: quote.customer_id,
         customer_name_snapshot: quote.customer_name_snapshot,
         vehicle_id: quote.vehicle_id,
@@ -254,7 +259,7 @@ export default function QuoteEditor() {
         reason: `Orçamento #${quote.number}`,
         status: "agendado",
         quote_id: id,
-      });
+      }));
       await base44.entities.Quote.update(id, { status: "agendado", appointment_id: appt.id });
       setQuote((q) => ({ ...q, status: "agendado", appointment_id: appt.id }));
       toast({ title: `Agendado para ${formatDate(date)}` });
@@ -262,6 +267,49 @@ export default function QuoteEditor() {
       toast({ title: "Erro ao agendar", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (files) => {
+    setUploadingImages(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+        urls.push(file_url);
+      }
+      setQuote((q) => ({ ...q, images: [...(q.images || []), ...urls] }));
+    } catch (e) {
+      toast({ title: "Erro ao enviar imagem", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (idx) => {
+    setQuote((q) => ({ ...q, images: (q.images || []).filter((_, i) => i !== idx) }));
+  };
+
+  const sendViaWhatsApp = async () => {
+    const customer = customers.find((c) => c.id === quote.customer_id);
+    let phone = (customer?.whatsapp || customer?.phone || "").replace(/\D/g, "");
+    if (!phone) {
+      toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    if (!phone.startsWith("55")) phone = "55" + phone;
+    setSending(true);
+    try {
+      const blob = await generateQuotePDFBlob(quote, items, settings);
+      const file = new File([blob], `orcamento-${quote.number}.pdf`, { type: "application/pdf" });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      const msg = `Olá ${customer.name || ""}! Segue o orçamento #${quote.number} da ${settings?.name || "nossa oficina"}.\n\nAcesse o PDF: ${file_url}`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+      toast({ title: "PDF gerado! Confirme o envio no WhatsApp." });
+    } catch (e) {
+      toast({ title: "Erro ao gerar/enviar", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -283,6 +331,11 @@ export default function QuoteEditor() {
           {editing && (
             <Button size="sm" variant="outline" onClick={() => generateQuotePDF(quote, items, settings)}>
               <FileDown className="w-4 h-4 mr-1" /> PDF
+            </Button>
+          )}
+          {editing && (
+            <Button size="sm" variant="secondary" onClick={sendViaWhatsApp} disabled={sending}>
+              <Send className="w-4 h-4 mr-1" /> {sending ? "Gerando..." : "WhatsApp"}
             </Button>
           )}
           {editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento", "agendado"].includes(quote.status) && (
@@ -408,6 +461,42 @@ export default function QuoteEditor() {
         <div className="space-y-1.5">
           <Label className="text-xs">Previsão (se necessário)</Label>
           <Input value={quote.forecast} onChange={(e) => set("forecast", e.target.value)} placeholder="ex: 2 dias" />
+        </div>
+      </div>
+
+      {/* Fotos anexadas */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <Label>Fotos Anexadas ({(quote.images || []).length})</Label>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {(quote.images || []).map((url, i) => (
+            <div key={i} className="relative group aspect-square">
+              <ImgCmp src={url} alt={`Foto ${i + 1}`} className="w-full h-full rounded-lg" fittingType="fill" />
+              <button
+                onClick={() => removeImage(i)}
+                className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length) handleImageUpload(files);
+                e.target.value = "";
+              }}
+            />
+            {uploadingImages ? (
+              <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-6 h-6 text-muted-foreground" />
+            )}
+          </label>
         </div>
       </div>
 

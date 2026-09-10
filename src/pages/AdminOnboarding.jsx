@@ -1,10 +1,31 @@
-import { useState } from "react";
-import { Building2, Plus, Users, ArrowRight, Mail } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, Plus, Users, ArrowRight, Mail, Crown, Clock, CheckCircle2, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+const PLAN_LABELS = {
+  free: { label: "Free", icon: Clock, badge: "bg-amber-100 text-amber-700 border-amber-200" },
+  normal: { label: "Normal", icon: Crown, badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+};
+
+function PlanBadge({ plan }) {
+  const cfg = PLAN_LABELS[plan] || PLAN_LABELS.free;
+  const Icon = cfg.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.badge}`}>
+      <Icon className="w-3 h-3" /> {cfg.label}
+    </span>
+  );
+}
 
 export default function AdminOnboarding() {
   const [saving, setSaving] = useState(false);
@@ -12,8 +33,28 @@ export default function AdminOnboarding() {
     name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "",
     ownerEmail: "",
   });
+  const [workshops, setWorkshops] = useState([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [editWs, setEditWs] = useState(null);
+  const [editPlan, setEditPlan] = useState("free");
+  const [editValue, setEditValue] = useState(0);
+  const [savingPlan, setSavingPlan] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const loadWorkshops = async () => {
+    setLoadingList(true);
+    try {
+      const res = await base44.functions.invoke("manageWorkshops", { action: "list" });
+      setWorkshops(res.data.workshops);
+    } catch (e) {
+      toast({ title: "Erro ao carregar oficinas", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => { loadWorkshops(); }, []);
 
   const submit = async () => {
     if (!form.name.trim() || !form.ownerEmail.trim()) {
@@ -22,39 +63,22 @@ export default function AdminOnboarding() {
     }
     setSaving(true);
     try {
-      // 1. Criar a oficina (WorkshopSetting)
       const workshop = await base44.entities.WorkshopSetting.create({
-        name: form.name,
-        razao_social: form.razao_social,
-        cnpj: form.cnpj,
-        phone: form.phone,
-        whatsapp: form.whatsapp,
-        email: form.email,
-        address: form.address,
+        name: form.name, razao_social: form.razao_social, cnpj: form.cnpj,
+        phone: form.phone, whatsapp: form.whatsapp, email: form.email, address: form.address,
         default_capacity: 8,
         capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
         capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+        plan: "free", plan_value: 0,
       });
-
-      // 2. Convidar o proprietário (cria usuário e envia convite por e-mail)
-      try {
-        await base44.users.inviteUser(form.ownerEmail, "admin");
-      } catch {
-        // Usuário já pode existir — tudo bem, só vinculamos
-      }
-
-      // 3. Encontrar o usuário e vincular à oficina
+      try { await base44.users.inviteUser(form.ownerEmail, "admin"); } catch { /* já existe */ }
       const users = await base44.entities.User.list("-created_date", 500);
       const owner = users.find((u) => u.email === form.ownerEmail);
-      if (owner) {
-        await base44.entities.User.update(owner.id, { workshop_id: workshop.id });
-      }
+      if (owner) await base44.entities.User.update(owner.id, { workshop_id: workshop.id });
 
-      toast({
-        title: "Oficina criada com sucesso!",
-        description: `Convite enviado para ${form.ownerEmail}. Ao fazer login, o proprietário já estará vinculado.`,
-      });
+      toast({ title: "Oficina criada!", description: `Convite enviado para ${form.ownerEmail}.` });
       setForm({ name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "", ownerEmail: "" });
+      loadWorkshops();
     } catch (e) {
       toast({ title: "Erro ao criar oficina", description: e.message, variant: "destructive" });
     } finally {
@@ -62,15 +86,41 @@ export default function AdminOnboarding() {
     }
   };
 
+  const openEdit = (ws) => {
+    setEditWs(ws);
+    setEditPlan(ws.plan || "free");
+    setEditValue(ws.plan_value || 0);
+  };
+
+  const savePlan = async () => {
+    setSavingPlan(true);
+    try {
+      await base44.functions.invoke("manageWorkshops", {
+        action: "update",
+        workshopId: editWs.id,
+        plan: editPlan,
+        plan_value: Number(editValue) || 0,
+      });
+      toast({ title: "Plano atualizado!", description: `${editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
+      setEditWs(null);
+      loadWorkshops();
+    } catch (e) {
+      toast({ title: "Erro ao atualizar plano", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-xl md:text-2xl font-heading font-semibold flex items-center gap-2">
           <Building2 className="w-5 h-5 text-primary" /> Gestão de Oficinas
         </h1>
-        <p className="text-sm text-muted-foreground">Cadastre novas oficinas e vincule ao proprietário</p>
+        <p className="text-sm text-muted-foreground">Cadastre novas oficinas, acompanhe planos e ative assinaturas</p>
       </div>
 
+      {/* Formulário de nova oficina */}
       <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
         <h2 className="font-medium flex items-center gap-2">
           <Plus className="w-4 h-4" /> Nova Oficina
@@ -80,55 +130,191 @@ export default function AdminOnboarding() {
             <Label>Nome da Oficina *</Label>
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Auto Mecânica do João" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Razão Social</Label>
-            <Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>CNPJ</Label>
-            <Input value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Telefone</Label>
-            <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>WhatsApp</Label>
-            <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>E-mail da Oficina</Label>
-            <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Endereço</Label>
-            <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
-          </div>
+          <div className="space-y-1.5"><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Telefone</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>E-mail da Oficina</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
         </div>
-
         <div className="pt-2 border-t border-border">
-          <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4" /> Proprietário
-          </h3>
+          <h3 className="font-medium text-sm mb-3 flex items-center gap-2"><Users className="w-4 h-4" /> Proprietário</h3>
           <div className="space-y-1.5">
             <Label>E-mail do Proprietário *</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input type="email" className="pl-9" value={form.ownerEmail} onChange={(e) => set("ownerEmail", e.target.value)} placeholder="proprietario@email.com" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              O proprietário receberá um convite por e-mail. Ao fazer login pela primeira vez, já estará vinculado a esta oficina com acesso total.
-            </p>
+            <p className="text-xs text-muted-foreground">O proprietário receberá um convite por e-mail. A oficina inicia no plano Free (24h).</p>
           </div>
         </div>
-
         <div className="flex justify-end">
           <Button onClick={submit} disabled={saving} size="lg">
-            {saving ? "Criando..." : "Criar Oficina e Convidar"}
-            <ArrowRight className="w-4 h-4 ml-1" />
+            {saving ? "Criando..." : "Criar Oficina e Convidar"} <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       </section>
+
+      {/* Tabela de oficinas cadastradas */}
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-5">
+        <h2 className="font-medium flex items-center gap-2">
+          <Building2 className="w-4 h-4" /> Oficinas Cadastradas
+          <span className="text-xs text-muted-foreground font-normal">({workshops.length})</span>
+        </h2>
+
+        {loadingList ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
+          </div>
+        ) : workshops.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma oficina cadastrada ainda.</p>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Oficina</th>
+                    <th className="py-2 px-3 font-medium">Proprietário</th>
+                    <th className="py-2 px-3 font-medium">Contato</th>
+                    <th className="py-2 px-3 font-medium">Plano</th>
+                    <th className="py-2 px-3 font-medium">Valor</th>
+                    <th className="py-2 pl-3 font-medium text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workshops.map((ws) => (
+                    <tr key={ws.id} className="border-b border-border/60 hover:bg-muted/30 cursor-pointer" onClick={() => openEdit(ws)}>
+                      <td className="py-3 pr-3">
+                        <div className="font-medium">{ws.name || "—"}</div>
+                        {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                      </td>
+                      <td className="py-3 px-3">
+                        {ws.owners.length > 0 ? (
+                          ws.owners.map((o) => (
+                            <div key={o.id}>
+                              <div className="text-sm">{o.full_name || o.email}</div>
+                              {o.full_name && <div className="text-xs text-muted-foreground">{o.email}</div>}
+                            </div>
+                          ))
+                        ) : <span className="text-xs text-muted-foreground">Sem proprietário</span>}
+                      </td>
+                      <td className="py-3 px-3">
+                        {ws.phone && <div className="text-xs">{ws.phone}</div>}
+                        {ws.email && <div className="text-xs text-muted-foreground">{ws.email}</div>}
+                      </td>
+                      <td className="py-3 px-3"><PlanBadge plan={ws.plan} /></td>
+                      <td className="py-3 px-3 text-sm">
+                        {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-3 pl-3 text-right">
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(ws); }}>
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {workshops.map((ws) => (
+                <div key={ws.id} className="rounded-lg border border-border p-3 space-y-2" onClick={() => openEdit(ws)}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{ws.name || "—"}</div>
+                      {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                    </div>
+                    <PlanBadge plan={ws.plan} />
+                  </div>
+                  {ws.owners.length > 0 && (
+                    <div className="text-sm">
+                      {ws.owners.map((o) => (
+                        <div key={o.id}>
+                          <div>{o.full_name || o.email}</div>
+                          {o.full_name && <div className="text-xs text-muted-foreground">{o.email}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                    <span className="text-xs text-muted-foreground">
+                      {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}/mês` : "Sem valor definido"}
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(ws); }}>
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Dialog de edição de plano */}
+      <Dialog open={!!editWs} onOpenChange={(open) => !open && setEditWs(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerenciar Plano — {editWs?.name}</DialogTitle>
+            <DialogDescription>Altere o plano e o valor mensal da assinatura</DialogDescription>
+          </DialogHeader>
+
+          {editWs && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-sm">
+                <div><span className="text-muted-foreground">Proprietário: </span>{editWs.owners[0]?.full_name || editWs.owners[0]?.email || "—"}</div>
+                <div><span className="text-muted-foreground">Contato: </span>{editWs.phone || editWs.email || "—"}</div>
+                <div><span className="text-muted-foreground">Criada em: </span>{new Date(editWs.created_date).toLocaleDateString('pt-BR')}</div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Plano</Label>
+                <Select value={editPlan} onValueChange={setEditPlan}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-600" /> Free (24h)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="normal">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-emerald-600" /> Normal (Assinatura ativa)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {editPlan === "free"
+                    ? "Acesso limitado a 24 horas. Altere para Normal após receber o pagamento."
+                    : "Assinatura ativa. Acesso completo sem limite de tempo."}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Valor Mensal (R$)</Label>
+                <Input
+                  type="number" min="0" step="0.01"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditWs(null)}>Cancelar</Button>
+            <Button onClick={savePlan} disabled={savingPlan}>
+              {savingPlan ? "Salvando..." : "Salvar Plano"} <CheckCircle2 className="w-4 h-4 ml-1" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

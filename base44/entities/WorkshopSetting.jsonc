@@ -99,6 +99,20 @@
     "demo_password": {
       "type": "string",
       "title": "Senha Demo"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "normal"
+      ],
+      "default": "free",
+      "title": "Plano"
+    },
+    "plan_value": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Mensal (R$)"
     }
   },
   "required": [],

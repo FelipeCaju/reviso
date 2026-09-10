@@ -41,6 +41,13 @@ const NAV_SECONDARY = [
   { to: "/admin", label: "Nova Oficina", icon: Building2, roles: ["admin"] },
 ];
 
+const MOBILE_BOTTOM_NAV = [
+  { to: "/", label: "Início", icon: LayoutDashboard, end: true, roles: ["admin", "user"] },
+  { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["admin", "user"] },
+  { to: "/orcamentos", label: "Orçamento", icon: FileText, roles: ["admin"] },
+  { to: "/clientes", label: "Clientes", icon: Users, roles: ["admin", "user"] },
+];
+
 function NavItem({ item, onNavigate }) {
   const Icon = item.icon;
   return (
@@ -65,7 +72,7 @@ function NavItem({ item, onNavigate }) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLogout = () => logout();
 
@@ -77,13 +84,15 @@ export default function Layout() {
   const visibleSecondary = isPlatformOwner
     ? []
     : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
+  const visibleBottomNav = isPlatformOwner
+    ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
+    : MOBILE_BOTTOM_NAV.filter((item) => !item.roles || item.roles.includes(userRole));
   const canCreateQuote = userRole === "admin" && !isPlatformOwner;
-  const hasMore = visibleNav.length > 5 || visibleSecondary.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
           <ImgCmp src={SIDEBAR_LOGO_URL} alt="Revisô" fittingType="fit" className="w-9 h-9 shrink-0 rounded-lg" />
           <div className="font-heading font-semibold leading-tight text-white">
@@ -126,8 +135,15 @@ export default function Layout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-sidebar border-b border-sidebar-border">
+      <header className="lg:hidden sticky top-0 z-30 bg-sidebar border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-3 h-14">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="p-2 -ml-1 text-white rounded-lg hover:bg-sidebar-accent shrink-0"
+            aria-label="Abrir menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
           <ImgCmp src={SIDEBAR_LOGO_URL} alt="Revisô" fittingType="fit" className="w-8 h-8 shrink-0 rounded-lg" />
           <div className="flex-1 min-w-0">
             <QuickSearch />
@@ -136,16 +152,16 @@ export default function Layout() {
       </header>
 
       {/* Main content */}
-      <main className="md:ml-60 pb-20 md:pb-8 min-h-screen">
-        <div className="px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto">
+      <main className="lg:ml-60 pb-20 lg:pb-8 min-h-screen">
+        <div className="px-4 lg:px-6 py-4 lg:py-6 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-        <div className={`grid ${hasMore ? "grid-cols-6" : "grid-cols-5"}`}>
-          {visibleNav.slice(0, 5).map((item) => {
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+        <div className="flex">
+          {visibleBottomNav.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -153,7 +169,7 @@ export default function Layout() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium ${
+                  `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`
                 }
@@ -163,55 +179,65 @@ export default function Layout() {
               </NavLink>
             );
           })}
-          {hasMore && (
-            <button
-              onClick={() => setMoreOpen(true)}
-              className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground"
-            >
-              <Menu className="w-5 h-5" />
-              Mais
-            </button>
-          )}
         </div>
       </nav>
 
-      {/* Mobile "Mais" sheet */}
-      {moreOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/40 flex items-end" onClick={() => setMoreOpen(false)}>
+      {/* Mobile lateral drawer */}
+      {drawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
           <div
-            className="w-full bg-background rounded-t-2xl p-4 pb-8 max-h-[80vh] overflow-auto"
+            className="relative w-72 max-w-[80vw] bg-sidebar flex flex-col h-full overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold">Mais opções</div>
-              <button onClick={() => setMoreOpen(false)} className="p-1">
+            <div className="flex items-center justify-between px-5 h-16 border-b border-sidebar-border shrink-0">
+              <div className="flex items-center gap-2.5">
+                <ImgCmp src={SIDEBAR_LOGO_URL} alt="Revisô" fittingType="fit" className="w-9 h-9 rounded-lg" />
+                <div className="font-heading font-semibold leading-tight text-white">
+                  <div className="text-sm">Revisô</div>
+                  <div className="text-xs text-sidebar-foreground font-normal">Gestão Mecânica</div>
+                </div>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} className="p-1.5 text-sidebar-foreground hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-1">
-              {visibleNav.slice(5).map((item) => (
-                <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
-              ))}
-              {visibleSecondary.map((item) => (
-                <NavItem key={item.to} item={item} onNavigate={() => setMoreOpen(false)} />
-              ))}
+            <div className="flex-1 overflow-y-auto px-3 py-3">
               {canCreateQuote && (
-                <button
+                <Button
                   onClick={() => {
-                    setMoreOpen(false);
+                    setDrawerOpen(false);
                     navigate("/orcamentos/novo");
                   }}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary hover:bg-accent w-full"
+                  className="w-full mb-3"
                 >
-                  <Plus className="w-4 h-4" /> Novo Orçamento
-                </button>
+                  <Plus className="w-4 h-4 mr-2" /> Novo Orçamento
+                </Button>
               )}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent w-full"
-              >
-                <LogOut className="w-4 h-4" /> Sair
-              </button>
+              <div className="space-y-0.5">
+                {visibleNav.map((item) => (
+                  <NavItem key={item.to} item={item} onNavigate={() => setDrawerOpen(false)} />
+                ))}
+              </div>
+              <div className="pt-2 mt-2 border-t border-sidebar-border space-y-0.5">
+                {visibleSecondary.map((item) => (
+                  <NavItem key={item.to} item={item} onNavigate={() => setDrawerOpen(false)} />
+                ))}
+              </div>
+            </div>
+            <div className="p-3 border-t border-sidebar-border shrink-0">
+              <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
+                  {(user?.full_name || user?.email || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-medium truncate text-white">{user?.full_name || "Usuário"}</div>
+                  <div className="text-[11px] text-sidebar-foreground truncate">{user?.email}</div>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" /> Sair
+              </Button>
             </div>
           </div>
         </div>

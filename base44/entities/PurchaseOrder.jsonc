@@ -1,0 +1,114 @@
+{
+  "name": "PurchaseOrder",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
+    "number": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data"
+    },
+    "supplier_id": {
+      "type": "string",
+      "title": "Fornecedor"
+    },
+    "supplier_name_snapshot": {
+      "type": "string",
+      "title": "Fornecedor (snapshot)"
+    },
+    "request_id": {
+      "type": "string",
+      "title": "Solicita\u00e7\u00e3o de Origem"
+    },
+    "expected_delivery": {
+      "type": "string",
+      "format": "date",
+      "title": "Previs\u00e3o de Entrega"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    },
+    "responsible": {
+      "type": "string",
+      "title": "Respons\u00e1vel"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "pedido_realizado",
+        "parcialmente_recebido",
+        "recebido",
+        "cancelado"
+      ],
+      "default": "rascunho",
+      "title": "Status"
+    },
+    "subtotal": {
+      "type": "number",
+      "default": 0,
+      "title": "Subtotal"
+    },
+    "discount": {
+      "type": "number",
+      "default": 0,
+      "title": "Desconto"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "nao_pago",
+        "parcialmente_pago",
+        "pago",
+        "cancelado"
+      ],
+      "default": "nao_pago",
+      "title": "Status de Pagamento"
+    },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Pago"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Data de Recebimento"
+    },
+    "receipt_notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es do Recebimento"
+    }
+  },
+  "required": [
+    "number",
+    "supplier_id"
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
+}

@@ -29,6 +29,14 @@ import Materials from '@/pages/Materials';
 import Services from '@/pages/Services';
 import Settings from '@/pages/Settings';
 import AdminOnboarding from '@/pages/AdminOnboarding';
+import Suppliers from '@/pages/Suppliers';
+import SupplierDetail from '@/pages/SupplierDetail';
+import PurchaseRequests from '@/pages/PurchaseRequests';
+import PurchaseRequestEditor from '@/pages/PurchaseRequestEditor';
+import PurchaseOrders from '@/pages/PurchaseOrders';
+import Expenses from '@/pages/Expenses';
+import Finance from '@/pages/Finance';
+import FinanceReports from '@/pages/FinanceReports';
 import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
@@ -88,6 +96,15 @@ const AuthenticatedApp = () => {
           <Route path="/materiais" element={<Materials />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/fornecedores" element={<Suppliers />} />
+          <Route path="/fornecedores/:id" element={<SupplierDetail />} />
+          <Route path="/compras" element={<PurchaseRequests />} />
+          <Route path="/compras/nova" element={<PurchaseRequestEditor />} />
+          <Route path="/compras/:id" element={<PurchaseRequestEditor />} />
+          <Route path="/pedidos" element={<PurchaseOrders />} />
+          <Route path="/despesas" element={<Expenses />} />
+          <Route path="/financeiro" element={<Finance />} />
+          <Route path="/relatorios-financeiros" element={<FinanceReports />} />
           <Route path="/admin" element={<AdminOnboarding />} />
         </Route>
       </Route>

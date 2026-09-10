@@ -1,0 +1,70 @@
+{
+  "name": "PurchaseOrderItem",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
+    "order_id": {
+      "type": "string",
+      "title": "Pedido"
+    },
+    "material_id": {
+      "type": "string",
+      "title": "Material"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "title": "Quantidade"
+    },
+    "unit": {
+      "type": "string",
+      "default": "un",
+      "title": "Unidade"
+    },
+    "unit_price": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Unit\u00e1rio"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total"
+    },
+    "received_quantity": {
+      "type": "number",
+      "default": 0,
+      "title": "Qtd Recebida"
+    },
+    "received": {
+      "type": "boolean",
+      "default": false,
+      "title": "Recebido"
+    }
+  },
+  "required": [
+    "order_id",
+    "description"
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
+}

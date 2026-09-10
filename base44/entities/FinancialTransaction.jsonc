@@ -1,0 +1,105 @@
+{
+  "name": "FinancialTransaction",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "entrada",
+        "saida"
+      ],
+      "title": "Tipo"
+    },
+    "origin_type": {
+      "type": "string",
+      "enum": [
+        "os",
+        "pedido",
+        "despesa",
+        "outro"
+      ],
+      "title": "Origem"
+    },
+    "origin_id": {
+      "type": "string",
+      "title": "ID de Origem"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Data"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "dinheiro",
+        "pix",
+        "cartao_debito",
+        "cartao_credito",
+        "outro"
+      ],
+      "title": "Forma de Pagamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "cancelado"
+      ],
+      "default": "ativo",
+      "title": "Status"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name_snapshot": {
+      "type": "string",
+      "title": "Cliente (snapshot)"
+    },
+    "supplier_id": {
+      "type": "string",
+      "title": "Fornecedor"
+    },
+    "supplier_name_snapshot": {
+      "type": "string",
+      "title": "Fornecedor (snapshot)"
+    },
+    "category": {
+      "type": "string",
+      "title": "Categoria (despesas)"
+    }
+  },
+  "required": [
+    "type",
+    "origin_type",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
+}

@@ -94,6 +94,11 @@
       "default": 0,
       "title": "Subtotal M\u00e3o de Obra"
     },
+    "socorro": {
+      "type": "number",
+      "default": 0,
+      "title": "Socorro"
+    },
     "discount": {
       "type": "number",
       "default": 0,

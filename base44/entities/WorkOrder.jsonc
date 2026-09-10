@@ -95,6 +95,11 @@
       "default": 0,
       "title": "Subtotal M\u00e3o de Obra"
     },
+    "socorro": {
+      "type": "number",
+      "default": 0,
+      "title": "Socorro"
+    },
     "discount": {
       "type": "number",
       "default": 0,
@@ -119,6 +124,47 @@
         "type": "string"
       },
       "title": "Fotos Anexadas"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "nao_pago",
+        "parcialmente_pago",
+        "pago",
+        "isento_cancelado"
+      ],
+      "default": "nao_pago",
+      "title": "Status de Pagamento"
+    },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "title": "Valor Pago"
+    },
+    "customer_notified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Cliente Notificado"
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Notificado em"
+    },
+    "notified_channel": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "telefone",
+        "email",
+        "presencial",
+        "outro"
+      ],
+      "title": "Canal da Notifica\u00e7\u00e3o"
+    },
+    "notified_by": {
+      "type": "string",
+      "title": "Notificado por"
     }
   },
   "required": [

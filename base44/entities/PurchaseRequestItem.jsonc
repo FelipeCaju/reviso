@@ -1,0 +1,85 @@
+{
+  "name": "PurchaseRequestItem",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
+    "request_id": {
+      "type": "string",
+      "title": "Solicita\u00e7\u00e3o"
+    },
+    "material_id": {
+      "type": "string",
+      "title": "Material"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descri\u00e7\u00e3o"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "title": "Quantidade"
+    },
+    "unit": {
+      "type": "string",
+      "default": "un",
+      "title": "Unidade"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00e3o"
+    },
+    "supplier_quotes": {
+      "type": "array",
+      "title": "Cota\u00e7\u00f5es dos Fornecedores",
+      "items": {
+        "type": "object",
+        "properties": {
+          "supplier_id": {
+            "type": "string"
+          },
+          "supplier_name_snapshot": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number",
+            "default": 0
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "selected_supplier_id": {
+      "type": "string",
+      "title": "Fornecedor Selecionado"
+    },
+    "selected_unit_price": {
+      "type": "number",
+      "default": 0,
+      "title": "Pre\u00e7o Selecionado"
+    }
+  },
+  "required": [
+    "request_id",
+    "description"
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
+}

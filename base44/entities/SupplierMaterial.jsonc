@@ -1,0 +1,71 @@
+{
+  "name": "SupplierMaterial",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "Oficina"
+    },
+    "supplier_id": {
+      "type": "string",
+      "title": "Fornecedor"
+    },
+    "material_id": {
+      "type": "string",
+      "title": "Material"
+    },
+    "last_price": {
+      "type": "number",
+      "default": 0,
+      "title": "\u00daltimo Pre\u00e7o"
+    },
+    "last_price_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Data do \u00daltimo Pre\u00e7o"
+    },
+    "price_history": {
+      "type": "array",
+      "title": "Hist\u00f3rico de Pre\u00e7os",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "title": "Observa\u00e7\u00f5es"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Ativo"
+    }
+  },
+  "required": [
+    "supplier_id",
+    "material_id"
+  ],
+  "rls": {
+    "read": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "create": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "update": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    },
+    "delete": {
+      "data.workshop_id": "{{user.data.workshop_id}}"
+    }
+  }
+}

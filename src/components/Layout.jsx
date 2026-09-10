@@ -16,6 +16,10 @@ import {
   LogOut,
   Menu,
   X,
+  Truck,
+  ShoppingCart,
+  Receipt,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -35,6 +39,10 @@ const NAV = [
   { to: "/veiculos", label: "Veículos", icon: Car, roles: ["admin", "user"] },
   { to: "/materiais", label: "Materiais", icon: Package, roles: ["admin"] },
   { to: "/servicos", label: "Serviços", icon: Wrench, roles: ["admin"] },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, roles: ["admin"] },
+  { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ["admin"] },
+  { to: "/despesas", label: "Despesas", icon: Receipt, roles: ["admin"] },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet, roles: ["admin"] },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
 ];
 

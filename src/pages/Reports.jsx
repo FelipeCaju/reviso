@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Image as ImgCmp } from "@/components/ui/image";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { toast } from "@/components/ui/use-toast";
 
@@ -497,7 +496,7 @@ export default function Reports() {
           {/* Header */}
           <div className="flex items-start gap-4 pb-4 border-b-2 border-slate-300">
             {settings?.logo_url && (
-              <ImgCmp src={settings.logo_url} alt="Logo" fittingType="fit" className="w-16 h-16 shrink-0 object-contain" />
+              <img src={settings.logo_url} alt="Logo" className="w-16 h-16 shrink-0 object-contain" />
             )}
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold">{settings?.name || "Oficina"}</h1>

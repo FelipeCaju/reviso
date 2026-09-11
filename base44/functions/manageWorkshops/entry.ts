@@ -11,7 +11,8 @@ export default async function(req) {
     // SELF-REGISTER — any authenticated user can register their own workshop
     if (body.action === 'selfRegister') {
       const { name, razao_social, cnpj, phone, whatsapp, email, address } = body;
-      if (!name) return Response.json({ error: 'name required' }, { status: 400 });
+      const missing = ['name', 'phone', 'email', 'address'].filter((f) => !body[f] || !String(body[f]).trim());
+      if (missing.length > 0) return Response.json({ error: `Campos obrigatórios faltando: ${missing.join(', ')}` }, { status: 400 });
 
       const workshop = await base44.asServiceRole.entities.WorkshopSetting.create({
         name,
@@ -95,7 +96,8 @@ export default async function(req) {
     // PROVISION — create a workshop for an orphan user and set them as admin
     if (body.action === 'provision') {
       const { userId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value } = body;
-      if (!userId || !name) return Response.json({ error: 'userId and name required' }, { status: 400 });
+      const missing = ['name', 'phone', 'email', 'address'].filter((f) => !body[f] || !String(body[f]).trim());
+      if (!userId || missing.length > 0) return Response.json({ error: `Campos obrigatórios faltando: ${missing.join(', ')}` }, { status: 400 });
 
       const workshop = await base44.asServiceRole.entities.WorkshopSetting.create({
         name,
@@ -125,6 +127,12 @@ export default async function(req) {
     if (body.action === 'update') {
       const { workshopId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value } = body;
       if (!workshopId) return Response.json({ error: 'workshopId required' }, { status: 400 });
+
+      // Validate mandatory fields are not being set to empty
+      const mandatoryCheck = ['name', 'phone', 'email', 'address'].filter(
+        (f) => body[f] !== undefined && !String(body[f]).trim()
+      );
+      if (mandatoryCheck.length > 0) return Response.json({ error: `Campos obrigatórios não podem ficar vazios: ${mandatoryCheck.join(', ')}` }, { status: 400 });
 
       const updateData = {};
       if (name !== undefined) updateData.name = name;

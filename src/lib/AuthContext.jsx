@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { setWorkshopId } from '@/lib/workshop';
 import { setDemoModeActive } from '@/lib/demoMode';
+import { isWorkshopProfileComplete } from '@/lib/workshopValidation';
 
 const AuthContext = createContext();
 
@@ -15,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [trialStartedAt, setTrialStartedAt] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
 
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       
       let demoActive = false;
       let onboarding = false;
+      let profileCompletion = false;
       let trialStart = null;
       
       const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
@@ -100,6 +103,9 @@ export const AuthProvider = ({ children }) => {
             demoActive = true;
             trialStart = settings?.trial_started_at || settings?.created_date;
           }
+          if (!isWorkshopProfileComplete(settings)) {
+            profileCompletion = true;
+          }
         } catch (e) {
           console.error('Failed to load workshop settings:', e);
         }
@@ -110,6 +116,7 @@ export const AuthProvider = ({ children }) => {
       setDemoModeActive(demoActive);
       setIsDemo(demoActive);
       setNeedsOnboarding(onboarding);
+      setNeedsProfileCompletion(profileCompletion);
       setTrialStartedAt(trialStart);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
@@ -134,6 +141,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setWorkshopId(null);
     setNeedsOnboarding(false);
+    setNeedsProfileCompletion(false);
     setTrialStartedAt(null);
     
     if (shouldRedirect) {
@@ -158,6 +166,7 @@ export const AuthProvider = ({ children }) => {
       authChecked,
       isDemo,
       needsOnboarding,
+      needsProfileCompletion,
       trialStartedAt,
       logout,
       navigateToLogin,

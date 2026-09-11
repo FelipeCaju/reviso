@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { getValidationMessage } from "@/lib/workshopValidation";
 
 const PLAN_LABELS = {
   free: { label: "Free", icon: Clock, badge: "bg-amber-100 text-amber-700 border-amber-200" },
@@ -64,8 +65,13 @@ export default function AdminOnboarding() {
   useEffect(() => { loadWorkshops(); }, []);
 
   const submit = async () => {
-    if (!form.name.trim() || !form.ownerEmail.trim()) {
-      toast({ title: "Preencha o nome da oficina e o e-mail do proprietário", variant: "destructive" });
+    const profileMsg = getValidationMessage(form);
+    if (profileMsg) {
+      toast({ title: profileMsg, variant: "destructive" });
+      return;
+    }
+    if (!form.ownerEmail.trim()) {
+      toast({ title: "Informe o e-mail do proprietário", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -110,12 +116,14 @@ export default function AdminOnboarding() {
   const savePlan = async () => {
     setSavingPlan(true);
     try {
+      const editData = { name: editName, phone: editPhone, email: editEmailField, address: editAddress };
+      const profileMsg = getValidationMessage(editData);
+      if (profileMsg) {
+        toast({ title: profileMsg, variant: "destructive" });
+        setSavingPlan(false);
+        return;
+      }
       if (editWs.isOrphan) {
-        if (!editName.trim()) {
-          toast({ title: "Informe o nome da oficina", variant: "destructive" });
-          setSavingPlan(false);
-          return;
-        }
         await base44.functions.invoke("manageWorkshops", {
           action: "provision",
           userId: editWs.userId,
@@ -176,10 +184,10 @@ export default function AdminOnboarding() {
           </div>
           <div className="space-y-1.5"><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Telefone</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>E-mail da Oficina</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>E-mail da Oficina *</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Endereço *</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
         </div>
         <div className="pt-2 border-t border-border">
           <h3 className="font-medium text-sm mb-3 flex items-center gap-2"><Users className="w-4 h-4" /> Proprietário</h3>
@@ -344,10 +352,10 @@ export default function AdminOnboarding() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5"><Label>Razão Social</Label><Input value={editRazao} onChange={(e) => setEditRazao(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>CNPJ</Label><Input value={editCnpj} onChange={(e) => setEditCnpj(e.target.value)} /></div>
-                <div className="space-y-1.5"><Label>Telefone</Label><Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Telefone *</Label><Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={editWhatsapp} onChange={(e) => setEditWhatsapp(e.target.value)} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>E-mail</Label><Input value={editEmailField} onChange={(e) => setEditEmailField(e.target.value)} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Endereço</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2"><Label>E-mail *</Label><Input value={editEmailField} onChange={(e) => setEditEmailField(e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2"><Label>Endereço *</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} /></div>
               </div>
 
               <div className="space-y-1.5">

@@ -205,7 +205,7 @@ export default function PurchaseRequestEditor() {
     }
   };
 
-  // Save a single item's quotes to DB + update Material cost
+  // Save a single item's quotes to DB + update Material cost + sync existing orders
   const saveItemQuotes = async (idx) => {
     if (!editing) { toast({ title: "Salve a cotação primeiro", variant: "destructive" }); return; }
     const it = items[idx];
@@ -222,7 +222,46 @@ export default function PurchaseRequestEditor() {
       if (it.material_id && it.selected_unit_price > 0) {
         await base44.entities.Material.update(it.material_id, { cost: it.selected_unit_price });
       }
-      toast({ title: "Cotação do item salva" });
+
+      // If orders were already generated for this request, sync the price into the order items
+      const existingOrders = await base44.entities.PurchaseOrder.filter({ request_id: id }, "-created_date", 500);
+      if (existingOrders.length > 0 && it.selected_supplier_id) {
+        const sup = suppliers.find((s) => s.id === it.selected_supplier_id);
+        for (const order of existingOrders) {
+          if (order.supplier_id !== it.selected_supplier_id) continue;
+          const orderItems = await base44.entities.PurchaseOrderItem.filter({ order_id: order.id }, "-created_date", 500);
+          const matchBy = (oi) => it.material_id ? oi.material_id === it.material_id : oi.description === it.description;
+          const matched = orderItems.find(matchBy);
+          if (matched) {
+            const newTotal = (it.quantity || 0) * (it.selected_unit_price || 0);
+            await base44.entities.PurchaseOrderItem.update(matched.id, {
+              unit_price: it.selected_unit_price,
+              total: newTotal,
+              quantity: it.quantity,
+            });
+            // Recalculate order totals
+            const updatedItems = orderItems.map((oi) => oi.id === matched.id ? { ...oi, unit_price: it.selected_unit_price, total: newTotal, quantity: it.quantity } : oi);
+            const newSubtotal = updatedItems.reduce((s, oi) => s + (oi.total || 0), 0);
+            await base44.entities.PurchaseOrder.update(order.id, {
+              subtotal: newSubtotal,
+              total: newSubtotal - (order.discount || 0),
+            });
+          }
+        }
+        // Also update the linked expense
+        const linkedExpenses = await base44.entities.Expense.filter({ purchase_order_id: { $in: existingOrders.map((o) => o.id) } }, "-created_date", 500);
+        for (const order of existingOrders) {
+          if (order.supplier_id !== it.selected_supplier_id) continue;
+          const orderItems = await base44.entities.PurchaseOrderItem.filter({ order_id: order.id }, "-created_date", 500);
+          const newSubtotal = orderItems.reduce((s, oi) => s + (oi.total || 0), 0);
+          const exp = linkedExpenses.find((e) => e.purchase_order_id === order.id);
+          if (exp) {
+            await base44.entities.Expense.update(exp.id, { amount: newSubtotal });
+          }
+        }
+      }
+
+      toast({ title: "Cotação do item salva", description: existingOrders.length > 0 && it.selected_supplier_id ? "Pedido atualizado com o novo preço." : undefined });
     } catch (e) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     } finally {
@@ -264,10 +303,14 @@ export default function PurchaseRequestEditor() {
 
   // Generate purchase orders from selected winners
   const generateOrders = async () => {
-    const itemsWithWinner = items.filter((it) => it.selected_supplier_id);
+    const itemsWithWinner = items.filter((it) => it.selected_supplier_id && it.selected_unit_price > 0);
     if (itemsWithWinner.length === 0) {
-      toast({ title: "Selecione o fornecedor vencedor em pelo menos um item", variant: "destructive" });
+      toast({ title: "Selecione o fornecedor e informe o preço em pelo menos um item", variant: "destructive" });
       return;
+    }
+    const itemsWithoutPrice = items.filter((it) => it.selected_supplier_id && it.selected_unit_price <= 0);
+    if (itemsWithoutPrice.length > 0) {
+      toast({ title: `${itemsWithoutPrice.length} item(ns) com fornecedor selecionado mas sem preço — serão ignorados.`, variant: "destructive" });
     }
 
     // Group by supplier

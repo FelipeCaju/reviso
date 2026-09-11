@@ -9,7 +9,7 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
 
-    // LIST — return all workshops with their admin owners
+    // LIST — return all workshops with their admin owners + orphan users (registered but no workshop)
     if (body.action === 'list') {
       const workshops = await base44.asServiceRole.entities.WorkshopSetting.list('-created_date', 500);
       const users = await base44.asServiceRole.entities.User.list('-created_date', 500);
@@ -34,7 +34,51 @@ export default async function(req) {
         };
       });
 
+      // Include users who registered but have no workshop (exclude platform owner = admin without workshop_id)
+      const orphanUsers = users.filter((u) => !u.workshop_id && u.role !== 'admin');
+      for (const user of orphanUsers) {
+        result.push({
+          id: `orphan_${user.id}`,
+          name: '',
+          razao_social: '',
+          cnpj: '',
+          phone: '',
+          whatsapp: '',
+          email: user.email || '',
+          address: '',
+          plan: 'free',
+          plan_value: 0,
+          is_demo: false,
+          created_date: user.created_date,
+          owners: [{ id: user.id, full_name: user.full_name, email: user.email }],
+          isOrphan: true,
+          userId: user.id,
+        });
+      }
+
       return Response.json({ workshops: result });
+    }
+
+    // PROVISION — create a workshop for an orphan user and set them as admin
+    if (body.action === 'provision') {
+      const { userId, name, plan, plan_value } = body;
+      if (!userId || !name) return Response.json({ error: 'userId and name required' }, { status: 400 });
+
+      const workshop = await base44.asServiceRole.entities.WorkshopSetting.create({
+        name,
+        plan: plan || 'free',
+        plan_value: plan_value || 0,
+        default_capacity: 8,
+        capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
+        capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+      });
+
+      await base44.asServiceRole.entities.User.update(userId, {
+        workshop_id: workshop.id,
+        role: 'admin',
+      });
+
+      return Response.json({ success: true, workshopId: workshop.id });
     }
 
     // UPDATE — change plan / plan_value

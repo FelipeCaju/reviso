@@ -38,6 +38,7 @@ export default function AdminOnboarding() {
   const [editWs, setEditWs] = useState(null);
   const [editPlan, setEditPlan] = useState("free");
   const [editValue, setEditValue] = useState(0);
+  const [editName, setEditName] = useState("");
   const [savingPlan, setSavingPlan] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -90,22 +91,39 @@ export default function AdminOnboarding() {
     setEditWs(ws);
     setEditPlan(ws.plan || "free");
     setEditValue(ws.plan_value || 0);
+    setEditName(ws.isOrphan ? "" : (ws.name || ""));
   };
 
   const savePlan = async () => {
     setSavingPlan(true);
     try {
-      await base44.functions.invoke("manageWorkshops", {
-        action: "update",
-        workshopId: editWs.id,
-        plan: editPlan,
-        plan_value: Number(editValue) || 0,
-      });
-      toast({ title: "Plano atualizado!", description: `${editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
+      if (editWs.isOrphan) {
+        if (!editName.trim()) {
+          toast({ title: "Informe o nome da oficina", variant: "destructive" });
+          setSavingPlan(false);
+          return;
+        }
+        await base44.functions.invoke("manageWorkshops", {
+          action: "provision",
+          userId: editWs.userId,
+          name: editName.trim(),
+          plan: editPlan,
+          plan_value: Number(editValue) || 0,
+        });
+        toast({ title: "Oficina criada!", description: `${editName.trim()} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
+      } else {
+        await base44.functions.invoke("manageWorkshops", {
+          action: "update",
+          workshopId: editWs.id,
+          plan: editPlan,
+          plan_value: Number(editValue) || 0,
+        });
+        toast({ title: "Plano atualizado!", description: `${editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
+      }
       setEditWs(null);
       loadWorkshops();
     } catch (e) {
-      toast({ title: "Erro ao atualizar plano", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     } finally {
       setSavingPlan(false);
     }
@@ -187,8 +205,17 @@ export default function AdminOnboarding() {
                   {workshops.map((ws) => (
                     <tr key={ws.id} className="border-b border-border/60 hover:bg-muted/30 cursor-pointer" onClick={() => openEdit(ws)}>
                       <td className="py-3 pr-3">
-                        <div className="font-medium">{ws.name || "—"}</div>
-                        {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                        {ws.isOrphan ? (
+                          <>
+                            <div className="font-medium text-muted-foreground italic">Sem oficina cadastrada</div>
+                            <div className="text-xs text-amber-600">Novo cadastro — clique para ativar</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-medium">{ws.name || "—"}</div>
+                            {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                          </>
+                        )}
                       </td>
                       <td className="py-3 px-3">
                         {ws.owners.length > 0 ? (
@@ -225,8 +252,17 @@ export default function AdminOnboarding() {
                 <div key={ws.id} className="rounded-lg border border-border p-3 space-y-2" onClick={() => openEdit(ws)}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{ws.name || "—"}</div>
-                      {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                      {ws.isOrphan ? (
+                        <>
+                          <div className="font-medium truncate text-muted-foreground italic">Sem oficina</div>
+                          <div className="text-xs text-amber-600">Novo cadastro</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-medium truncate">{ws.name || "—"}</div>
+                          {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
+                        </>
+                      )}
                     </div>
                     <PlanBadge plan={ws.plan} />
                   </div>
@@ -259,8 +295,12 @@ export default function AdminOnboarding() {
       <Dialog open={!!editWs} onOpenChange={(open) => !open && setEditWs(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Gerenciar Plano — {editWs?.name}</DialogTitle>
-            <DialogDescription>Altere o plano e o valor mensal da assinatura</DialogDescription>
+            <DialogTitle>
+              {editWs?.isOrphan ? "Cadastrar Oficina — Novo Usuário" : `Gerenciar Plano — ${editWs?.name}`}
+            </DialogTitle>
+            <DialogDescription>
+              {editWs?.isOrphan ? "Crie a oficina para este usuário e defina o plano" : "Altere o plano e o valor mensal da assinatura"}
+            </DialogDescription>
           </DialogHeader>
 
           {editWs && (
@@ -268,8 +308,15 @@ export default function AdminOnboarding() {
               <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-sm">
                 <div><span className="text-muted-foreground">Proprietário: </span>{editWs.owners[0]?.full_name || editWs.owners[0]?.email || "—"}</div>
                 <div><span className="text-muted-foreground">Contato: </span>{editWs.phone || editWs.email || "—"}</div>
-                <div><span className="text-muted-foreground">Criada em: </span>{new Date(editWs.created_date).toLocaleDateString('pt-BR')}</div>
+                {!editWs.isOrphan && <div><span className="text-muted-foreground">Criada em: </span>{new Date(editWs.created_date).toLocaleDateString('pt-BR')}</div>}
               </div>
+
+              {editWs.isOrphan && (
+                <div className="space-y-1.5">
+                  <Label>Nome da Oficina *</Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ex: Auto Mecânica do João" />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label>Plano</Label>
@@ -310,7 +357,7 @@ export default function AdminOnboarding() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditWs(null)}>Cancelar</Button>
             <Button onClick={savePlan} disabled={savingPlan}>
-              {savingPlan ? "Salvando..." : "Salvar Plano"} <CheckCircle2 className="w-4 h-4 ml-1" />
+              {savingPlan ? "Salvando..." : (editWs?.isOrphan ? "Criar e Ativar" : "Salvar Plano")} <CheckCircle2 className="w-4 h-4 ml-1" />
             </Button>
           </DialogFooter>
         </DialogContent>

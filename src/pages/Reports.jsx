@@ -9,6 +9,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { formatCurrency, formatDate, todayISO, addDaysISO, normalizePlate } from "@/lib/format";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6", "#ec4899"];
 
@@ -21,6 +23,12 @@ export default function Reports() {
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 5, 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(todayISO());
 
   useEffect(() => {
     (async () => {
@@ -42,18 +50,26 @@ export default function Reports() {
     })();
   }, []);
 
-  const finished = orders.filter((w) => w.status === "finalizada");
+  const inRange = (d) => {
+    if (!d) return false;
+    const dt = new Date(d);
+    return dt >= new Date(startDate + "T00:00:00") && dt <= new Date(endDate + "T23:59:59");
+  };
+
+  const finished = orders.filter((w) => w.status === "finalizada" && inRange(w.completion_date || w.entry_date));
   const totalRevenue = finished.reduce((s, w) => s + (w.total || 0), 0);
   const avgTicket = finished.length ? totalRevenue / finished.length : 0;
 
   // Revenue per month (last 6)
   const monthRevenue = useMemo(() => {
     const map = {};
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = d.toLocaleDateString("pt-BR", { month: "short" });
+    const start = new Date(startDate + "T00:00:00");
+    const end = new Date(endDate + "T23:59:59");
+    let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cur <= end) {
+      const key = cur.toLocaleDateString("pt-BR", { month: "short" });
       map[key] = 0;
+      cur.setMonth(cur.getMonth() + 1);
     }
     finished.forEach((w) => {
       const d = new Date(w.completion_date || w.entry_date);
@@ -61,7 +77,7 @@ export default function Reports() {
       if (key in map) map[key] += w.total || 0;
     });
     return Object.entries(map).map(([month, value]) => ({ month, value: Math.round(value) }));
-  }, [orders]);
+  }, [orders, startDate, endDate]);
 
   // OS status distribution
   const statusDist = useMemo(() => {
@@ -102,9 +118,21 @@ export default function Reports() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl md:text-2xl font-heading font-semibold">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Performance geral da oficina</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-xl md:text-2xl font-heading font-semibold">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Performance geral da oficina</p>
+        </div>
+        <div className="flex items-end gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9" />
+          </div>
+        </div>
       </div>
 
       {/* KPIs */}

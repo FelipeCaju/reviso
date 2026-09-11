@@ -37,6 +37,7 @@ export default function FinanceReports() {
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
   const [reportType, setReportType] = useState("detalhado");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -226,8 +227,6 @@ export default function FinanceReports() {
     const text = `*Relatório Financeiro — ${periodLabel}*\n\n*Entradas:* ${formatCurrency(totalEntradas)}\n*Saídas:* ${formatCurrency(totalSaidas)}\n*Saldo:* ${formatCurrency(saldo)}\n\n*OS:* ${woInPeriod.length} (${formatCurrency(woTotal)})\n*Orçamentos:* ${quotesInPeriod.length}\n*Compras:* ${formatCurrency(ordersTotal)}\n*Despesas pagas:* ${formatCurrency(expensesTotal)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
-
-  const [saving, setSaving] = useState(false);
 
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 

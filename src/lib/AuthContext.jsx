@@ -14,7 +14,9 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [trialStartedAt, setTrialStartedAt] = useState(null);
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
     checkAppState();
@@ -29,7 +31,6 @@ export const AuthProvider = ({ children }) => {
         const publicSettings = await base44.app.getPublicSettings();
         setAppPublicSettings(publicSettings);
         
-        // If we got the app public settings successfully, check if user is authenticated
         if (appParams.token) {
           await checkUserAuth();
         } else {
@@ -41,7 +42,6 @@ export const AuthProvider = ({ children }) => {
       } catch (appError) {
         console.error('App state check failed:', appError);
         
-        // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
           if (reason === 'auth_required') {
@@ -82,25 +82,35 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserAuth = async () => {
     try {
-      // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setWorkshopId(currentUser?.workshop_id);
+      
       let demoActive = false;
+      let onboarding = false;
+      let trialStart = null;
+      
       const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
+      
       if (currentUser?.workshop_id) {
-        if (currentUser?.role !== 'admin') {
-          try {
-            const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
-            demoActive = settings?.is_demo === true;
-          } catch (e) {}
+        try {
+          const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
+          if (settings?.plan === 'free') {
+            demoActive = true;
+            trialStart = settings?.trial_started_at || settings?.created_date;
+          }
+        } catch (e) {
+          console.error('Failed to load workshop settings:', e);
         }
       } else if (!isPlatformOwner) {
-        demoActive = true;
+        onboarding = true;
       }
+      
       setDemoModeActive(demoActive);
       setIsDemo(demoActive);
+      setNeedsOnboarding(onboarding);
+      setTrialStartedAt(trialStart);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
@@ -110,7 +120,6 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setAuthChecked(true);
       
-      // If user auth fails, it might be an expired token
       if (error.status === 401 || error.status === 403) {
         setAuthError({
           type: 'auth_required',
@@ -124,18 +133,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setWorkshopId(null);
+    setNeedsOnboarding(false);
+    setTrialStartedAt(null);
     
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
       base44.auth.logout(window.location.href);
     } else {
-      // Just remove the token without redirect
       base44.auth.logout();
     }
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
     base44.auth.redirectToLogin(window.location.href);
   };
 
@@ -149,6 +157,8 @@ export const AuthProvider = ({ children }) => {
       appPublicSettings,
       authChecked,
       isDemo,
+      needsOnboarding,
+      trialStartedAt,
       logout,
       navigateToLogin,
       checkUserAuth,

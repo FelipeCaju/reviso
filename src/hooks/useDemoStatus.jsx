@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { isDemoExpired, getDemoHoursRemaining } from "@/lib/demoMode";
 import { useAuth } from "@/lib/AuthContext";
 
+const TRIAL_DURATION_HOURS = 24;
+
 export function useDemoStatus() {
-  const { isDemo } = useAuth();
+  const { isDemo, trialStartedAt } = useAuth();
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -12,9 +13,12 @@ export function useDemoStatus() {
     return () => clearInterval(interval);
   }, [isDemo]);
 
-  return {
-    isDemo,
-    isExpired: isDemo ? isDemoExpired() : false,
-    hoursRemaining: isDemo ? getDemoHoursRemaining() : 0,
-  };
+  const trialStart = trialStartedAt ? new Date(trialStartedAt).getTime() : null;
+  const elapsed = trialStart ? Date.now() - trialStart : 0;
+  const isExpired = isDemo && trialStart ? elapsed > TRIAL_DURATION_HOURS * 60 * 60 * 1000 : false;
+  const hoursRemaining = trialStart
+    ? Math.max(0, Math.ceil((TRIAL_DURATION_HOURS * 60 * 60 * 1000 - elapsed) / (60 * 60 * 1000)))
+    : TRIAL_DURATION_HOURS;
+
+  return { isDemo, isExpired, hoursRemaining };
 }

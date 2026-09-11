@@ -38,11 +38,12 @@ import Expenses from '@/pages/Expenses';
 import Finance from '@/pages/Finance';
 import FinanceReports from '@/pages/FinanceReports';
 import Support from '@/pages/Support';
+import WorkshopOnboarding from '@/pages/WorkshopOnboarding';
 import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, needsOnboarding } = useAuth();
   const { isDemo, isExpired } = useDemoStatus();
 
   // Show loading spinner while checking app public settings or auth
@@ -64,6 +65,9 @@ const AuthenticatedApp = () => {
       return null;
     }
   }
+
+  // User self-registered but hasn't set up their workshop yet
+  if (needsOnboarding) return <WorkshopOnboarding />;
 
   // Demo expired — show contact card
   if (isDemo && isExpired) return <DemoExpired />;

@@ -39,6 +39,12 @@ export default function AdminOnboarding() {
   const [editPlan, setEditPlan] = useState("free");
   const [editValue, setEditValue] = useState(0);
   const [editName, setEditName] = useState("");
+  const [editRazao, setEditRazao] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
+  const [editEmailField, setEditEmailField] = useState("");
+  const [editAddress, setEditAddress] = useState("");
   const [savingPlan, setSavingPlan] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -71,6 +77,7 @@ export default function AdminOnboarding() {
         capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
         capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
         plan: "free", plan_value: 0,
+        trial_started_at: new Date().toISOString(),
       });
       try { await base44.users.inviteUser(form.ownerEmail, "admin"); } catch { /* já existe */ }
       const users = await base44.entities.User.list("-created_date", 500);
@@ -92,6 +99,12 @@ export default function AdminOnboarding() {
     setEditPlan(ws.plan || "free");
     setEditValue(ws.plan_value || 0);
     setEditName(ws.isOrphan ? "" : (ws.name || ""));
+    setEditRazao(ws.razao_social || "");
+    setEditCnpj(ws.cnpj || "");
+    setEditPhone(ws.phone || "");
+    setEditWhatsapp(ws.whatsapp || "");
+    setEditEmailField(ws.email || "");
+    setEditAddress(ws.address || "");
   };
 
   const savePlan = async () => {
@@ -107,6 +120,12 @@ export default function AdminOnboarding() {
           action: "provision",
           userId: editWs.userId,
           name: editName.trim(),
+          razao_social: editRazao,
+          cnpj: editCnpj,
+          phone: editPhone,
+          whatsapp: editWhatsapp,
+          email: editEmailField,
+          address: editAddress,
           plan: editPlan,
           plan_value: Number(editValue) || 0,
         });
@@ -115,10 +134,17 @@ export default function AdminOnboarding() {
         await base44.functions.invoke("manageWorkshops", {
           action: "update",
           workshopId: editWs.id,
+          name: editName,
+          razao_social: editRazao,
+          cnpj: editCnpj,
+          phone: editPhone,
+          whatsapp: editWhatsapp,
+          email: editEmailField,
+          address: editAddress,
           plan: editPlan,
           plan_value: Number(editValue) || 0,
         });
-        toast({ title: "Plano atualizado!", description: `${editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
+        toast({ title: "Dados atualizados!", description: `${editName || editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
       }
       setEditWs(null);
       loadWorkshops();
@@ -307,16 +333,22 @@ export default function AdminOnboarding() {
             <div className="space-y-4 py-2">
               <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-sm">
                 <div><span className="text-muted-foreground">Proprietário: </span>{editWs.owners[0]?.full_name || editWs.owners[0]?.email || "—"}</div>
-                <div><span className="text-muted-foreground">Contato: </span>{editWs.phone || editWs.email || "—"}</div>
                 {!editWs.isOrphan && <div><span className="text-muted-foreground">Criada em: </span>{new Date(editWs.created_date).toLocaleDateString('pt-BR')}</div>}
               </div>
 
-              {editWs.isOrphan && (
-                <div className="space-y-1.5">
-                  <Label>Nome da Oficina *</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ex: Auto Mecânica do João" />
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <Label>Nome da Oficina *</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ex: Auto Mecânica do João" />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label>Razão Social</Label><Input value={editRazao} onChange={(e) => setEditRazao(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>CNPJ</Label><Input value={editCnpj} onChange={(e) => setEditCnpj(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Telefone</Label><Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={editWhatsapp} onChange={(e) => setEditWhatsapp(e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2"><Label>E-mail</Label><Input value={editEmailField} onChange={(e) => setEditEmailField(e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2"><Label>Endereço</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} /></div>
+              </div>
 
               <div className="space-y-1.5">
                 <Label>Plano</Label>

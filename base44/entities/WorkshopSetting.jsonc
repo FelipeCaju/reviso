@@ -114,6 +114,11 @@
       "default": 0,
       "title": "Valor Mensal (R$)"
     },
+    "trial_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "In\u00edcio do Per\u00edodo Trial"
+    },
     "expense_categories": {
       "type": "array",
       "title": "Categorias de Despesa",

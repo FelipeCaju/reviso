@@ -4,6 +4,7 @@ import { appParams } from '@/lib/app-params';
 import { setWorkshopId } from '@/lib/workshop';
 import { setDemoModeActive } from '@/lib/demoMode';
 import { isWorkshopProfileComplete } from '@/lib/workshopValidation';
+import { isAlwaysAvailable } from '@/lib/alwaysAvailable';
 
 const AuthContext = createContext();
 
@@ -95,15 +96,16 @@ export const AuthProvider = ({ children }) => {
       let trialStart = null;
       
       const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
+      const alwaysAvailable = isAlwaysAvailable(currentUser?.email);
       
       if (currentUser?.workshop_id) {
         try {
           const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
-          if (settings?.plan === 'free') {
+          if (settings?.plan === 'free' && !alwaysAvailable) {
             demoActive = true;
             trialStart = settings?.trial_started_at || settings?.created_date;
           }
-          if (!isWorkshopProfileComplete(settings)) {
+          if (!isWorkshopProfileComplete(settings) && !alwaysAvailable) {
             profileCompletion = true;
           }
         } catch (e) {

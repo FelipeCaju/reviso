@@ -11,6 +11,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
+import CurrencyInput from "@/components/CurrencyInput";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+const UNITS = ["un", "pç", "metro", "m", "kg", "g", "litro", "ml", "par", "cj", "galão", "rolo", "caixa", "saco", "tubo", "L", "mL"];
 
 const EMPTY = {
   code: "", description: "", category: "", brand: "", unit: "un",
@@ -122,7 +128,7 @@ export default function Materials() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Material" : "Novo Material"}</DialogTitle>
           </DialogHeader>
@@ -145,15 +151,20 @@ export default function Materials() {
             </div>
             <div className="space-y-1.5">
               <Label>Unidade</Label>
-              <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+              <Select value={form.unit || "un"} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Custo</Label>
-              <Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })} />
+              <CurrencyInput value={form.cost} onValueChange={(v) => setForm({ ...form, cost: v })} />
             </div>
             <div className="space-y-1.5">
               <Label>Preço de Venda</Label>
-              <Input type="number" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: Number(e.target.value) })} />
+              <CurrencyInput value={form.sale_price} onValueChange={(v) => setForm({ ...form, sale_price: v })} />
             </div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">

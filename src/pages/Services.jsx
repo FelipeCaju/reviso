@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
+import CurrencyInput from "@/components/CurrencyInput";
 
 const EMPTY = {
   code: "", description: "", category: "", default_price: 0,
@@ -118,7 +119,7 @@ export default function Services() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           </DialogHeader>
@@ -141,7 +142,7 @@ export default function Services() {
             </div>
             <div className="space-y-1.5">
               <Label>Valor Padrão</Label>
-              <Input type="number" value={form.default_price} onChange={(e) => setForm({ ...form, default_price: Number(e.target.value) })} />
+              <CurrencyInput value={form.default_price} onValueChange={(v) => setForm({ ...form, default_price: v })} />
             </div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">

@@ -76,14 +76,15 @@
         "aberta",
         "aguardando_pecas",
         "em_execucao",
-        "aguardando_aprovacao_adicional",
         "finalizada",
-        "pronta_retirada",
-        "entregue",
         "cancelada"
       ],
       "default": "aberta",
       "title": "Status"
+    },
+    "cancel_reason": {
+      "type": "string",
+      "title": "Motivo do Cancelamento"
     },
     "subtotal_parts": {
       "type": "number",

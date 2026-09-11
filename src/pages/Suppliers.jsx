@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Search, Truck, MessageCircle, Mail } from "lucide-react";
+import { Plus, Pencil, Search, Truck, Mail, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,23 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+
+const BR_STATES = [
+  { value: "AC", label: "Acre" }, { value: "AL", label: "Alagoas" }, { value: "AP", label: "Amapá" },
+  { value: "AM", label: "Amazonas" }, { value: "BA", label: "Bahia" }, { value: "CE", label: "Ceará" },
+  { value: "DF", label: "Distrito Federal" }, { value: "ES", label: "Espírito Santo" },
+  { value: "GO", label: "Goiás" }, { value: "MA", label: "Maranhão" }, { value: "MT", label: "Mato Grosso" },
+  { value: "MS", label: "Mato Grosso do Sul" }, { value: "MG", label: "Minas Gerais" },
+  { value: "PA", label: "Pará" }, { value: "PB", label: "Paraíba" }, { value: "PR", label: "Paraná" },
+  { value: "PE", label: "Pernambuco" }, { value: "PI", label: "Piauí" }, { value: "RJ", label: "Rio de Janeiro" },
+  { value: "RN", label: "Rio Grande do Norte" }, { value: "RS", label: "Rio Grande do Sul" },
+  { value: "RO", label: "Rondônia" }, { value: "RR", label: "Roraima" }, { value: "SC", label: "Santa Catarina" },
+  { value: "SP", label: "São Paulo" }, { value: "SE", label: "Sergipe" }, { value: "TO", label: "Tocantins" },
+];
 
 const EMPTY = {
   name: "", fantasy_name: "", cpf_cnpj: "", phone: "", whatsapp: "", email: "",
@@ -28,6 +44,7 @@ export default function Suppliers() {
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -69,6 +86,36 @@ export default function Suppliers() {
   };
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const lookupCep = async () => {
+    const cep = (form.cep || "").replace(/\D/g, "");
+    if (cep.length !== 8) {
+      toast({ title: "CEP inválido", description: "Digite 8 dígitos", variant: "destructive" });
+      return;
+    }
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast({ title: "CEP não encontrado", variant: "destructive" });
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        address: data.logradouro || f.address,
+        neighborhood: data.bairro || f.neighborhood,
+        city: data.localidade || f.city,
+        state: data.uf || f.state,
+        complement: data.complemento || f.complement,
+      }));
+      toast({ title: "Endereço preenchido" });
+    } catch {
+      toast({ title: "Erro ao buscar CEP", variant: "destructive" });
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -121,7 +168,7 @@ export default function Suppliers() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
           </DialogHeader>
@@ -156,7 +203,12 @@ export default function Suppliers() {
             </div>
             <div className="space-y-1.5">
               <Label>CEP</Label>
-              <Input value={form.cep} onChange={(e) => set("cep", e.target.value)} />
+              <div className="flex gap-2">
+                <Input value={form.cep} onChange={(e) => set("cep", e.target.value)} placeholder="00000-000" />
+                <Button type="button" variant="outline" onClick={lookupCep} disabled={cepLoading} className="shrink-0">
+                  {cepLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+                </Button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Número</Label>
@@ -176,7 +228,12 @@ export default function Suppliers() {
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Input value={form.state} onChange={(e) => set("state", e.target.value)} />
+              <Select value={form.state || ""} onValueChange={(v) => set("state", v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {BR_STATES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">

@@ -60,7 +60,7 @@ export default function Dashboard() {
   const approvedWaitingSched = quotes.filter((q) => q.status === "aprovado" || q.status === "aguardando_agendamento").length;
   const openWO = workOrders.filter((w) => ["aberta", "aguardando_pecas"].includes(w.status)).length;
   const execWO = workOrders.filter((w) => w.status === "em_execucao").length;
-  const readyWO = workOrders.filter((w) => w.status === "pronta_retirada").length;
+  const readyWO = workOrders.filter((w) => w.status === "finalizada").length;
 
   const now = new Date();
   const monthWO = workOrders.filter((w) => {

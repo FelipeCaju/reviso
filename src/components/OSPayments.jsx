@@ -31,7 +31,7 @@ const PAY_STATUS_INFO = {
   isento_cancelado: { label: "Isento/Cancelado", color: "bg-slate-100 text-slate-600" },
 };
 
-export default function OSPayments({ workOrderId, wo, onPaymentsChange }) {
+export default function OSPayments({ workOrderId, wo, total, onPaymentsChange }) {
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,8 @@ export default function OSPayments({ workOrderId, wo, onPaymentsChange }) {
 
   useEffect(() => { load(); }, [workOrderId]);
 
-  const { status: payStatus, paid, balance } = calcPaymentStatus(wo?.total || 0, payments);
+  const liveTotal = total != null ? total : (wo?.total || 0);
+  const { status: payStatus, paid, balance } = calcPaymentStatus(liveTotal, payments);
 
   const addPayment = async () => {
     if (!amount || amount <= 0) return;
@@ -75,7 +76,7 @@ export default function OSPayments({ workOrderId, wo, onPaymentsChange }) {
       });
       // Update WO payment status
       const newPaid = paid + amount;
-      const newStatus = newPaid >= (wo.total || 0) ? "pago" : "parcialmente_pago";
+      const newStatus = newPaid >= liveTotal ? "pago" : "parcialmente_pago";
       await base44.entities.WorkOrder.update(workOrderId, {
         payment_status: newStatus,
         paid_amount: newPaid,
@@ -98,7 +99,7 @@ export default function OSPayments({ workOrderId, wo, onPaymentsChange }) {
       // Recalculate WO payment status
       const remaining = payments.filter((p) => p.id !== cancelOpen.id && p.status === "ativo");
       const newPaid = remaining.reduce((s, p) => s + (p.amount || 0), 0);
-      const newStatus = newPaid >= (wo.total || 0) ? "pago" : newPaid > 0 ? "parcialmente_pago" : "nao_pago";
+      const newStatus = newPaid >= liveTotal ? "pago" : newPaid > 0 ? "parcialmente_pago" : "nao_pago";
       await base44.entities.WorkOrder.update(workOrderId, {
         payment_status: newStatus,
         paid_amount: newPaid,
@@ -127,7 +128,7 @@ export default function OSPayments({ workOrderId, wo, onPaymentsChange }) {
       <div className="grid grid-cols-3 gap-2 text-sm">
         <div>
           <div className="text-xs text-muted-foreground">Total</div>
-          <div className="font-semibold">{formatCurrency(wo?.total || 0)}</div>
+          <div className="font-semibold">{formatCurrency(liveTotal)}</div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Pago</div>

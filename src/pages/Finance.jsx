@@ -4,6 +4,10 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Clock, 
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { generateRecurringExpenses } from "@/lib/finance";
 
@@ -12,6 +16,7 @@ const PERIODS = [
   { value: "semana", label: "Semana" },
   { value: "mes", label: "Mês" },
   { value: "ano", label: "Ano" },
+  { value: "personalizado", label: "Personalizado" },
 ];
 
 function getPeriodRange(period) {
@@ -41,6 +46,12 @@ export default function Finance() {
   const [workOrders, setWorkOrders] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [filterCustomer, setFilterCustomer] = useState("");
+  const [filterSupplier, setFilterSupplier] = useState("");
+  const [customStart, setCustomStart] = useState(todayISO());
+  const [customEnd, setCustomEnd] = useState(todayISO());
 
   useEffect(() => {
     (async () => {
@@ -48,30 +59,41 @@ export default function Finance() {
         // Gerar despesas recorrentes do mês atual
         await generateRecurringExpenses();
 
-        const [tx, wo, exp, pays] = await Promise.all([
+        const [tx, wo, exp, pays, custs, sups] = await Promise.all([
           base44.entities.FinancialTransaction.list("-date", 1000),
           base44.entities.WorkOrder.list("-entry_date", 500),
           base44.entities.Expense.list("-date", 500),
           base44.entities.Payment.list("-date", 500),
+          base44.entities.Customer.list("-updated_date", 500),
+          base44.entities.Supplier.list("-updated_date", 500),
         ]);
         setTransactions(tx);
         setWorkOrders(wo);
         setExpenses(exp);
         setPayments(pays);
+        setCustomers(custs);
+        setSuppliers(sups);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const { start, end } = getPeriodRange(period);
+  const { start, end } = period === "personalizado"
+    ? { start: new Date(customStart + "T00:00:00"), end: new Date(customEnd + "T23:59:59") }
+    : getPeriodRange(period);
 
   const inRange = (dateStr) => {
     const d = new Date(dateStr);
     return d >= start && d <= end;
   };
 
-  const activeTx = transactions.filter((t) => t.status === "ativo" && inRange(t.date));
+  const activeTx = transactions.filter((t) => {
+    if (t.status !== "ativo" || !inRange(t.date)) return false;
+    if (filterCustomer && t.customer_id !== filterCustomer) return false;
+    if (filterSupplier && t.supplier_id !== filterSupplier) return false;
+    return true;
+  });
   const entradas = activeTx.filter((t) => t.type === "entrada");
   const saidas = activeTx.filter((t) => t.type === "saida");
   const totalEntradas = entradas.reduce((s, t) => s + (t.amount || 0), 0);
@@ -101,7 +123,7 @@ export default function Finance() {
   // A receber: OS com saldo pendente
   const aReceber = useMemo(() => {
     return workOrders
-      .filter((w) => w.total > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada")
+      .filter((w) => w.total > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada" && (!filterCustomer || w.customer_id === filterCustomer))
       .map((w) => {
         const woPayments = payments.filter((p) => p.work_order_id === w.id && p.status === "ativo");
         const paid = woPayments.reduce((s, p) => s + (p.amount || 0), 0);
@@ -109,12 +131,12 @@ export default function Finance() {
         return { ...w, paid, balance };
       })
       .filter((w) => w.balance > 0.01);
-  }, [workOrders, payments]);
+  }, [workOrders, payments, filterCustomer]);
 
   const totalAReceber = aReceber.reduce((s, w) => s + w.balance, 0);
 
   // A pagar: despesas pendentes + pedidos não pagos
-  const despesasPendentes = expenses.filter((e) => e.status === "pendente" || e.status === "vencido");
+  const despesasPendentes = expenses.filter((e) => (e.status === "pendente" || e.status === "vencido") && (!filterSupplier || e.supplier_id === filterSupplier));
   const totalAPagar = despesasPendentes.reduce((s, e) => s + (e.amount || 0), 0);
 
   const methodLabels = { dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão Débito", cartao_credito: "Cartão Crédito", outro: "Outro" };
@@ -124,18 +146,13 @@ export default function Finance() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl md:text-2xl font-heading font-semibold">Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Controle gerencial da oficina</p>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => navigate("/relatorios-financeiros")}>
-          Relatórios
-        </Button>
+      <div>
+        <h1 className="text-xl md:text-2xl font-heading font-semibold">Financeiro</h1>
+        <p className="text-sm text-muted-foreground">Controle gerencial da oficina</p>
       </div>
 
       {/* Period selector */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
         {PERIODS.map((p) => (
           <button
             key={p.value}
@@ -145,6 +162,42 @@ export default function Finance() {
             {p.label}
           </button>
         ))}
+      </div>
+
+      {/* Custom date range + filters */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {period === "personalizado" && (
+          <>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">De</label>
+              <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Até</label>
+              <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-9" />
+            </div>
+          </>
+        )}
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Cliente</label>
+          <Select value={filterCustomer || "todos"} onValueChange={(v) => setFilterCustomer(v === "todos" ? "" : v)}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos clientes</SelectItem>
+              {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Fornecedor</label>
+          <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Todos fornecedores" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos fornecedores</SelectItem>
+              {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Resumo principal */}

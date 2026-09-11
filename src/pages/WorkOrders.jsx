@@ -82,10 +82,9 @@ export default function WorkOrders() {
           <SelectContent>
             <SelectItem value={null}>Todos status</SelectItem>
             <SelectItem value="aberta">Aberta</SelectItem>
+            <SelectItem value="aguardando_pecas">Aguardando Peças</SelectItem>
             <SelectItem value="em_execucao">Em Execução</SelectItem>
             <SelectItem value="finalizada">Finalizada</SelectItem>
-            <SelectItem value="pronta_retirada">Pronta Retirada</SelectItem>
-            <SelectItem value="entregue">Entregue</SelectItem>
             <SelectItem value="cancelada">Cancelada</SelectItem>
           </SelectContent>
         </Select>
@@ -123,8 +122,13 @@ export default function WorkOrders() {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium text-sm">#{w.number}</div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap justify-end">
                   {w.customer_notified && <Bell className="w-3.5 h-3.5 text-blue-600" />}
+                  {w.total > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PAY_BADGE[w.payment_status]?.color || "bg-slate-100"}`}>
+                      {PAY_BADGE[w.payment_status]?.label || w.payment_status}
+                    </span>
+                  )}
                   <WorkOrderStatusBadge status={w.status} />
                 </div>
               </div>
@@ -134,14 +138,7 @@ export default function WorkOrders() {
               </div>
               <div className="mt-1.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">{formatDate(w.entry_date)}</span>
-                <div className="flex items-center gap-1.5">
-                  {w.total > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PAY_BADGE[w.payment_status]?.color || "bg-slate-100"}`}>
-                      {PAY_BADGE[w.payment_status]?.label || w.payment_status}
-                    </span>
-                  )}
-                  <span className="text-sm font-medium text-foreground">{formatCurrency(w.total)}</span>
-                </div>
+                <span className="text-sm font-medium text-foreground">{formatCurrency(w.total)}</span>
               </div>
             </button>
           ))}

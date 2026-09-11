@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ export default function PurchaseRequestEditor() {
 
   const [materials, setMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -48,12 +49,14 @@ export default function PurchaseRequestEditor() {
   useEffect(() => {
     (async () => {
       try {
-        const [m, s] = await Promise.all([
+        const [m, s, sl] = await Promise.all([
           base44.entities.Material.list("-updated_date", 500),
           base44.entities.Supplier.list("-updated_date", 500),
+          base44.entities.WorkshopSetting.list("-updated_date", 1),
         ]);
         setMaterials(m);
         setSuppliers(s.filter((sup) => sup.active));
+        setSettings(sl[0] || null);
 
         if (editing) {
           const [r, ri] = await Promise.all([
@@ -61,7 +64,7 @@ export default function PurchaseRequestEditor() {
             base44.entities.PurchaseRequestItem.filter({ request_id: id }, "-updated_date", 500),
           ]);
           setRequest(r);
-          setItems(ri);
+          setItems(ri.map((it) => ({ ...it, supplier_quotes: it.supplier_quotes || [], selected_supplier_id: it.selected_supplier_id || "", selected_unit_price: it.selected_unit_price || 0 })));
         } else {
           const preselectedSupplier = searchParams.get("fornecedor");
           setRequest({
@@ -173,6 +176,24 @@ export default function PurchaseRequestEditor() {
     if (!phone) { toast({ title: "Fornecedor sem WhatsApp/telefone", variant: "destructive" }); return; }
     if (!phone.startsWith("55")) phone = "55" + phone;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(generateText())}`, "_blank");
+  };
+
+  const sendEmail = async (supplierId) => {
+    const sup = suppliers.find((s) => s.id === supplierId);
+    if (!sup?.email) { toast({ title: "Fornecedor sem e-mail cadastrado", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: sup.email,
+        subject: `Cotação #${request.number} — ${settings?.name || "Oficina"}`,
+        text: generateText(),
+      });
+      toast({ title: `E-mail enviado para ${sup.name}` });
+    } catch (e) {
+      toast({ title: "Erro ao enviar e-mail", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Generate purchase orders from selected winners
@@ -460,9 +481,16 @@ export default function PurchaseRequestEditor() {
             <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" onClick={copyText}><Copy className="w-4 h-4 mr-1" /> Copiar Texto</Button>
               {selectedSuppliers.map((sup) => (
-                <Button key={sup.id} size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)}>
-                  <Send className="w-4 h-4 mr-1" /> {sup.name}
-                </Button>
+                <div key={sup.id} className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)}>
+                    <Send className="w-4 h-4 mr-1" /> {sup.name}
+                  </Button>
+                  {sup.email && (
+                    <Button size="sm" variant="outline" onClick={() => sendEmail(sup.id)}>
+                      <Mail className="w-4 h-4 mr-1" /> E-mail
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           </CardContent>

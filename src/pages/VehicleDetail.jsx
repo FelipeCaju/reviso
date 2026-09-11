@@ -43,11 +43,13 @@ export default function VehicleDetail() {
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
   if (!vehicle) return <div className="text-center py-16">Veículo não encontrado.</div>;
 
-  // Build unified history (prontuário) from quotes + work orders
+  // Build unified history (prontuário) — only quotes that were NOT converted to OS
+  const osQuoteIds = new Set(workOrders.map((w) => w.quote_id).filter(Boolean));
+  const standaloneQuotes = quotes.filter((q) => !osQuoteIds.has(q.id) && q.status !== "convertido_os");
   const history = [
-    ...quotes.map((q) => ({ kind: "quote", date: q.date, id: q.id, number: q.number, title: `Orçamento #${q.number}`, total: q.total, status: q.status, owner: q.customer_name_snapshot, mileage: q.mileage })),
+    ...standaloneQuotes.map((q) => ({ kind: "quote", date: q.date, id: q.id, number: q.number, title: `Orçamento #${q.number}`, total: q.total, status: q.status, owner: q.customer_name_snapshot, mileage: q.mileage })),
     ...workOrders.map((w) => ({ kind: "os", date: w.entry_date, id: w.id, number: w.number, title: `OS #${w.number}`, total: w.total, status: w.status, owner: w.customer_name_snapshot, mileage: w.mileage_in })),
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
   const nextAppt = appointments.find((a) => ["agendado", "confirmado"].includes(a.status));
   const lastMaintenance = workOrders.find((w) => ["finalizada", "pronta_retirada", "entregue"].includes(w.status));
@@ -91,7 +93,7 @@ export default function VehicleDetail() {
         <Button variant="outline" onClick={() => navigate(`/orcamentos/novo?veiculo=${id}`)}>
           <FileText className="w-4 h-4 mr-2" /> Orçamento
         </Button>
-        <Button variant="outline" onClick={() => navigate(`/agenda/novo?veiculo=${id}`)}>
+        <Button variant="outline" onClick={() => navigate(`/agenda?veiculo=${id}`)}>
           <CalendarDays className="w-4 h-4 mr-2" /> Agendamento
         </Button>
         <Button variant="outline" onClick={() => navigate(`/veiculos/${id}/editar`)}>
@@ -132,6 +134,7 @@ export default function VehicleDetail() {
 
       {/* Full history (prontuário) */}
       <Section title="Histórico Completo (Prontuário)" icon={History} count={history.length}>
+        <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">Últimos 5 atendimentos</div>
         {history.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum histórico registrado.</div>
         ) : history.map((h) => (

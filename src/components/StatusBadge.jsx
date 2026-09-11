@@ -36,10 +36,7 @@ export const workOrderStatusInfo = {
   aberta: { label: "Aberta", className: "bg-slate-100 text-slate-700" },
   aguardando_pecas: { label: "Aguardando Peças", className: "bg-amber-100 text-amber-800" },
   em_execucao: { label: "Em Execução", className: "bg-blue-100 text-blue-800" },
-  aguardando_aprovacao_adicional: { label: "Aguard. Aprovação Adicional", className: "bg-orange-100 text-orange-800" },
   finalizada: { label: "Finalizada", className: "bg-emerald-100 text-emerald-800" },
-  pronta_retirada: { label: "Pronta para Retirada", className: "bg-teal-100 text-teal-800" },
-  entregue: { label: "Entregue", className: "bg-violet-100 text-violet-800" },
   cancelada: { label: "Cancelada", className: "bg-slate-200 text-slate-600" },
 };
 

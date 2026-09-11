@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Check, AlertTriangle, Play, PackageCheck, Camera, X,
+  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -26,8 +26,7 @@ import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
 
 const STATUS_OPTIONS = [
-  "aberta", "aguardando_pecas", "em_execucao", "aguardando_aprovacao_adicional",
-  "finalizada", "pronta_retirada", "entregue", "cancelada",
+  "aberta", "aguardando_pecas", "em_execucao", "finalizada", "cancelada",
 ];
 
 export default function WorkOrderEditor() {
@@ -71,7 +70,7 @@ export default function WorkOrderEditor() {
             base44.entities.WorkOrderItem.filter({ work_order_id: id }, "-updated_date", 300),
           ]);
           setWo(w);
-          setItems(wi);
+          setItems(wi.map((it) => ({ ...it, total: it.total || Math.max(0, (it.quantity || 0) * (it.unit_price || 0) - (it.discount || 0)) })));
         } else if (fromQuoteId) {
           const [q, qi] = await Promise.all([
             base44.entities.Quote.get(fromQuoteId),
@@ -125,14 +124,19 @@ export default function WorkOrderEditor() {
 
   const set = (k, v) => setWo((w) => ({ ...w, [k]: v }));
 
-  const plateResults = useMemo(() => {
-    const np = normalizePlate(plateQ);
+  const searchResults = useMemo(() => {
     const s = plateQ.trim().toLowerCase();
-    if (!np && !s) return [];
-    return vehicles.filter((v) =>
-      normalizePlate(v.plate).includes(np) || (v.brand || "").toLowerCase().includes(s) || (v.model || "").toLowerCase().includes(s)
-    ).slice(0, 6);
-  }, [plateQ, vehicles]);
+    const np = normalizePlate(plateQ);
+    if (!s) return { vehicles: [], customers: [] };
+    return {
+      vehicles: vehicles
+        .filter((v) => normalizePlate(v.plate).includes(np) || (v.brand || "").toLowerCase().includes(s) || (v.model || "").toLowerCase().includes(s))
+        .slice(0, 4),
+      customers: customers
+        .filter((c) => (c.name || "").toLowerCase().includes(s))
+        .slice(0, 4),
+    };
+  }, [plateQ, vehicles, customers]);
 
   const applyVehicle = (veh) => {
     const owner = customers.find((c) => c.id === veh.current_owner_id);
@@ -147,11 +151,21 @@ export default function WorkOrderEditor() {
     setShowPlateResults(false);
   };
 
+  const applyCustomer = (cust) => {
+    setWo((w) => ({
+      ...w,
+      customer_id: cust.id,
+      customer_name_snapshot: cust.name,
+    }));
+    setPlateQ("");
+    setShowPlateResults(false);
+  };
+
   const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
   const grandTotal = Math.max(0, partsSub + laborSub + (wo?.socorro || 0) - (wo?.discount || 0));
 
-  const pastApproval = editing && wo && ["em_execucao", "aguardando_pecas", "pronta_retirada", "aguardando_aprovacao_adicional"].includes(wo.status);
+  const pastApproval = editing && wo && ["em_execucao", "aguardando_pecas"].includes(wo.status);
 
   const addItem = (item) => {
     const withFlags = pastApproval
@@ -221,6 +235,7 @@ export default function WorkOrderEditor() {
           await base44.entities.Quote.update(fromQuoteId, { status: "convertido_os" });
         }
       }
+      setWo((w) => ({ ...w, subtotal_parts: partsSub, subtotal_labor: laborSub, total: grandTotal, status: statusOverride || wo.status }));
       toast({ title: "OS salva" });
       navigate(`/os/${woId}`);
     } catch (e) {
@@ -236,6 +251,7 @@ export default function WorkOrderEditor() {
     try {
       const patch = { status: newStatus, ...extra };
       if (newStatus === "finalizada") patch.completion_date = new Date().toISOString();
+      if (newStatus === "cancelada") patch.cancel_reason = wo.cancel_reason || "";
       await base44.entities.WorkOrder.update(id, patch);
       setWo((w) => ({ ...w, ...patch }));
       toast({ title: `Status: ${workOrderStatusInfo[newStatus]?.label || newStatus}` });
@@ -307,27 +323,45 @@ export default function WorkOrderEditor() {
 
       {/* Vehicle */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <Label>Veículo (busca por placa) *</Label>
+        <Label>Buscar veículo ou cliente *</Label>
         {!wo.vehicle_id ? (
           <div className="relative">
-            <Input className="h-12 text-base" placeholder="Digite a placa (ex: ABC1D23)"
-              value={plateQ} onChange={(e) => { setPlateQ(e.target.value.toUpperCase()); setShowPlateResults(true); }}
-              onFocus={() => setShowPlateResults(true)} />
+            <Input
+              className="h-12 text-base"
+              placeholder="Digite a placa, marca, modelo ou nome do cliente"
+              value={plateQ}
+              onChange={(e) => { setPlateQ(e.target.value.toUpperCase()); setShowPlateResults(true); }}
+              onFocus={() => setShowPlateResults(true)}
+            />
             {showPlateResults && plateQ && (
               <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg max-h-64 overflow-auto">
-                {plateResults.length === 0 ? (
-                  <div className="p-3 text-sm text-muted-foreground">Nenhum veículo.{" "}
-                    <button className="text-primary underline" onClick={() => navigate("/veiculos/novo")}>Cadastrar</button>
+                {searchResults.vehicles.length === 0 && searchResults.customers.length === 0 ? (
+                  <div className="p-3 text-sm text-muted-foreground">
+                    Nenhum resultado.{" "}
+                    <button className="text-primary underline" onClick={() => navigate("/veiculos/novo")}>Cadastrar veículo</button>
                   </div>
-                ) : plateResults.map((v) => (
-                  <button key={v.id} onClick={() => applyVehicle(v)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
-                    <Car className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{vehicleDescription(v)}</div>
-                      <div className="text-xs text-muted-foreground">{normalizePlate(v.plate)}</div>
-                    </div>
-                  </button>
-                ))}
+                ) : (
+                  <>
+                    {searchResults.vehicles.map((v) => (
+                      <button key={v.id} onClick={() => applyVehicle(v)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
+                        <Car className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{vehicleDescription(v)}</div>
+                          <div className="text-xs text-muted-foreground">{normalizePlate(v.plate)}</div>
+                        </div>
+                      </button>
+                    ))}
+                    {searchResults.customers.map((c) => (
+                      <button key={c.id} onClick={() => applyCustomer(c)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent border-b border-border last:border-0">
+                        <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{c.name}</div>
+                          <div className="text-xs text-muted-foreground">{c.phone || c.whatsapp || ""}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -343,6 +377,44 @@ export default function WorkOrderEditor() {
               </div>
               <button onClick={() => { set("vehicle_id", ""); set("plate_snapshot", ""); set("vehicle_description_snapshot", ""); setPlateQ(""); }} className="text-xs text-muted-foreground hover:text-foreground underline shrink-0">Trocar</button>
             </div>
+          </div>
+        )}
+
+        {/* Customer fallback select */}
+        {!wo.customer_id && wo.vehicle_id && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cliente (proprietário)</Label>
+            <Select value={wo.customer_id || "nenhum"} onValueChange={(v) => {
+              const c = customers.find((x) => x.id === v);
+              set("customer_id", v === "nenhum" ? "" : v);
+              if (c) set("customer_name_snapshot", c.name);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">—</SelectItem>
+                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Vehicle picker for selected customer */}
+        {wo.customer_id && !wo.vehicle_id && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Veículo do cliente</Label>
+            <Select value="nenhum" onValueChange={(v) => {
+              if (v === "nenhum") return;
+              const veh = vehicles.find((x) => x.id === v);
+              if (veh) applyVehicle(veh);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Selecione o veículo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">—</SelectItem>
+                {vehicles.filter((v) => v.current_owner_id === wo.customer_id).map((v) =>
+                  <SelectItem key={v.id} value={v.id}>{vehicleDescription(v)} · {normalizePlate(v.plate)}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
@@ -509,48 +581,20 @@ export default function WorkOrderEditor() {
               {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{workOrderStatusInfo[s]?.label || s}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
-      )}
-
-      {/* Quick actions */}
-      {editing && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <div className="text-sm font-medium">Ações rápidas</div>
-          <div className="grid grid-cols-2 gap-2">
-            {wo.status === "aberta" && (
-              <Button className="h-11" onClick={() => changeStatus("em_execucao")}><Play className="w-4 h-4 mr-1" /> Iniciar Execução</Button>
-            )}
-            {wo.status === "em_execucao" && (
-              <>
-                <Button variant="outline" className="h-11" onClick={() => changeStatus("aguardando_pecas")}>Aguardar Peças</Button>
-                <Button className="h-11" onClick={() => changeStatus("finalizada")}><Check className="w-4 h-4 mr-1" /> Finalizar</Button>
-              </>
-            )}
-            {wo.status === "aguardando_pecas" && (
-              <Button className="h-11" onClick={() => changeStatus("em_execucao")}>Retomar Execução</Button>
-            )}
-            {wo.status === "finalizada" && (
-              <Button className="h-11" onClick={() => changeStatus("pronta_retirada")}><PackageCheck className="w-4 h-4 mr-1" /> Pronta p/ Retirada</Button>
-            )}
-            {wo.status === "pronta_retirada" && (
-              <Button className="h-11" onClick={() => changeStatus("entregue")}>Entregar</Button>
-            )}
-            {hasPendingAdditional && wo.status !== "aguardando_aprovacao_adicional" && (
-              <Button variant="outline" className="h-11" onClick={() => changeStatus("aguardando_aprovacao_adicional")}>
-                <AlertTriangle className="w-4 h-4 mr-1" /> Solicitar Aprovação
-              </Button>
-            )}
-            {wo.status === "aguardando_aprovacao_adicional" && (
-              <Button className="h-11" onClick={approveAdditional}><Check className="w-4 h-4 mr-1" /> Aprovar Adicional</Button>
-            )}
-          </div>
+          {wo.status === "cancelada" && (
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs">Motivo do Cancelamento (opcional)</Label>
+              <Textarea rows={2} value={wo.cancel_reason || ""} onChange={(e) => set("cancel_reason", e.target.value)}
+                placeholder="Ex: cliente desistiu, orçamento recusado..." />
+            </div>
+          )}
         </div>
       )}
 
       {/* Payments + Notification (editing only) */}
       {editing && (
         <>
-          <OSPayments workOrderId={id} wo={wo} />
+          <OSPayments workOrderId={id} wo={wo} total={grandTotal} />
           <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} />
         </>
       )}

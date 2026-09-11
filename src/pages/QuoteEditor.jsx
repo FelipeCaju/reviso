@@ -446,6 +446,20 @@ export default function QuoteEditor() {
           </div>
         )}
 
+        {/* Customer selected but no vehicle — show customer info */}
+        {quote.customer_id && !quote.vehicle_id && (
+          <div className="rounded-lg bg-accent/50 p-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="w-4 h-4 text-primary shrink-0" />
+              <div className="min-w-0">
+                <div className="font-medium truncate">{quote.customer_name_snapshot}</div>
+                <div className="text-xs text-muted-foreground">Cliente selecionado — escolha o veículo abaixo</div>
+              </div>
+            </div>
+            <button onClick={() => { set("customer_id", ""); set("customer_name_snapshot", ""); }} className="text-xs text-muted-foreground hover:text-foreground underline shrink-0">Trocar cliente</button>
+          </div>
+        )}
+
         {/* Customer fallback select */}
         {!quote.customer_id && quote.vehicle_id && (
           <div className="space-y-1.5">

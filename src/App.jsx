@@ -37,6 +37,7 @@ import PurchaseOrders from '@/pages/PurchaseOrders';
 import Expenses from '@/pages/Expenses';
 import Finance from '@/pages/Finance';
 import FinanceReports from '@/pages/FinanceReports';
+import Support from '@/pages/Support';
 import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
           <Route path="/materiais" element={<Materials />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/suporte" element={<Support />} />
           <Route path="/fornecedores" element={<Suppliers />} />
           <Route path="/fornecedores/:id" element={<SupplierDetail />} />
           <Route path="/compras" element={<PurchaseRequests />} />

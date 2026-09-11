@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Receipt,
   Wallet,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const NAV = [
 
 const NAV_SECONDARY = [
   { to: "/configuracoes", label: "Configurações", icon: SettingsIcon, roles: ["admin"] },
+  { to: "/suporte", label: "Suporte", icon: LifeBuoy, roles: ["admin", "user"] },
   { to: "/admin", label: "Nova Oficina", icon: Building2, roles: ["admin"] },
 ];
 

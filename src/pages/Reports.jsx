@@ -309,36 +309,12 @@ export default function Reports() {
     y += 3;
 
     if (reportType === "simples") {
-      // Entradas
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-      doc.text("Entradas", ml, y); y += 5;
-      drawRow(["Data", "Cliente", "Referência", "Forma", "Valor"], true);
-      entradas.forEach((e) => drawRow([formatDate(e.date), e.cliente.slice(0, 28), e.referencia, e.forma, formatCurrency(e.valor)]));
-      drawRow(["", "", "", "TOTAL:", formatCurrency(totalEntradas)], true);
-      y += 3;
-
-      // Saídas
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-      doc.text("Saídas", ml, y); y += 5;
-      drawRow(["Data", "Fornecedor/Despesa", "Referência", "Valor"], true);
-      saidas.forEach((s) => drawRow([formatDate(s.date), s.descricao.slice(0, 35), s.referencia, formatCurrency(s.valor)]));
-      drawRow(["", "", "TOTAL:", formatCurrency(totalSaidas)], true);
-      y += 3;
-
-      // A Receber
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-      doc.text("Valores a Receber", ml, y); y += 5;
-      drawRow(["Cliente", "OS", "Total", "Recebido", "Saldo"], true);
-      aReceber.forEach((r) => drawRow([r.cliente.slice(0, 28), r.os, formatCurrency(r.total), formatCurrency(r.recebido), formatCurrency(r.saldo)]));
-      drawRow(["", "", "", "TOTAL:", formatCurrency(totalAReceber)], true);
-      y += 3;
-
-      // A Pagar
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-      doc.text("Valores a Pagar", ml, y); y += 5;
-      drawRow(["Fornecedor/Despesa", "Referência", "Valor", "Status"], true);
-      aPagar.forEach((p) => drawRow([p.descricao.slice(0, 35), p.referencia, formatCurrency(p.valor), p.status]));
-      drawRow(["", "TOTAL:", formatCurrency(totalAPagar), ""], true);
+      // Simples: apenas totais (cabe em uma folha)
+      drawRow(["Total de entradas recebidas", formatCurrency(totalEntradas)], true);
+      drawRow(["Total de saídas pagas", formatCurrency(totalSaidas)], true);
+      drawRow(["Total a receber", formatCurrency(totalAReceber)], true);
+      drawRow(["Total a pagar", formatCurrency(totalAPagar)], true);
+      drawRow(["Resultado do período", formatCurrency(resultado)], true);
     } else {
       // Movimentações
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
@@ -536,141 +512,18 @@ export default function Reports() {
 
           {/* === SIMPLES === */}
           {reportType === "simples" && (
-            <>
-              {/* Resumo Financeiro */}
-              <div>
-                <SectionTitle>Resumo Financeiro</SectionTitle>
-                <table className="w-full text-sm">
-                  <tbody>
-                    <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Entradas recebidas</td><td className="px-2 py-1.5 text-right font-medium text-emerald-600">{formatCurrency(totalEntradas)}</td></tr>
-                    <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Saídas pagas</td><td className="px-2 py-1.5 text-right font-medium text-red-600">{formatCurrency(totalSaidas)}</td></tr>
-                    <tr className="border-b border-slate-200"><td className="px-2 py-1.5">A receber</td><td className="px-2 py-1.5 text-right font-medium">{formatCurrency(totalAReceber)}</td></tr>
-                    <tr className="border-b border-slate-200"><td className="px-2 py-1.5">A pagar</td><td className="px-2 py-1.5 text-right font-medium">{formatCurrency(totalAPagar)}</td></tr>
-                    <TotalsRow label="Resultado do período" value={formatCurrency(resultado)} positive={resultado >= 0} negative={resultado < 0} />
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Entradas */}
-              <div>
-                <SectionTitle>Entradas</SectionTitle>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-100 text-xs text-slate-600">
-                      <th className="px-2 py-1.5 text-left font-semibold">Data</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Cliente</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Referência</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Forma</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entradas.length === 0 && <tr><td colSpan={5} className="px-2 py-3 text-center text-slate-400">Nenhuma entrada no período</td></tr>}
-                    {entradas.map((e, i) => (
-                      <tr key={i} className="border-b border-slate-100">
-                        <td className="px-2 py-1 text-xs">{formatDate(e.date)}</td>
-                        <td className="px-2 py-1 truncate max-w-[180px]">{e.cliente}</td>
-                        <td className="px-2 py-1 text-xs">{e.referencia}</td>
-                        <td className="px-2 py-1 text-xs">{e.forma}</td>
-                        <td className="px-2 py-1 text-right font-medium text-emerald-600">{formatCurrency(e.valor)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalsRow label="TOTAL DE ENTRADAS" value={formatCurrency(totalEntradas)} positive />
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Saídas */}
-              <div>
-                <SectionTitle>Saídas</SectionTitle>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-100 text-xs text-slate-600">
-                      <th className="px-2 py-1.5 text-left font-semibold">Data</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Fornecedor/Despesa</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Referência</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {saidas.length === 0 && <tr><td colSpan={4} className="px-2 py-3 text-center text-slate-400">Nenhuma saída no período</td></tr>}
-                    {saidas.map((s, i) => (
-                      <tr key={i} className="border-b border-slate-100">
-                        <td className="px-2 py-1 text-xs">{formatDate(s.date)}</td>
-                        <td className="px-2 py-1 truncate max-w-[220px]">{s.descricao}</td>
-                        <td className="px-2 py-1 text-xs">{s.referencia}</td>
-                        <td className="px-2 py-1 text-right font-medium text-red-600">{formatCurrency(s.valor)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalsRow label="TOTAL DE SAÍDAS" value={formatCurrency(totalSaidas)} negative />
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* A Receber */}
-              <div>
-                <SectionTitle>Valores a Receber</SectionTitle>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-100 text-xs text-slate-600">
-                      <th className="px-2 py-1.5 text-left font-semibold">Cliente</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">OS</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Valor total</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Recebido</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aReceber.length === 0 && <tr><td colSpan={5} className="px-2 py-3 text-center text-slate-400">Nada a receber</td></tr>}
-                    {aReceber.map((r, i) => (
-                      <tr key={i} className="border-b border-slate-100">
-                        <td className="px-2 py-1 truncate max-w-[180px]">{r.cliente}</td>
-                        <td className="px-2 py-1 text-xs">{r.os}</td>
-                        <td className="px-2 py-1 text-right">{formatCurrency(r.total)}</td>
-                        <td className="px-2 py-1 text-right text-emerald-600">{formatCurrency(r.recebido)}</td>
-                        <td className="px-2 py-1 text-right font-medium text-amber-600">{formatCurrency(r.saldo)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalsRow label="TOTAL A RECEBER" value={formatCurrency(totalAReceber)} />
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* A Pagar */}
-              <div>
-                <SectionTitle>Valores a Pagar</SectionTitle>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-100 text-xs text-slate-600">
-                      <th className="px-2 py-1.5 text-left font-semibold">Fornecedor/Despesa</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Referência</th>
-                      <th className="px-2 py-1.5 text-right font-semibold">Valor</th>
-                      <th className="px-2 py-1.5 text-left font-semibold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aPagar.length === 0 && <tr><td colSpan={4} className="px-2 py-3 text-center text-slate-400">Nada a pagar</td></tr>}
-                    {aPagar.map((p, i) => (
-                      <tr key={i} className="border-b border-slate-100">
-                        <td className="px-2 py-1 truncate max-w-[220px]">{p.descricao}</td>
-                        <td className="px-2 py-1 text-xs">{p.referencia}</td>
-                        <td className="px-2 py-1 text-right font-medium text-red-600">{formatCurrency(p.valor)}</td>
-                        <td className="px-2 py-1 text-xs">{p.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalsRow label="TOTAL A PAGAR" value={formatCurrency(totalAPagar)} negative />
-                  </tfoot>
-                </table>
-              </div>
-            </>
+            <div>
+              <SectionTitle>Resumo Financeiro</SectionTitle>
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Total de entradas recebidas</td><td className="px-2 py-1.5 text-right font-medium text-emerald-600">{formatCurrency(totalEntradas)}</td></tr>
+                  <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Total de saídas pagas</td><td className="px-2 py-1.5 text-right font-medium text-red-600">{formatCurrency(totalSaidas)}</td></tr>
+                  <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Total a receber</td><td className="px-2 py-1.5 text-right font-medium">{formatCurrency(totalAReceber)}</td></tr>
+                  <tr className="border-b border-slate-200"><td className="px-2 py-1.5">Total a pagar</td><td className="px-2 py-1.5 text-right font-medium">{formatCurrency(totalAPagar)}</td></tr>
+                  <TotalsRow label="Resultado do período" value={formatCurrency(resultado)} positive={resultado >= 0} negative={resultado < 0} />
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* === DETALHADO === */}

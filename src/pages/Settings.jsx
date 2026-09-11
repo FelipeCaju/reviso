@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Image as ImgCmp } from "@/components/ui/image";
 import DemoUserManager from "@/components/DemoUserManager";
+import EmployeeManager from "@/components/EmployeeManager";
 import { toast } from "@/components/ui/use-toast";
 
 const DEFAULT = {
@@ -231,6 +232,14 @@ export default function Settings() {
             }
           }}>Adicionar</Button>
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
+        <div>
+          <h2 className="font-medium">Funcionários</h2>
+          <p className="text-xs text-muted-foreground">Convide pessoas para acessar a oficina. Defina o nível de acesso de cada um.</p>
+        </div>
+        <EmployeeManager />
       </section>
 
       <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 md:p-5">

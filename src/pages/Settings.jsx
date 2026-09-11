@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Image as ImgCmp } from "@/components/ui/image";
 import DemoUserManager from "@/components/DemoUserManager";
 import { toast } from "@/components/ui/use-toast";
 
@@ -36,6 +38,8 @@ export default function Settings() {
   const [id, setId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -67,6 +71,26 @@ export default function Settings() {
   };
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione apenas um arquivo de imagem.", variant: "destructive" });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      set("logo_url", file_url);
+      toast({ title: "Logo carregada" });
+    } catch (err) {
+      toast({ title: "Erro ao carregar logo", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
@@ -109,8 +133,30 @@ export default function Settings() {
             <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>URL do Logo</Label>
-            <Input value={form.logo_url} onChange={(e) => set("logo_url", e.target.value)} placeholder="https://..." />
+            <Label>Logo da Empresa</Label>
+            <div className="flex items-center gap-3">
+              {form.logo_url ? (
+                <div className="w-16 h-16 rounded-lg border border-border overflow-hidden bg-muted shrink-0">
+                  <ImgCmp src={form.logo_url} alt="Logo" fittingType="fit" className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted shrink-0">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              <div className="flex flex-col gap-1.5">
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingLogo}>
+                  {uploadingLogo ? "Carregando..." : (form.logo_url ? "Trocar imagem" : "Selecionar imagem")}
+                </Button>
+                {form.logo_url && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => set("logo_url", "")} disabled={uploadingLogo}>
+                    <X className="w-4 h-4 mr-1" /> Remover
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">Formatos: PNG, JPG, etc. A imagem é formatada automaticamente para os relatórios.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

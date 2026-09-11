@@ -37,6 +37,11 @@
       "default": 0,
       "title": "Pre\u00e7o de Venda"
     },
+    "stock": {
+      "type": "number",
+      "default": 0,
+      "title": "Estoque"
+    },
     "notes": {
       "type": "string",
       "title": "Observa\u00e7\u00e3o"

@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package, Mail } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package, Mail, UserPlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,9 @@ export default function PurchaseRequestEditor() {
   const [manualUnit, setManualUnit] = useState("un");
   const [quoteOpen, setQuoteOpen] = useState(null); // item index
   const [generated, setGenerated] = useState(false);
+  const [savingItemIdx, setSavingItemIdx] = useState(null);
+  const [registerIdx, setRegisterIdx] = useState(null);
+  const [registerForm, setRegisterForm] = useState({ description: "", category: "", brand: "", unit: "un", cost: 0, sale_price: 0 });
 
   useEffect(() => {
     (async () => {
@@ -196,6 +199,63 @@ export default function PurchaseRequestEditor() {
     }
   };
 
+  // Save a single item's quotes to DB + update Material cost
+  const saveItemQuotes = async (idx) => {
+    if (!editing) { toast({ title: "Salve a cotação primeiro", variant: "destructive" }); return; }
+    const it = items[idx];
+    if (!it) return;
+    setSavingItemIdx(idx);
+    try {
+      await base44.entities.PurchaseRequestItem.update(it.id, {
+        supplier_quotes: it.supplier_quotes || [],
+        selected_supplier_id: it.selected_supplier_id || "",
+        selected_unit_price: it.selected_unit_price || 0,
+        quantity: it.quantity,
+      });
+      // Update Material cost with selected supplier's price
+      if (it.material_id && it.selected_unit_price > 0) {
+        await base44.entities.Material.update(it.material_id, { cost: it.selected_unit_price });
+      }
+      toast({ title: "Cotação do item salva" });
+    } catch (e) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingItemIdx(null);
+    }
+  };
+
+  // Open dialog to register a manual item as a Material
+  const openRegisterDialog = (idx) => {
+    const it = items[idx];
+    if (!it) return;
+    setRegisterForm({
+      description: it.description || "",
+      category: "", brand: "", unit: it.unit || "un",
+      cost: it.selected_unit_price || 0, sale_price: 0,
+    });
+    setRegisterIdx(idx);
+  };
+
+  const confirmRegisterMaterial = async () => {
+    if (!registerForm.description.trim()) return;
+    try {
+      const mat = await base44.entities.Material.create(withWorkshop({
+        ...registerForm,
+        cost: Number(registerForm.cost) || 0,
+        sale_price: Number(registerForm.sale_price) || 0,
+        stock: 0,
+        active: true,
+      }));
+      setMaterials((arr) => [mat, ...arr]);
+      // Link the item to the new material
+      updateItem(registerIdx, { material_id: mat.id });
+      setRegisterIdx(null);
+      toast({ title: "Item cadastrado na base de materiais" });
+    } catch (e) {
+      toast({ title: "Erro ao cadastrar", description: e.message, variant: "destructive" });
+    }
+  };
+
   // Generate purchase orders from selected winners
   const generateOrders = async () => {
     const itemsWithWinner = items.filter((it) => it.selected_supplier_id);
@@ -253,7 +313,7 @@ export default function PurchaseRequestEditor() {
         }));
         await base44.entities.PurchaseOrderItem.bulkCreate(orderItems);
 
-        // Update SupplierMaterial last price
+        // Update SupplierMaterial last price + Material stock
         for (const it of supItems) {
           if (it.material_id) {
             const existing = await base44.entities.SupplierMaterial.filter({ supplier_id: supId, material_id: it.material_id });
@@ -271,8 +331,28 @@ export default function PurchaseRequestEditor() {
                 active: true,
               }));
             }
+            // Update Material cost + stock
+            const mat = materials.find((m) => m.id === it.material_id);
+            const currentStock = mat?.stock || 0;
+            await base44.entities.Material.update(it.material_id, {
+              cost: it.selected_unit_price,
+              stock: currentStock + (it.quantity || 0),
+            });
           }
         }
+
+        // Create expense record for this purchase order
+        await base44.entities.Expense.create(withWorkshop({
+          description: `Pedido de Compra #${String(orderNum).padStart(5, "0")} — ${sup?.name || ""}`,
+          category: "Compras",
+          supplier_id: supId,
+          beneficiary: sup?.name || "",
+          amount: subtotal,
+          date: todayISO(),
+          status: "pendente",
+          type: "eventual",
+          purchase_order_id: order.id,
+        }));
 
         orderNum++;
       }
@@ -398,11 +478,23 @@ export default function PurchaseRequestEditor() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium">{it.description}</div>
-                        <div className="text-xs text-muted-foreground">{it.quantity} {it.unit}</div>
+                        {!it.material_id && (
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">Não cadastrado</span>
+                        )}
                       </div>
-                      <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive shrink-0">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Input
+                          type="number"
+                          step="1"
+                          className="h-8 w-20 text-sm"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                        />
+                        <span className="text-xs text-muted-foreground">{it.unit}</span>
+                        <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     {/* Cotações por fornecedor */}
                     {selectedSuppliers.length > 0 && (
@@ -440,6 +532,27 @@ export default function PurchaseRequestEditor() {
                         Selecionado: {suppliers.find((s) => s.id === it.selected_supplier_id)?.name} — {formatCurrency(it.selected_unit_price)} / {it.unit}
                       </div>
                     )}
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => saveItemQuotes(idx)}
+                        disabled={savingItemIdx === idx || !editing}
+                      >
+                        <Save className="w-3.5 h-3.5 mr-1" />
+                        {savingItemIdx === idx ? "Salvando..." : "Salvar Cotação"}
+                      </Button>
+                      {!it.material_id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openRegisterDialog(idx)}
+                        >
+                          <UserPlus className="w-3.5 h-3.5 mr-1" /> Cadastrar Item
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -566,6 +679,48 @@ export default function PurchaseRequestEditor() {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setManualOpen(false)}>Cancelar</Button>
               <Button onClick={addManual} disabled={!manualDesc.trim()}>Adicionar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Register material dialog */}
+      {registerIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setRegisterIdx(null)}>
+          <div className="bg-card w-full sm:max-w-md sm:rounded-xl rounded-t-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium">Cadastrar Item na Base</h3>
+            <p className="text-xs text-muted-foreground">Cadastre este item para que ele entre no estoque e seja rastreável.</p>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Input value={registerForm.description} onChange={(e) => setRegisterForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Categoria</Label>
+                <Input value={registerForm.category} onChange={(e) => setRegisterForm((f) => ({ ...f, category: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Marca</Label>
+                <Input value={registerForm.brand} onChange={(e) => setRegisterForm((f) => ({ ...f, brand: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label>Unidade</Label>
+                <Input value={registerForm.unit} onChange={(e) => setRegisterForm((f) => ({ ...f, unit: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Custo (R$)</Label>
+                <Input type="number" step="0.01" value={registerForm.cost} onChange={(e) => setRegisterForm((f) => ({ ...f, cost: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Venda (R$)</Label>
+                <Input type="number" step="0.01" value={registerForm.sale_price} onChange={(e) => setRegisterForm((f) => ({ ...f, sale_price: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setRegisterIdx(null)}>Cancelar</Button>
+              <Button onClick={confirmRegisterMaterial} disabled={!registerForm.description.trim()}>Cadastrar</Button>
             </div>
           </div>
         </div>

@@ -20,7 +20,7 @@ const UNITS = ["un", "pç", "metro", "m", "kg", "g", "litro", "ml", "par", "cj",
 
 const EMPTY = {
   code: "", description: "", category: "", brand: "", unit: "un",
-  cost: 0, sale_price: 0, notes: "", active: true,
+  cost: 0, sale_price: 0, stock: 0, notes: "", active: true,
 };
 
 export default function Materials() {
@@ -114,6 +114,9 @@ export default function Materials() {
                 <div className="text-sm">
                   <span className="font-semibold">{formatCurrency(m.sale_price)}</span>
                   <span className="text-xs text-muted-foreground"> /{m.unit || "un"}</span>
+                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-accent text-muted-foreground">
+                    Estoque: {m.stock || 0}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs ${m.active ? "text-emerald-600" : "text-muted-foreground"}`}>
@@ -165,6 +168,10 @@ export default function Materials() {
             <div className="space-y-1.5">
               <Label>Preço de Venda</Label>
               <CurrencyInput value={form.sale_price} onValueChange={(v) => setForm({ ...form, sale_price: v })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Estoque</Label>
+              <Input type="number" value={form.stock || 0} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />
             </div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">

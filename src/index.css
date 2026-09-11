@@ -91,3 +91,20 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+  .no-print { display: none !important; }
+  @page { size: A4; margin: 1.5cm; }
+  tr { page-break-inside: avoid; }
+}

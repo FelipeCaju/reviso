@@ -148,7 +148,13 @@ export default function PurchaseRequestEditor() {
       } else {
         quotes[qIdx] = { ...quotes[qIdx], [field]: value };
       }
-      return { ...it, supplier_quotes: quotes };
+      // Keep selected_unit_price in sync when the winner's quote is edited
+      const shouldSyncPrice = it.selected_supplier_id === supplierId && field === "unit_price";
+      return {
+        ...it,
+        supplier_quotes: quotes,
+        ...(shouldSyncPrice ? { selected_unit_price: value } : {}),
+      };
     }));
   };
 
@@ -381,6 +387,9 @@ export default function PurchaseRequestEditor() {
         if (items.length) {
           await base44.entities.PurchaseRequestItem.bulkCreate(items.map((it) => withWorkshop({ ...it, request_id: id })));
         }
+        // Reload items from DB to get fresh IDs (bulkCreate generates new IDs)
+        const ri = await base44.entities.PurchaseRequestItem.filter({ request_id: id }, "-updated_date", 500);
+        setItems(ri.map((it) => ({ ...it, supplier_quotes: it.supplier_quotes || [], selected_supplier_id: it.selected_supplier_id || "", selected_unit_price: it.selected_unit_price || 0 })));
       } else {
         const num = await generateNumber();
         const created = await base44.entities.PurchaseRequest.create(withWorkshop({ ...request, number: num }));

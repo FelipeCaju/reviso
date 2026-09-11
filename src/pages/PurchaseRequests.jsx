@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, ShoppingCart } from "lucide-react";
+import { Plus, Search, ShoppingCart, ClipboardList } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,9 +47,14 @@ export default function PurchaseRequests() {
           <h1 className="text-xl md:text-2xl font-heading font-semibold">Solicitações de Cotação</h1>
           <p className="text-sm text-muted-foreground">{items.length} no total</p>
         </div>
-        <Button onClick={() => navigate("/compras/nova")}>
-          <Plus className="w-4 h-4 mr-2" /> Nova
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/pedidos")}>
+            <ClipboardList className="w-4 h-4 mr-2" /> Pedidos
+          </Button>
+          <Button onClick={() => navigate("/compras/nova")}>
+            <Plus className="w-4 h-4 mr-2" /> Nova
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-sm">

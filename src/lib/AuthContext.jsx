@@ -1,8 +1,9 @@
+import { queryClientInstance } from '@/lib/query-client';
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { setWorkshopId } from '@/lib/workshop';
-import { setDemoModeActive } from '@/lib/demoMode';
+import { setDemoModeActive, isPublicDemo, setPublicDemo, getDemoStart } from '@/lib/demoMode';
 import { isWorkshopProfileComplete } from '@/lib/workshopValidation';
 import { isAlwaysAvailable } from '@/lib/alwaysAvailable';
 
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+      if (isPublicDemo()) {
+        await checkUserAuth();
+        setIsLoadingPublicSettings(false);
+        return;
+      }
       
       try {
         const publicSettings = await base44.app.getPublicSettings();
@@ -86,36 +92,42 @@ export const AuthProvider = ({ children }) => {
   const checkUserAuth = async () => {
     try {
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      setAuthError(null);
+      setIsAuthenticated(false);
+      setWorkshopId(null);
+      queryClientInstance.clear();
+      const visitor = isPublicDemo();
+      const { data } = await base44.functions.invoke(visitor ? 'getDemoAccess' : 'manageWorkshops', { action: visitor ? 'context' : 'resolveAccess' });
+      const currentUser = data.user;
       setUser(currentUser);
       setWorkshopId(currentUser?.workshop_id);
       
-      let demoActive = false;
-      let onboarding = false;
+      let demoActive = visitor;
+      const onboarding = false;
       let profileCompletion = false;
       let trialStart = null;
       
-      const isPlatformOwner = currentUser?.role === 'admin' && !currentUser?.workshop_id;
+      const isPlatformOwner = data.isPlatformOwner;
       const alwaysAvailable = isAlwaysAvailable(currentUser?.email);
       
       if (currentUser?.workshop_id) {
-        try {
-          const settings = await base44.entities.WorkshopSetting.get(currentUser.workshop_id);
-          if (settings?.plan === 'free' && !alwaysAvailable) {
+        {
+          const settings = data.workshop;
+          if (!settings?.id) throw new Error("Oficina não encontrada");
+          if (!visitor && settings?.plan === 'free' && !alwaysAvailable) {
             demoActive = true;
             trialStart = settings?.trial_started_at || settings?.created_date;
           }
-          if (!isWorkshopProfileComplete(settings) && !alwaysAvailable) {
+          if (!visitor && !isWorkshopProfileComplete(settings) && !alwaysAvailable) {
             profileCompletion = true;
           }
-        } catch (e) {
-          console.error('Failed to load workshop settings:', e);
         }
       } else if (!isPlatformOwner) {
-        onboarding = true;
+        throw new Error('Usuário sem oficina');
       }
       
       setDemoModeActive(demoActive);
+      if (visitor) trialStart = getDemoStart();
       setIsDemo(demoActive);
       setNeedsOnboarding(onboarding);
       setNeedsProfileCompletion(profileCompletion);
@@ -125,20 +137,32 @@ export const AuthProvider = ({ children }) => {
       setAuthChecked(true);
     } catch (error) {
       console.error('User auth check failed:', error);
+      setUser(null);
+      setWorkshopId(null);
+      setDemoModeActive(false);
+      setIsDemo(false);
+      setNeedsOnboarding(false);
+      setNeedsProfileCompletion(false);
+      setTrialStartedAt(null);
+      const status = error.response?.status || error.status;
+      setAuthError({
+        type: status === 401 ? 'auth_required' : 'user_not_registered',
+        message: error.response?.data?.error || 'Não foi possível validar o acesso à oficina.',
+      });
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
       
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+
     }
   };
 
   const logout = (shouldRedirect = true) => {
+    const visitor = isPublicDemo();
+    setPublicDemo(false);
+    queryClientInstance.clear();
+    setDemoModeActive(false);
+    setIsDemo(false);
     setUser(null);
     setIsAuthenticated(false);
     setWorkshopId(null);
@@ -146,15 +170,19 @@ export const AuthProvider = ({ children }) => {
     setNeedsProfileCompletion(false);
     setTrialStartedAt(null);
     
+    if (visitor) {
+      window.location.assign('/login');
+      return;
+    }
     if (shouldRedirect) {
-      base44.auth.logout(window.location.href);
+      base44.auth.logout(window.location.origin + '/login');
     } else {
       base44.auth.logout();
     }
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    window.location.assign('/login');
   };
 
   return (

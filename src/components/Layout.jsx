@@ -1,5 +1,6 @@
+import { isPlatformOwner as hasPlatformAccess, canAccessPage } from "@/lib/platformAccess";
 import { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -84,13 +85,14 @@ function NavItem({ item, onNavigate }) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { isDemo, hoursRemaining } = useDemoStatus();
 
   const handleLogout = () => logout();
 
   const userRole = user?.role || "user";
-  const isPlatformOwner = userRole === "admin" && !user?.workshop_id;
+  const isPlatformOwner = hasPlatformAccess(user) && !user?.workshop_id;
   const visibleNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
     : isDemo
@@ -98,13 +100,15 @@ export default function Layout() {
       : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
   const visibleSecondary = isPlatformOwner
     ? []
-    : NAV_SECONDARY.filter((item) => !item.roles || item.roles.includes(userRole));
+    : NAV_SECONDARY.filter((item) => canAccessPage(item.to, user, isDemo));
   const visibleBottomNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
     : isDemo
       ? MOBILE_BOTTOM_NAV
       : MOBILE_BOTTOM_NAV.filter((item) => !item.roles || item.roles.includes(userRole));
   const canCreateQuote = userRole === "admin" && !isPlatformOwner;
+
+  if (!canAccessPage(location.pathname, user, isDemo)) return <Navigate to="/" replace />;
 
   return (
     <div className="min-h-screen bg-background">

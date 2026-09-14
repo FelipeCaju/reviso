@@ -5,8 +5,7 @@ let _demoActive = false;
 
 export function isDemoUser(user) {
   if (!user) return false;
-  const isPlatformOwner = user.role === 'admin' && !user.workshop_id;
-  return !user.workshop_id && !isPlatformOwner;
+  return user.id === 'demo-visitor';
 }
 
 export function setDemoModeActive(active) {
@@ -42,4 +41,13 @@ export function getDemoHoursRemaining() {
   const elapsed = Date.now() - new Date(start).getTime();
   const remaining = DEMO_DURATION_HOURS * 60 * 60 * 1000 - elapsed;
   return Math.max(0, Math.ceil(remaining / (60 * 60 * 1000)));
+}
+// A visitor session contains no authentication credentials or write permission.
+export function isPublicDemo() {
+  return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('reviso_demo_visitor') === 'true';
+}
+
+export function setPublicDemo(active) {
+  if (active) sessionStorage.setItem('reviso_demo_visitor', 'true');
+  else sessionStorage.removeItem('reviso_demo_visitor');
 }

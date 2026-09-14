@@ -76,21 +76,10 @@ export default function AdminOnboarding() {
     }
     setSaving(true);
     try {
-      const workshop = await base44.entities.WorkshopSetting.create({
-        name: form.name, razao_social: form.razao_social, cnpj: form.cnpj,
-        phone: form.phone, whatsapp: form.whatsapp, email: form.email, address: form.address,
-        default_capacity: 8,
-        capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
-        capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
-        plan: "free", plan_value: 0,
-        trial_started_at: new Date().toISOString(),
+      await base44.functions.invoke("manageWorkshops", {
+        action: "create", ...form, ownerEmail: form.ownerEmail.trim().toLowerCase(),
       });
-      try { await base44.users.inviteUser(form.ownerEmail, "admin"); } catch { /* já existe */ }
-      const users = await base44.entities.User.list("-created_date", 500);
-      const owner = users.find((u) => u.email === form.ownerEmail);
-      if (owner) await base44.entities.User.update(owner.id, { workshop_id: workshop.id });
-
-      toast({ title: "Oficina criada!", description: `Convite enviado para ${form.ownerEmail}.` });
+      toast({ title: "Oficina pré-cadastrada!", description: `${form.ownerEmail} já pode entrar com Google.` });
       setForm({ name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "", ownerEmail: "" });
       loadWorkshops();
     } catch (e) {
@@ -202,7 +191,7 @@ export default function AdminOnboarding() {
         </div>
         <div className="flex justify-end">
           <Button onClick={submit} disabled={saving} size="lg">
-            {saving ? "Criando..." : "Criar Oficina e Convidar"} <ArrowRight className="w-4 h-4 ml-1" />
+            {saving ? "Criando..." : "Pré-cadastrar Oficina"} <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       </section>

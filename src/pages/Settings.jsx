@@ -1,3 +1,4 @@
+import { getWorkshopId } from "@/lib/workshop";
 import { useEffect, useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -45,11 +46,9 @@ export default function Settings() {
   const load = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.WorkshopSetting.list("-updated_date", 10);
-      if (list.length) {
-        setId(list[0].id);
-        setForm({ ...DEFAULT, ...list[0] });
-      }
+      const workshop = await base44.entities.WorkshopSetting.get(getWorkshopId());
+      setId(workshop.id);
+      setForm({ ...DEFAULT, ...workshop });
     } finally {
       setLoading(false);
     }
@@ -60,11 +59,10 @@ export default function Settings() {
   const save = async () => {
     setSaving(true);
     try {
-      if (id) await base44.entities.WorkshopSetting.update(id, form);
-      else {
-        const created = await base44.entities.WorkshopSetting.create(form);
-        setId(created.id);
-      }
+      if (!id || id !== getWorkshopId()) throw new Error("Oficina não autorizada.");
+      const protectedFields = ['id', 'created_date', 'updated_date', 'created_by', 'plan', 'plan_value', 'trial_started_at', 'is_demo', 'demo_email', 'demo_password'];
+      const data = Object.fromEntries(Object.entries(form).filter(([key]) => !protectedFields.includes(key)));
+      await base44.entities.WorkshopSetting.update(id, data);
       toast({ title: "Configurações salvas" });
     } finally {
       setSaving(false);
@@ -242,7 +240,7 @@ export default function Settings() {
         <EmployeeManager />
       </section>
 
-      <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 md:p-5">
+      <section hidden className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 md:p-5">
         <h2 className="font-medium">Modo Demonstração</h2>
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
@@ -251,7 +249,7 @@ export default function Settings() {
           </div>
           <Switch checked={form.is_demo} onCheckedChange={(v) => set("is_demo", v)} />
         </div>
-        {form.is_demo && (
+        {false && form.is_demo && (
           <>
             <DemoUserManager />
             <div className="space-y-3 pt-4 border-t border-amber-200">

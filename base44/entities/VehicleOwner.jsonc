@@ -4,7 +4,8 @@
   "properties": {
     "workshop_id": {
       "type": "string",
-      "title": "Oficina"
+      "title": "Oficina",
+      "minLength": 1
     },
     "vehicle_id": {
       "type": "string",
@@ -36,20 +37,25 @@
   },
   "required": [
     "vehicle_id",
-    "customer_id"
+    "customer_id",
+    "workshop_id"
   ],
   "rls": {
-    "read": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "create": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "update": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    },
-    "delete": {
-      "data.workshop_id": "{{user.data.workshop_id}}"
-    }
+    "read": { "$and": [
+      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": "{{user.data.workshop_id}}" }
+    ] },
+    "create": { "$and": [
+      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": "{{user.data.workshop_id}}" }
+    ] },
+    "update": { "$and": [
+      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": "{{user.data.workshop_id}}" }
+    ] },
+    "delete": { "$and": [
+      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": "{{user.data.workshop_id}}" }
+    ] }
   }
 }

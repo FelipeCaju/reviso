@@ -1,3 +1,4 @@
+import { isPlatformOwner } from "@/lib/platformAccess";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -9,9 +10,6 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
 import Dashboard from '@/pages/Dashboard';
 import Appointments from '@/pages/Appointments';
 import Quotes from '@/pages/Quotes';
@@ -43,7 +41,7 @@ import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, needsOnboarding, needsProfileCompletion } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, needsOnboarding, needsProfileCompletion, user } = useAuth();
   const { isDemo, isExpired } = useDemoStatus();
 
   // Show loading spinner while checking app public settings or auth
@@ -60,14 +58,12 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      return <Login />;
     }
   }
 
   // User self-registered but hasn't set up their workshop yet
-  if (needsOnboarding) return <WorkshopOnboarding />;
+  if (needsOnboarding) return <UserNotRegisteredError />;
 
   // User has a workshop but mandatory profile data is missing
   if (needsProfileCompletion) return <WorkshopOnboarding />;
@@ -79,12 +75,12 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/register" element={<Navigate to="/login" replace />} />
+      <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+      <Route path="/reset-password" element={<Navigate to="/login" replace />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={isPlatformOwner(user) && !user?.workshop_id ? <Navigate to="/admin" replace /> : <Dashboard />} />
           <Route path="/agenda" element={<Appointments />} />
           <Route path="/orcamentos" element={<Quotes />} />
           <Route path="/orcamentos/novo" element={<QuoteEditor />} />
@@ -114,7 +110,7 @@ const AuthenticatedApp = () => {
           <Route path="/despesas" element={<Expenses />} />
           <Route path="/financeiro" element={<Finance />} />
           <Route path="/relatorios-financeiros" element={<FinanceReports />} />
-          <Route path="/admin" element={<AdminOnboarding />} />
+          <Route path="/admin" element={isPlatformOwner(user) ? <AdminOnboarding /> : <Navigate to="/" replace />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

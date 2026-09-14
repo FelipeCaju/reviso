@@ -58,17 +58,7 @@ export default function WorkshopOnboarding() {
         });
         toast({ title: "Perfil atualizado!", description: "Dados da oficina salvos com sucesso." });
       } else {
-        await base44.functions.invoke("manageWorkshops", {
-          action: "selfRegister",
-          name: form.name.trim(),
-          razao_social: form.razao_social,
-          cnpj: form.cnpj,
-          phone: form.phone,
-          whatsapp: form.whatsapp,
-          email: form.email,
-          address: form.address,
-        });
-        toast({ title: "Oficina cadastrada!", description: "Você tem 24 horas de acesso gratuito." });
+        throw new Error("Solicite o pré-cadastro da oficina ao administrador.");
       }
       window.location.reload();
     } catch (e) {

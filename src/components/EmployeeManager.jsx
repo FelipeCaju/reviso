@@ -8,7 +8,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { getWorkshopId } from "@/lib/workshop";
 
 const ROLE_LABELS = {
   admin: { label: "Administrador", icon: Shield, color: "text-primary" },
@@ -22,13 +21,12 @@ export default function EmployeeManager() {
   const [role, setRole] = useState("user");
   const [saving, setSaving] = useState(false);
 
-  const workshopId = getWorkshopId();
 
   const load = async () => {
     setLoading(true);
     try {
-      const all = await base44.entities.User.list("-created_date", 500);
-      setUsers(all.filter((u) => u.workshop_id === workshopId));
+      const res = await base44.functions.invoke("manageWorkshops", { action: "listEmployees" });
+      setUsers(res.data.users);
     } catch (e) {
       toast({ title: "Erro ao carregar funcionários", description: e.message, variant: "destructive" });
     } finally {
@@ -39,7 +37,7 @@ export default function EmployeeManager() {
   useEffect(() => { load(); }, []);
 
   const invite = async () => {
-    const trimmed = email.trim();
+    const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
       toast({ title: "Informe o e-mail do funcionário", variant: "destructive" });
       return;
@@ -56,13 +54,7 @@ export default function EmployeeManager() {
         toast({ title: "Este e-mail já está cadastrado", variant: "destructive" });
         return;
       }
-      await base44.users.inviteUser(trimmed, role);
-      // Link to workshop
-      const all = await base44.entities.User.list("-created_date", 500);
-      const user = all.find((u) => u.email === trimmed);
-      if (user) {
-        await base44.entities.User.update(user.id, { workshop_id: workshopId });
-      }
+      await base44.functions.invoke("manageWorkshops", { action: "inviteEmployee", email: trimmed, role });
       toast({
         title: "Convite enviado!",
         description: `${trimmed} recebeu um e-mail de convite. Ao aceitar, terá acesso à oficina como ${ROLE_LABELS[role].label}.`,
@@ -78,7 +70,7 @@ export default function EmployeeManager() {
 
   const changeRole = async (userId, newRole) => {
     try {
-      await base44.entities.User.update(userId, { role: newRole });
+      await base44.functions.invoke("manageWorkshops", { action: "changeEmployeeRole", userId, role: newRole });
       toast({ title: "Acesso atualizado", description: `Agora: ${ROLE_LABELS[newRole].label}` });
       load();
     } catch (e) {
@@ -89,7 +81,7 @@ export default function EmployeeManager() {
   const remove = async (userId, userEmail) => {
     if (!confirm(`Remover ${userEmail} da oficina? Ele perderá acesso ao sistema.`)) return;
     try {
-      await base44.entities.User.update(userId, { workshop_id: "" });
+      await base44.functions.invoke("manageWorkshops", { action: "removeEmployee", userId });
       toast({ title: "Funcionário removido", description: `${userEmail} não tem mais acesso à oficina.` });
       load();
     } catch (e) {
@@ -120,7 +112,7 @@ export default function EmployeeManager() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          O funcionário recebe um e-mail de convite e precisa aceitar para criar sua conta e definir a senha. O e-mail deve ser válido.
+          O funcionário recebe um e-mail de convite e precisa entrar com Google usando o e-mail cadastrado. O e-mail deve ser válido.
         </p>
       </div>
 

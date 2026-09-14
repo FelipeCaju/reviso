@@ -93,13 +93,13 @@ export default function VehicleForm() {
     if (current) {
       await base44.entities.VehicleOwner.update(current.id, { active: false, end_date: new Date().toISOString() });
     }
-    await base44.entities.VehicleOwner.create({
+    await base44.entities.VehicleOwner.create(withWorkshop({
       vehicle_id: vehicleId,
       customer_id: newOwnerId,
       customer_name_snapshot: customers.find((c) => c.id === newOwnerId)?.name || "",
       start_date: new Date().toISOString(),
       active: true,
-    });
+    }));
   };
 
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;

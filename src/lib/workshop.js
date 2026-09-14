@@ -14,5 +14,6 @@ export function getWorkshopId() {
 }
 
 export function withWorkshop(data = {}) {
+  if (!_workshopId) throw new Error('Acesso sem oficina autorizada. Entre novamente.');
   return { ...data, workshop_id: _workshopId };
 }

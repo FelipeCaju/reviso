@@ -1,3 +1,4 @@
+import { setPublicDemo } from "@/lib/demoMode";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -37,13 +38,9 @@ export default function Login() {
     setDemoLoading(true);
     setError("");
     try {
-      const res = await base44.functions.invoke("getDemoAccess", {});
-      if (!res.data?.email) {
-        setError("Modo demo não configurado. Contate o administrador.");
-        return;
-      }
-      await base44.auth.loginViaEmailPassword(res.data.email, res.data.password);
-      window.location.href = returnTo;
+      await base44.functions.invoke("getDemoAccess", { action: "context" });
+      setPublicDemo(true);
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Modo demo indisponível");
     } finally {
@@ -51,8 +48,14 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", returnTo);
+  const handleGoogle = async () => {
+    setPublicDemo(false);
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("google", returnTo);
+    } catch (err) {
+      setError(err.message || "Não foi possível entrar com Google. Tente novamente.");
+    }
   };
 
   return (
@@ -73,6 +76,11 @@ export default function Login() {
         </>
       }
     >
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
@@ -82,6 +90,7 @@ export default function Login() {
         Continuar com Google
       </Button>
 
+      <div hidden>
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
@@ -91,11 +100,6 @@ export default function Login() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -106,7 +110,6 @@ export default function Login() {
               id="email"
               type="email"
               autoComplete="email"
-              autoFocus
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -148,6 +151,7 @@ export default function Login() {
         </Button>
       </form>
 
+      </div>
       <div className="mt-6 pt-6 border-t border-border">
         <Button
           variant="secondary"

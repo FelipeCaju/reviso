@@ -1,22 +1,15 @@
 {
   "properties": {
-    "role": {
-      "type": "string",
-      "description": "The role of the user in the app",
-      "enum": [
-        "admin",
-        "user"
-      ]
-    },
     "workshop_id": {
       "type": "string",
       "title": "Oficina",
-      "description": "ID da oficina (tenant) \u00e0 qual este usu\u00e1rio pertence"
+      "description": "ID da oficina (tenant) \u00e0 qual este usu\u00e1rio pertence",
+      "rls": {
+        "write": false
+      }
     }
   },
-  "required": [
-    "role"
-  ],
+  "required": [],
   "name": "User",
   "type": "object"
 }

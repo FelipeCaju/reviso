@@ -1,3 +1,4 @@
+import { withWorkshop } from "@/lib/workshop";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -39,7 +40,7 @@ export default function CustomerForm() {
     try {
       if (id) await base44.entities.Customer.update(id, form);
       else {
-        const created = await base44.entities.Customer.create(form);
+        const created = await base44.entities.Customer.create(withWorkshop(form));
         navigate(`/clientes/${created.id}`);
         return;
       }

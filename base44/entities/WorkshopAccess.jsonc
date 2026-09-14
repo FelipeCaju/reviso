@@ -1,0 +1,11 @@
+{
+  "name": "WorkshopAccess",
+  "type": "object",
+  "properties": {
+    "email": { "type": "string", "format": "email" },
+    "workshop_id": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "enum": ["admin", "user"] }
+  },
+  "required": ["email", "workshop_id", "role"],
+  "rls": { "read": false, "create": false, "update": false, "delete": false }
+}

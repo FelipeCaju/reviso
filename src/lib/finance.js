@@ -1,5 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
+import { isDemoActive } from "@/lib/demoMode";
 
 /**
  * Cria um pagamento de OS + movimentação financeira (entrada)
@@ -111,6 +112,8 @@ export async function markPurchaseOrderPaid(order, method, paymentDate, user, su
  * para o mês atual. Preserva histórico — cada mês tem seu próprio registro.
  */
 export async function generateRecurringExpenses(workshopId) {
+  // Opening the finance screen must not create records during a demonstration.
+  if (isDemoActive()) return { generated: 0 };
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 

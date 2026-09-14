@@ -58,19 +58,19 @@
   ],
   "rls": {
     "read": { "$and": [
-      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": { "$nin": ["", null] } },
       { "data.workshop_id": "{{user.data.workshop_id}}" }
     ] },
     "create": { "$and": [
-      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": { "$nin": ["", null] } },
       { "data.workshop_id": "{{user.data.workshop_id}}" }
     ] },
     "update": { "$and": [
-      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": { "$nin": ["", null] } },
       { "data.workshop_id": "{{user.data.workshop_id}}" }
     ] },
     "delete": { "$and": [
-      { "user_condition": { "data.workshop_id": { "$nin": ["", null] } } },
+      { "data.workshop_id": { "$nin": ["", null] } },
       { "data.workshop_id": "{{user.data.workshop_id}}" }
     ] }
   }

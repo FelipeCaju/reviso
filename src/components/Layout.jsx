@@ -31,6 +31,7 @@ import DemoBanner from "@/components/DemoBanner";
 import { useDemoStatus } from "@/hooks/useDemoStatus";
 
 const SIDEBAR_LOGO_URL = "https://media.base44.com/images/public/6aa29ae2c83b44fa65bdbaa2/a428f7140_NovoProjeto.png";
+const APP_BUILD_LABEL = __APP_BUILD_LABEL__;
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true, roles: ["admin", "user"] },
@@ -152,6 +153,7 @@ export default function Layout() {
           <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" /> Sair
           </Button>
+          <div className="px-2 pt-2 text-[9px] text-sidebar-foreground/70">{APP_BUILD_LABEL}</div>
         </div>
       </aside>
 
@@ -260,6 +262,7 @@ export default function Layout() {
               <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" /> Sair
               </Button>
+              <div className="px-2 pt-2 text-[9px] text-sidebar-foreground/70">{APP_BUILD_LABEL}</div>
             </div>
           </div>
         </div>

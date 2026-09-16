@@ -112,15 +112,17 @@ export default function Finance() {
     return map;
   }, [entradas]);
 
-  // Breakdown de saídas por origem
-  const byOrigin = useMemo(() => {
+  // Saídas por fornecedor na consulta de fornecedores; por origem nas demais consultas.
+  const saidasDetalhadas = useMemo(() => {
     const map = {};
     saidas.forEach((t) => {
-      const key = t.origin_type || "outro";
+      const key = filterScope === "fornecedor"
+        ? suppliers.find((supplier) => supplier.id === t.supplier_id)?.name || t.supplier_name_snapshot || "Fornecedor"
+        : t.origin_type || "outro";
       map[key] = (map[key] || 0) + (t.amount || 0);
     });
     return map;
-  }, [saidas]);
+  }, [saidas, filterScope, suppliers]);
 
   // A receber: OS com saldo pendente
   const aReceber = useMemo(() => {
@@ -307,17 +309,17 @@ export default function Finance() {
         </CardContent>
       </Card>
 
-      {/* Detalhamento de saídas por origem */}
+      {/* Detalhamento de saídas */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          <h2 className="text-sm font-medium">Saídas por Origem</h2>
-          {Object.keys(byOrigin).length === 0 ? (
+          <h2 className="text-sm font-medium">{filterScope === "fornecedor" ? "Saídas por Fornecedor" : "Saídas por Origem"}</h2>
+          {Object.keys(saidasDetalhadas).length === 0 ? (
             <div className="text-sm text-muted-foreground py-2">Sem saídas no período.</div>
           ) : (
             <div className="space-y-1.5">
-              {Object.entries(byOrigin).sort((a, b) => b[1] - a[1]).map(([origin, value]) => (
-                <div key={origin} className="flex items-center justify-between gap-2">
-                  <span className="text-sm">{originLabels[origin] || origin}</span>
+              {Object.entries(saidasDetalhadas).sort((a, b) => b[1] - a[1]).map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{filterScope === "fornecedor" ? label : originLabels[label] || label}</span>
                   <span className="text-sm font-medium">{formatCurrency(value)}</span>
                 </div>
               ))}

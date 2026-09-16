@@ -42,6 +42,7 @@ export default function Reports() {
   const [workOrders, setWorkOrders] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [purchaseOrderItems, setPurchaseOrderItems] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -55,6 +56,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(todayISO());
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
+  const [filterScope, setFilterScope] = useState("cliente");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterMethod, setFilterMethod] = useState("");
   const [reportType, setReportType] = useState("simples");
@@ -62,19 +64,20 @@ export default function Reports() {
   useEffect(() => {
     (async () => {
       try {
-        const [sl, pays, tx, wo, exp, po, custs, sups] = await Promise.all([
+        const [sl, pays, tx, wo, exp, po, poi, custs, sups] = await Promise.all([
           base44.entities.WorkshopSetting.list("-updated_date", 1),
           base44.entities.Payment.list("-date", 2000),
           base44.entities.FinancialTransaction.list("-date", 2000),
           base44.entities.WorkOrder.list("-entry_date", 500),
           base44.entities.Expense.list("-date", 500),
           base44.entities.PurchaseOrder.list("-date", 500),
+          base44.entities.PurchaseOrderItem.list("-created_date", 2000),
           base44.entities.Customer.list("-updated_date", 500),
           base44.entities.Supplier.list("-updated_date", 500),
         ]);
         setSettings(sl[0] || null);
         setPayments(pays); setTransactions(tx); setWorkOrders(wo);
-        setExpenses(exp); setPurchaseOrders(po); setCustomers(custs); setSuppliers(sups);
+        setExpenses(exp); setPurchaseOrders(po); setPurchaseOrderItems(poi); setCustomers(custs); setSuppliers(sups);
         try { setCurrentUser(await base44.auth.me()); } catch {}
       } finally { setLoading(false); }
     })();
@@ -108,6 +111,7 @@ export default function Reports() {
   // Entradas: individual Payment records (real money received)
   const entradas = useMemo(() => payments.filter((p) => {
     if (p.status !== "ativo" || !inRange(p.date)) return false;
+    if (filterScope !== "cliente" || !p.customer_id) return false;
     if (filterCustomer && p.customer_id !== filterCustomer) return false;
     if (!methodMatches(p.method)) return false;
     return true;
@@ -119,12 +123,13 @@ export default function Reports() {
     formaKey: p.method,
     valor: p.amount || 0,
   })).sort((a, b) => new Date(a.date) - new Date(b.date)),
-  [payments, startDate, endDate, filterCustomer, filterMethod, woNumberMap]);
+  [payments, startDate, endDate, filterScope, filterCustomer, filterMethod, woNumberMap]);
 
   // Saídas: paid Expenses + FinancialTransaction (saida, pedido)
   const saidas = useMemo(() => {
     const expSaidas = expenses.filter((e) => {
       if (e.status !== "pago") return false;
+      if (filterScope !== "fornecedor" || !e.supplier_id) return false;
       const d = e.payment_date || e.date;
       if (!inRange(d)) return false;
       if (filterSupplier && e.supplier_id !== filterSupplier) return false;
@@ -132,7 +137,7 @@ export default function Reports() {
       return true;
     }).map((e) => ({
       date: e.payment_date || e.date,
-      descricao: e.supplier_id ? (e.beneficiary || e.description || "Despesa") : (e.description || e.beneficiary || "Despesa"),
+      descricao: suppliers.find((s) => s.id === e.supplier_id)?.name || e.beneficiary || e.description || "Fornecedor",
       referencia: "Despesa",
       forma: METHOD_LABELS[e.payment_method] || "—",
       formaKey: e.payment_method,
@@ -143,6 +148,7 @@ export default function Reports() {
 
     const pedidosSaidas = transactions.filter((t) => {
       if (t.type !== "saida" || t.status !== "ativo" || t.origin_type !== "pedido") return false;
+      if (filterScope !== "fornecedor" || !t.supplier_id) return false;
       if (!inRange(t.date)) return false;
       if (filterSupplier && t.supplier_id !== filterSupplier) return false;
       if (!methodMatches(t.payment_method)) return false;
@@ -159,13 +165,14 @@ export default function Reports() {
     }));
 
     return [...expSaidas, ...pedidosSaidas].sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [expenses, transactions, startDate, endDate, filterSupplier, filterMethod, poNumberMap]);
+  }, [expenses, transactions, startDate, endDate, filterScope, filterSupplier, filterMethod, poNumberMap, suppliers]);
 
   const totalEntradas = entradas.reduce((s, e) => s + e.valor, 0);
   const totalSaidas = saidas.reduce((s, e) => s + e.valor, 0);
 
   // A Receber: WorkOrders with balance > 0
   const aReceber = useMemo(() => workOrders.filter((w) => {
+    if (filterScope !== "cliente") return false;
     if (w.status === "cancelada" || w.payment_status === "pago" || w.payment_status === "isento_cancelado") return false;
     const balance = (w.total || 0) - (w.paid_amount || 0);
     if (balance <= 0.01) return false;
@@ -178,13 +185,14 @@ export default function Reports() {
     total: w.total || 0,
     recebido: w.paid_amount || 0,
     saldo: (w.total || 0) - (w.paid_amount || 0),
-  })), [workOrders, filterCustomer, filterStatus]);
+  })), [workOrders, filterScope, filterCustomer, filterStatus]);
 
   const totalAReceber = aReceber.reduce((s, r) => s + r.saldo, 0);
 
   // A Pagar: pending Expenses + pending PurchaseOrders
   const aPagar = useMemo(() => {
     const expPend = expenses.filter((e) => {
+      if (filterScope !== "fornecedor" || !e.supplier_id) return false;
       if (e.status !== "pendente" && e.status !== "vencido") return false;
       if (filterSupplier && e.supplier_id !== filterSupplier) return false;
       return true;
@@ -196,6 +204,7 @@ export default function Reports() {
     }));
 
     const pedPend = purchaseOrders.filter((o) => {
+      if (filterScope !== "fornecedor" || !o.supplier_id) return false;
       if (o.payment_status === "pago" || o.payment_status === "cancelado") return false;
       const balance = (o.total || 0) - (o.paid_amount || 0);
       if (balance <= 0.01) return false;
@@ -209,7 +218,7 @@ export default function Reports() {
     }));
 
     return [...expPend, ...pedPend];
-  }, [expenses, purchaseOrders, filterSupplier]);
+  }, [expenses, purchaseOrders, filterScope, filterSupplier]);
 
   const totalAPagar = aPagar.reduce((s, p) => s + p.valor, 0);
   const resultado = totalEntradas - totalSaidas;
@@ -241,22 +250,35 @@ export default function Reports() {
 
   const totalForma = resumoForma.reduce((s, r) => s + r.valor, 0);
 
-  // Summary by category (saidas)
-  const resumoCategoria = useMemo(() => {
+  // Saídas agrupadas pelo fornecedor: compras repetidas no período formam uma única linha.
+  const resumoSaidas = useMemo(() => {
     const map = {};
     saidas.forEach((s) => {
-      const key = s.categoria || "Outros";
-      if (!map[key]) map[key] = 0;
-      map[key] += s.valor;
+      const key = s.descricao || "Saída";
+      if (!map[key]) map[key] = { descricao: key, quantidade: 0, valor: 0 };
+      map[key].quantidade += 1;
+      map[key].valor += s.valor;
     });
-    return Object.entries(map).map(([k, v]) => ({ categoria: k, valor: v }));
+    return Object.values(map).sort((a, b) => b.valor - a.valor);
   }, [saidas]);
 
-  const totalCategoria = resumoCategoria.reduce((s, r) => s + r.valor, 0);
+  const totalSaidasDetalhadas = resumoSaidas.reduce((s, r) => s + r.valor, 0);
+
+  const comprasFornecedor = useMemo(() => purchaseOrders
+    .filter((o) => o.supplier_id === filterSupplier)
+    .map((o) => ({
+      ...o,
+      itens: purchaseOrderItems.filter((item) => item.order_id === o.id),
+    })), [purchaseOrders, purchaseOrderItems, filterSupplier]);
 
   const periodLabel = `${formatDate(startDate)} a ${formatDate(endDate)}`;
+  const reportPeriodLabel = reportType === "fornecedor" ? "Todo o histórico" : periodLabel;
 
   const handleGenerate = () => {
+    if (reportType === "fornecedor" && !filterSupplier) {
+      toast({ title: "Selecione um fornecedor para gerar o relatório", variant: "destructive" });
+      return;
+    }
     setGenerated(true);
     setGeneratedAt(new Date().toLocaleString("pt-BR"));
   };
@@ -280,7 +302,7 @@ export default function Reports() {
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
     doc.text("RELATÓRIO FINANCEIRO", pwR, ml, { align: "right" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    doc.text(periodLabel, pwR, ml + 5, { align: "right" });
+    doc.text(reportPeriodLabel, pwR, ml + 5, { align: "right" });
     doc.text(`Gerado em: ${generatedAt}`, pwR, ml + 9, { align: "right" });
     if (currentUser?.full_name) doc.text(`Por: ${currentUser.full_name}`, pwR, ml + 13, { align: "right" });
     y = Math.max(y, ml + 16);
@@ -315,6 +337,21 @@ export default function Reports() {
       drawRow(["Total a receber", formatCurrency(totalAReceber)], true);
       drawRow(["Total a pagar", formatCurrency(totalAPagar)], true);
       drawRow(["Resultado do período", formatCurrency(resultado)], true);
+    } else if (reportType === "fornecedor") {
+      const supplierName = suppliers.find((s) => s.id === filterSupplier)?.name || "Fornecedor";
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      doc.text(`Histórico de compras — ${supplierName}`, ml, y); y += 5;
+      drawRow(["Data", "Pedido", "Peça / serviço", "Qtd.", "Valor"], true);
+      comprasFornecedor.forEach((o) => {
+        if (!o.itens.length) drawRow([formatDate(o.date), `#${o.number || "—"}`, "—", "—", formatCurrency(o.total)]);
+        o.itens.forEach((item, index) => drawRow([
+          index === 0 ? formatDate(o.date) : "",
+          index === 0 ? `#${o.number || "—"}` : "",
+          item.description || "Peça", `${item.quantity || 1} ${item.unit || "un"}`,
+          formatCurrency(item.total || (item.quantity || 1) * (item.unit_price || 0)),
+        ]));
+      });
+      drawRow(["TOTAL COMPRADO", formatCurrency(comprasFornecedor.reduce((sum, order) => sum + (order.total || 0), 0))], true);
     } else {
       // Movimentações
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
@@ -334,9 +371,9 @@ export default function Reports() {
       // Detalhamento de saídas
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.text("Detalhamento de Saídas", ml, y); y += 5;
-      drawRow(["Categoria", "Valor"], true);
-      resumoCategoria.forEach((r) => drawRow([r.categoria, formatCurrency(r.valor)]));
-      drawRow(["TOTAL", formatCurrency(totalCategoria)], true);
+      drawRow(["Fornecedor / saída", "Compras", "Valor"], true);
+      resumoSaidas.forEach((r) => drawRow([r.descricao, r.quantidade, formatCurrency(r.valor)]));
+      drawRow(["TOTAL", formatCurrency(totalSaidasDetalhadas)], true);
     }
 
     doc.save(`Relatorio_Financeiro_${startDate}_a_${endDate}.pdf`);
@@ -344,6 +381,13 @@ export default function Reports() {
   };
 
   const sendWhatsApp = () => {
+    if (reportType === "fornecedor") {
+      const supplierName = suppliers.find((s) => s.id === filterSupplier)?.name || "Fornecedor";
+      const total = comprasFornecedor.reduce((sum, order) => sum + (order.total || 0), 0);
+      const text = `*RELATÓRIO DE COMPRAS — ${supplierName}*\nPeríodo: Todo o histórico\n\nPedidos: ${comprasFornecedor.length}\nTotal comprado: ${formatCurrency(total)}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      return;
+    }
     const t = `*RELATÓRIO FINANCEIRO — ${settings?.name || "Oficina"}*\nPeríodo: ${periodLabel}\n\n*RESUMO*\nEntradas: ${formatCurrency(totalEntradas)}\nSaídas: ${formatCurrency(totalSaidas)}\nA receber: ${formatCurrency(totalAReceber)}\nA pagar: ${formatCurrency(totalAPagar)}\nResultado: ${formatCurrency(resultado)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
   };
@@ -352,10 +396,14 @@ export default function Reports() {
     if (!settings?.email) { toast({ title: "E-mail não configurado", variant: "destructive" }); return; }
     setSaving(true);
     try {
-      const text = `RELATÓRIO FINANCEIRO — ${settings?.name || "Oficina"}\nPeríodo: ${periodLabel}\n\nRESUMO FINANCEIRO\nEntradas recebidas: ${formatCurrency(totalEntradas)}\nSaídas pagas: ${formatCurrency(totalSaidas)}\nA receber: ${formatCurrency(totalAReceber)}\nA pagar: ${formatCurrency(totalAPagar)}\nResultado do período: ${formatCurrency(resultado)}\n\nGerado em: ${generatedAt}${currentUser?.full_name ? `\nPor: ${currentUser.full_name}` : ""}`;
+      const supplierName = suppliers.find((s) => s.id === filterSupplier)?.name || "Fornecedor";
+      const supplierTotal = comprasFornecedor.reduce((sum, order) => sum + (order.total || 0), 0);
+      const text = reportType === "fornecedor"
+        ? `RELATÓRIO DE COMPRAS — ${supplierName}\nPeríodo: Todo o histórico\n\nPedidos: ${comprasFornecedor.length}\nTotal comprado: ${formatCurrency(supplierTotal)}\n\nGerado em: ${generatedAt}${currentUser?.full_name ? `\nPor: ${currentUser.full_name}` : ""}`
+        : `RELATÓRIO FINANCEIRO — ${settings?.name || "Oficina"}\nPeríodo: ${periodLabel}\n\nRESUMO FINANCEIRO\nEntradas recebidas: ${formatCurrency(totalEntradas)}\nSaídas pagas: ${formatCurrency(totalSaidas)}\nA receber: ${formatCurrency(totalAReceber)}\nA pagar: ${formatCurrency(totalAPagar)}\nResultado do período: ${formatCurrency(resultado)}\n\nGerado em: ${generatedAt}${currentUser?.full_name ? `\nPor: ${currentUser.full_name}` : ""}`;
       await base44.integrations.Core.SendEmail({
         to: settings.email,
-        subject: `Relatório Financeiro — ${settings?.name || "Oficina"}`,
+        subject: reportType === "fornecedor" ? `Relatório de Compras — ${supplierName}` : `Relatório Financeiro — ${settings?.name || "Oficina"}`,
         text,
       });
       toast({ title: "Relatório enviado por e-mail" });
@@ -387,25 +435,29 @@ export default function Reports() {
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Cliente</Label>
-              <Select value={filterCustomer || "todos"} onValueChange={(v) => setFilterCustomer(v === "todos" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos clientes</SelectItem>
-                  {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs">Consultar por</Label>
+              <div className="flex h-9 rounded-md border border-input p-0.5">
+                <button type="button" onClick={() => { setFilterScope("cliente"); setFilterSupplier(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "cliente" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Cliente</button>
+                <button type="button" onClick={() => { setFilterScope("fornecedor"); setFilterCustomer(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "fornecedor" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Fornecedor</button>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Fornecedor</Label>
-              <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos fornecedores</SelectItem>
-                  {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            {filterScope === "cliente" ? (
+              <div className="space-y-1">
+                <Label className="text-xs">Cliente</Label>
+                <Select value={filterCustomer || "todos"} onValueChange={(v) => setFilterCustomer(v === "todos" ? "" : v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+                  <SelectContent><SelectItem value="todos">Todos clientes</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-xs">Fornecedor</Label>
+                <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Todos fornecedores" /></SelectTrigger>
+                  <SelectContent><SelectItem value="todos">Todos fornecedores</SelectItem>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label className="text-xs">Situação</Label>
               <Select value={filterStatus || "todos"} onValueChange={(v) => setFilterStatus(v === "todos" ? "" : v)}>
@@ -442,6 +494,10 @@ export default function Reports() {
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="reportType" checked={reportType === "detalhado"} onChange={() => setReportType("detalhado")} className="w-4 h-4 accent-primary" />
               <span className="text-sm">Detalhado</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="reportType" checked={reportType === "fornecedor"} onChange={() => { setReportType("fornecedor"); setFilterScope("fornecedor"); setFilterCustomer(""); }} className="w-4 h-4 accent-primary" />
+              <span className="text-sm">Por fornecedor</span>
             </label>
           </div>
 
@@ -484,15 +540,15 @@ export default function Reports() {
               </div>
             </div>
             <div className="text-right shrink-0">
-              <h2 className="text-base font-bold">RELATÓRIO FINANCEIRO</h2>
-              <div className="text-xs text-slate-600">{reportType === "simples" ? "Simples" : "Detalhado"}</div>
+              <h2 className="text-base font-bold">{reportType === "fornecedor" ? "RELATÓRIO DE COMPRAS" : "RELATÓRIO FINANCEIRO"}</h2>
+              <div className="text-xs text-slate-600">{reportType === "simples" ? "Simples" : reportType === "detalhado" ? "Detalhado" : "Por fornecedor"}</div>
             </div>
           </div>
 
           {/* Report identification */}
           <div className="flex justify-between text-xs text-slate-600 pb-3 border-b border-slate-200">
             <div>
-              <div><strong>Período:</strong> {periodLabel}</div>
+              <div><strong>Período:</strong> {reportPeriodLabel}</div>
               {(filterCustomer || filterSupplier || filterStatus || filterMethod) && (
                 <div className="mt-1">
                   <strong>Filtros:</strong> {[
@@ -607,24 +663,62 @@ export default function Reports() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-100 text-xs text-slate-600">
-                      <th className="px-2 py-1.5 text-left font-semibold">Categoria</th>
+                      <th className="px-2 py-1.5 text-left font-semibold">Fornecedor / saída</th>
+                      <th className="px-2 py-1.5 text-right font-semibold">Compras</th>
                       <th className="px-2 py-1.5 text-right font-semibold">Valor</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {resumoCategoria.map((r, i) => (
+                    {resumoSaidas.map((r, i) => (
                       <tr key={i} className="border-b border-slate-100">
-                        <td className="px-2 py-1">{r.categoria}</td>
+                        <td className="px-2 py-1">{r.descricao}</td>
+                        <td className="px-2 py-1 text-right">{r.quantidade}</td>
                         <td className="px-2 py-1 text-right text-red-600">{formatCurrency(r.valor)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <TotalsRow label="TOTAL" value={formatCurrency(totalCategoria)} negative />
+                    <TotalsRow label="TOTAL" value={formatCurrency(totalSaidasDetalhadas)} negative />
                   </tfoot>
                 </table>
               </div>
             </>
+          )}
+
+          {reportType === "fornecedor" && (
+            <div>
+              <SectionTitle>Histórico de Compras — {suppliers.find((s) => s.id === filterSupplier)?.name || "Fornecedor"}</SectionTitle>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-100 text-xs text-slate-600">
+                    <th className="px-2 py-1.5 text-left font-semibold">Data</th>
+                    <th className="px-2 py-1.5 text-left font-semibold">Pedido</th>
+                    <th className="px-2 py-1.5 text-left font-semibold">Peça / item escolhido na cotação</th>
+                    <th className="px-2 py-1.5 text-right font-semibold">Qtd.</th>
+                    <th className="px-2 py-1.5 text-right font-semibold">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comprasFornecedor.length === 0 && <tr><td colSpan={5} className="px-2 py-3 text-center text-slate-400">Nenhuma compra no período</td></tr>}
+                  {comprasFornecedor.flatMap((order) => order.itens.length ? order.itens.map((item, index) => (
+                    <tr key={item.id} className="border-b border-slate-100">
+                      <td className="px-2 py-1">{index === 0 ? formatDate(order.date) : ""}</td>
+                      <td className="px-2 py-1">{index === 0 ? `#${order.number || "—"}` : ""}</td>
+                      <td className="px-2 py-1">{item.description || "Peça"}</td>
+                      <td className="px-2 py-1 text-right">{item.quantity || 1} {item.unit || "un"}</td>
+                      <td className="px-2 py-1 text-right">{formatCurrency(item.total || (item.quantity || 1) * (item.unit_price || 0))}</td>
+                    </tr>
+                  )) : (
+                    <tr key={order.id} className="border-b border-slate-100">
+                      <td className="px-2 py-1">{formatDate(order.date)}</td><td className="px-2 py-1">#{order.number || "—"}</td><td className="px-2 py-1">—</td><td className="px-2 py-1 text-right">—</td><td className="px-2 py-1 text-right">{formatCurrency(order.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <TotalsRow label="TOTAL COMPRADO" value={formatCurrency(comprasFornecedor.reduce((sum, order) => sum + (order.total || 0), 0))} />
+                </tfoot>
+              </table>
+            </div>
           )}
         </div>
       )}

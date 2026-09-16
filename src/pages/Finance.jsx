@@ -48,6 +48,7 @@ export default function Finance() {
   const [payments, setPayments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [filterScope, setFilterScope] = useState("cliente");
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
   const [customStart, setCustomStart] = useState(todayISO());
@@ -90,8 +91,9 @@ export default function Finance() {
 
   const activeTx = transactions.filter((t) => {
     if (t.status !== "ativo" || !inRange(t.date)) return false;
-    if (filterCustomer && t.customer_id !== filterCustomer) return false;
-    if (filterSupplier && t.supplier_id !== filterSupplier) return false;
+    if (filterScope === "cliente") {
+      if (!t.customer_id || (filterCustomer && t.customer_id !== filterCustomer)) return false;
+    } else if (!t.supplier_id || (filterSupplier && t.supplier_id !== filterSupplier)) return false;
     return true;
   });
   const entradas = activeTx.filter((t) => t.type === "entrada");
@@ -136,7 +138,9 @@ export default function Finance() {
   const totalAReceber = aReceber.reduce((s, w) => s + w.balance, 0);
 
   // A pagar: despesas pendentes + pedidos não pagos
-  const despesasPendentes = expenses.filter((e) => (e.status === "pendente" || e.status === "vencido") && (!filterSupplier || e.supplier_id === filterSupplier));
+  const despesasPendentes = filterScope === "fornecedor"
+    ? expenses.filter((e) => (e.status === "pendente" || e.status === "vencido") && e.supplier_id && (!filterSupplier || e.supplier_id === filterSupplier))
+    : [];
   const totalAPagar = despesasPendentes.reduce((s, e) => s + (e.amount || 0), 0);
 
   const methodLabels = { dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão Débito", cartao_credito: "Cartão Crédito", outro: "Outro" };
@@ -179,25 +183,29 @@ export default function Finance() {
           </>
         )}
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Cliente</label>
-          <Select value={filterCustomer || "todos"} onValueChange={(v) => setFilterCustomer(v === "todos" ? "" : v)}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos clientes</SelectItem>
-              {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <label className="text-xs text-muted-foreground">Consultar por</label>
+          <div className="flex h-9 rounded-md border border-input p-0.5">
+            <button type="button" onClick={() => { setFilterScope("cliente"); setFilterSupplier(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "cliente" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Cliente</button>
+            <button type="button" onClick={() => { setFilterScope("fornecedor"); setFilterCustomer(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "fornecedor" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Fornecedor</button>
+          </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Fornecedor</label>
-          <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Todos fornecedores" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos fornecedores</SelectItem>
-              {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+        {filterScope === "cliente" ? (
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Cliente</label>
+            <Select value={filterCustomer || "todos"} onValueChange={(v) => setFilterCustomer(v === "todos" ? "" : v)}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos clientes</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Fornecedor</label>
+            <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Todos fornecedores" /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos fornecedores</SelectItem>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Resumo principal */}

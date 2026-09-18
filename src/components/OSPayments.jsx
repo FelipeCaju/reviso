@@ -6,9 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency, formatDateTime, todayISO } from "@/lib/format";
@@ -21,7 +18,6 @@ const PAYMENT_METHODS = [
   { value: "pix", label: "Pix" },
   { value: "cartao_debito", label: "Cartão de Débito" },
   { value: "cartao_credito", label: "Cartão de Crédito" },
-  { value: "outro", label: "Outro" },
 ];
 
 const PAY_STATUS_INFO = {
@@ -160,7 +156,7 @@ export default function OSPayments({ workOrderId, wo, total, onPaymentsChange })
         </div>
       )}
 
-      <Button variant="outline" className="w-full h-11" onClick={() => setOpen(true)} disabled={balance <= 0.01 && payStatus === "pago"}>
+      <Button variant="outline" className="w-full h-11" onClick={() => { setPayDate(todayISO()); setOpen(true); }} disabled={balance <= 0.01 && payStatus === "pago"}>
         <Plus className="w-4 h-4 mr-2" /> Registrar Pagamento
       </Button>
 
@@ -178,12 +174,13 @@ export default function OSPayments({ workOrderId, wo, total, onPaymentsChange })
             </div>
             <div className="space-y-1.5">
               <Label>Forma de Pagamento</Label>
-              <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.slice(0, 4).map((item) => (
+                  <Button key={item.value} type="button" variant={method === item.value ? "default" : "outline"} className="h-10 text-xs" onClick={() => setMethod(item.value)}>
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Data do Pagamento</Label>

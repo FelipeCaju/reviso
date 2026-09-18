@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X,
+  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X, ReceiptText,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -20,7 +20,7 @@ import { WorkOrderStatusBadge, workOrderStatusInfo } from "@/components/StatusBa
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDateTime, todayISO,
 } from "@/lib/format";
-import { generateWorkOrderPDF } from "@/lib/pdf";
+import { generateNonFiscalReceiptPDF, generateWorkOrderPDF } from "@/lib/pdf";
 import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
@@ -46,6 +46,7 @@ export default function WorkOrderEditor() {
 
   const [wo, setWo] = useState(null);
   const [items, setItems] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [plateQ, setPlateQ] = useState("");
   const [showPlateResults, setShowPlateResults] = useState(false);
@@ -292,9 +293,14 @@ export default function WorkOrderEditor() {
     setWo((w) => ({ ...w, images: (w.images || []).filter((_, i) => i !== idx) }));
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!wo) return;
-    generateWorkOrderPDF(wo, items, settings);
+    await generateWorkOrderPDF(wo, items, settings, customers.find((customer) => customer.id === wo.customer_id));
+  };
+
+  const exportNonFiscalReceipt = async () => {
+    if (!wo || wo.status !== "finalizada" || wo.payment_status !== "pago") return;
+    await generateNonFiscalReceiptPDF(wo, items, settings, customers.find((customer) => customer.id === wo.customer_id), payments);
   };
 
   if (loading || !wo) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
@@ -310,6 +316,9 @@ export default function WorkOrderEditor() {
         <div className="flex items-center gap-2">
           {editing && <WorkOrderStatusBadge status={wo.status} />}
           {editing && <Button size="sm" variant="outline" onClick={exportPDF}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>}
+          {editing && wo.status === "finalizada" && wo.payment_status === "pago" && (
+            <Button size="sm" variant="outline" onClick={exportNonFiscalReceipt}><ReceiptText className="w-4 h-4 mr-1" /> Recibo</Button>
+          )}
           <Button size="sm" onClick={() => save()} disabled={saving}><Save className="w-4 h-4 mr-1" /> Salvar</Button>
         </div>
       </div>
@@ -450,9 +459,9 @@ export default function WorkOrderEditor() {
       {/* Fotos anexadas */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
         <Label>Fotos Anexadas ({(wo.images || []).length})</Label>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <div className="flex flex-wrap gap-2">
           {(wo.images || []).map((url, i) => (
-            <div key={i} className="relative group aspect-square">
+            <div key={i} className="relative group w-40 aspect-square">
               <ImgCmp src={url} alt={`Foto ${i + 1}`} className="w-full h-full rounded-lg" fittingType="fill" />
               <button
                 onClick={() => removeImage(i)}
@@ -462,7 +471,7 @@ export default function WorkOrderEditor() {
               </button>
             </div>
           ))}
-          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+          <label className="flex flex-col items-center justify-center w-40 aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-accent transition-colors">
             <input
               type="file"
               accept="image/*"
@@ -594,7 +603,7 @@ export default function WorkOrderEditor() {
       {/* Payments + Notification (editing only) */}
       {editing && (
         <>
-          <OSPayments workOrderId={id} wo={wo} total={grandTotal} />
+          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} />
           <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} />
         </>
       )}

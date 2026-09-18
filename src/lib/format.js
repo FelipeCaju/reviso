@@ -36,12 +36,18 @@ export const formatTime = (d) => {
 
 export const normalizePlate = (p) => (p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+const localDateISO = (date) => {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+};
+
+// Campos de data devem usar o calendário local; toISOString() usa UTC e pode avançar um dia no Brasil.
+export const todayISO = () => localDateISO(new Date());
 
 export const addDaysISO = (days, base) => {
   const d = base ? new Date(base) : new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return localDateISO(d);
 };
 
 export const vehicleDescription = (v) => {

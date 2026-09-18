@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 import { FileDown, Mail, Send, Printer, FileText } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { toast } from "@/components/ui/use-toast";
+import { addSectionTitle, createStyledDocument, finalizeStyledDocument } from "@/lib/pdf";
 
 const METHOD_LABELS = {
   dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão Déb.",
@@ -285,28 +285,13 @@ export default function Reports() {
 
   const handlePrint = () => window.print();
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
+  const generatePDF = async () => {
+    const { doc, y: initialY } = await createStyledDocument(settings, reportType === "fornecedor" ? "Relatório de compras" : "Relatório financeiro", {
+      subtitle: `Período: ${reportPeriodLabel}`,
+      meta: `Gerado em: ${generatedAt}${currentUser?.full_name ? ` - ${currentUser.full_name}` : ""}`,
+    });
     const ml = 14, pw = 210, pwR = pw - ml;
-    let y = ml;
-
-    doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-    doc.text(settings?.name || "Oficina", ml, y); y += 5;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    if (settings?.razao_social) { doc.text(settings.razao_social, ml, y); y += 4; }
-    if (settings?.cnpj) { doc.text(`CNPJ: ${settings.cnpj}`, ml, y); y += 4; }
-    if (settings?.address) { doc.text(settings.address, ml, y); y += 4; }
-    const cont = [settings?.phone, settings?.whatsapp, settings?.email].filter(Boolean).join("  |  ");
-    if (cont) { doc.text(cont, ml, y); y += 4; }
-    y += 2;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("RELATÓRIO FINANCEIRO", pwR, ml, { align: "right" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    doc.text(reportPeriodLabel, pwR, ml + 5, { align: "right" });
-    doc.text(`Gerado em: ${generatedAt}`, pwR, ml + 9, { align: "right" });
-    if (currentUser?.full_name) doc.text(`Por: ${currentUser.full_name}`, pwR, ml + 13, { align: "right" });
-    y = Math.max(y, ml + 16);
-    doc.setDrawColor(180); doc.line(ml, y, pwR, y); y += 6;
+    let y = initialY;
 
     const colW = [28, 50, 35, 30, 35, pwR - 178];
     const drawRow = (cells, bold) => {
@@ -321,8 +306,7 @@ export default function Reports() {
     };
 
     // Resumo
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-    doc.text("Resumo Financeiro", ml, y); y += 5;
+    y = addSectionTitle(doc, y, "Resumo financeiro");
     drawRow(["Entradas recebidas", formatCurrency(totalEntradas)], true);
     drawRow(["Saídas pagas", formatCurrency(totalSaidas)], true);
     drawRow(["A receber", formatCurrency(totalAReceber)], true);
@@ -376,6 +360,7 @@ export default function Reports() {
       drawRow(["TOTAL", formatCurrency(totalSaidasDetalhadas)], true);
     }
 
+    finalizeStyledDocument(doc);
     doc.save(`Relatorio_Financeiro_${startDate}_a_${endDate}.pdf`);
     toast({ title: "PDF gerado" });
   };
@@ -494,10 +479,6 @@ export default function Reports() {
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="reportType" checked={reportType === "detalhado"} onChange={() => setReportType("detalhado")} className="w-4 h-4 accent-primary" />
               <span className="text-sm">Detalhado</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="radio" name="reportType" checked={reportType === "fornecedor"} onChange={() => { setReportType("fornecedor"); setFilterScope("fornecedor"); setFilterCustomer(""); }} className="w-4 h-4 accent-primary" />
-              <span className="text-sm">Por fornecedor</span>
             </label>
           </div>
 

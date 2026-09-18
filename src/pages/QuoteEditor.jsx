@@ -68,6 +68,7 @@ export default function QuoteEditor() {
   // vehicle search
   const [plateQ, setPlateQ] = useState("");
   const [showPlateResults, setShowPlateResults] = useState(false);
+  const selectedCustomer = useMemo(() => customers.find((customer) => customer.id === quote?.customer_id), [customers, quote?.customer_id]);
 
   useEffect(() => {
     (async () => {
@@ -329,7 +330,7 @@ export default function QuoteEditor() {
     if (!phone.startsWith("55")) phone = "55" + phone;
     setSending(true);
     try {
-      const blob = await generateQuotePDFBlob(quote, items, settings);
+      const blob = await generateQuotePDFBlob(quote, items, settings, customer);
       const file = new File([blob], `orcamento-${quote.number}.pdf`, { type: "application/pdf" });
       const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       const msg = `Olá ${customer.name || ""}! Segue o orçamento #${quote.number} da ${settings?.name || "nossa oficina"}.\n\nAcesse o PDF: ${file_url}`;
@@ -358,7 +359,7 @@ export default function QuoteEditor() {
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {editing && <QuoteStatusBadge status={quote.status} />}
           {editing && (
-            <Button size="sm" variant="outline" onClick={() => generateQuotePDF(quote, items, settings)}>
+            <Button size="sm" variant="outline" onClick={() => generateQuotePDF(quote, items, settings, selectedCustomer)}>
               <FileDown className="w-4 h-4 mr-1" /> PDF
             </Button>
           )}

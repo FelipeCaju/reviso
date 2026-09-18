@@ -1,103 +1,14 @@
 import { jsPDF } from "jspdf";
-import { formatCurrency, formatDate, normalizePlate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime, normalizePlate } from "@/lib/format";
 
-const margin = 14;
-const pageW = 210; // A4 mm
+export const PDF_MARGIN = 14;
+export const PDF_PAGE_WIDTH = 210;
+const CONTENT_WIDTH = PDF_PAGE_WIDTH - PDF_MARGIN * 2;
+const BRAND = [20, 56, 105];
+const MUTED = [89, 108, 132];
 
-function header(doc, settings, title, number, dateStr) {
-  let y = margin;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(settings?.name || "Oficina", margin, y);
-  y += 6;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  if (settings?.phone) doc.text(`Tel: ${settings.phone}`, margin, y);
-  if (settings?.cnpj) doc.text(`CNPJ: ${settings.cnpj}`, margin, y + 4);
-  if (settings?.address) doc.text(settings.address, margin, y + 8);
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${title} #${number}`, pageW - margin, margin, { align: "right" });
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Data: ${formatDate(dateStr)}`, pageW - margin, margin + 5, { align: "right" });
-  y += 18;
-  doc.setDrawColor(200);
-  doc.line(margin, y, pageW - margin, y);
-  return y + 6;
-}
-
-function clientBlock(doc, y, data) {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Cliente / Veículo", margin, y);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  y += 5;
-  doc.text(`Cliente: ${data.customer_name_snapshot || "—"}`, margin, y);
-  y += 4.5;
-  doc.text(`Veículo: ${data.vehicle_description_snapshot || "—"}`, margin, y);
-  doc.text(`Placa: ${normalizePlate(data.plate_snapshot || "")}`, pageW - margin, y, { align: "right" });
-  y += 4.5;
-  if (data.mileage != null) {
-    doc.text(`Km: ${Number(data.mileage || 0).toLocaleString("pt-BR")}`, margin, y);
-  }
-  return y + 6;
-}
-
-function itemsTable(doc, y, items) {
-  const colX = { desc: margin, qty: 130, unit: 150, total: pageW - margin };
-  doc.setFillColor(240, 240, 240);
-  doc.rect(margin, y, pageW - margin * 2, 6, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("Descrição", colX.desc, y + 4);
-  doc.text("Qtd", colX.qty, y + 4, { align: "right" });
-  doc.text("Unit.", colX.unit, y + 4, { align: "right" });
-  doc.text("Total", colX.total, y + 4, { align: "right" });
-  y += 6;
-  doc.setFont("helvetica", "normal");
-  items.forEach((it) => {
-    if (y > 270) { doc.addPage(); y = margin; }
-    doc.text(String(it.description).slice(0, 60), colX.desc, y + 4);
-    doc.text(String(it.quantity), colX.qty, y + 4, { align: "right" });
-    doc.text(formatCurrency(it.unit_price), colX.unit, y + 4, { align: "right" });
-    doc.text(formatCurrency(it.total), colX.total, y + 4, { align: "right" });
-    y += 5;
-    doc.setDrawColor(235);
-    doc.line(margin, y, pageW - margin, y);
-    y += 1;
-  });
-  return y + 2;
-}
-
-function totals(doc, y, data, partsSub, laborSub) {
-  const total = Math.max(0, partsSub + laborSub + (data.socorro || 0) - (data.discount || 0));
-  doc.setFontSize(9);
-  doc.text("Subtotal Peças:", pageW - margin - 40, y, { align: "right" });
-  doc.text(formatCurrency(partsSub), pageW - margin, y, { align: "right" });
-  y += 5;
-  doc.text("Subtotal Mão de Obra:", pageW - margin - 40, y, { align: "right" });
-  doc.text(formatCurrency(laborSub), pageW - margin, y, { align: "right" });
-  y += 5;
-  if (data.socorro) {
-    doc.text("Socorro:", pageW - margin - 40, y, { align: "right" });
-    doc.text(formatCurrency(data.socorro), pageW - margin, y, { align: "right" });
-    y += 5;
-  }
-  if (data.discount) {
-    doc.text("Desconto:", pageW - margin - 40, y, { align: "right" });
-    doc.text(formatCurrency(data.discount), pageW - margin, y, { align: "right" });
-    y += 5;
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("TOTAL:", pageW - margin - 40, y, { align: "right" });
-  doc.text(formatCurrency(total), pageW - margin, y, { align: "right" });
-  return y + 8;
-}
-
-async function fetchImageAsDataURL(url) {
+async function imageData(url) {
+  if (!url) return null;
   try {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -107,118 +18,149 @@ async function fetchImageAsDataURL(url) {
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-async function buildQuoteDoc(quote, items, settings) {
-  const doc = new jsPDF();
-  let y = header(doc, settings, "Orçamento", quote.number, quote.date);
-  y = clientBlock(doc, y, quote);
-  if (quote.customer_report) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("Relato do Cliente:", margin, y); y += 4.5;
-    doc.setFont("helvetica", "normal");
-    doc.splitTextToSize(quote.customer_report, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-    y += 2;
+export function finalizeStyledDocument(doc) {
+  const pages = doc.getNumberOfPages();
+  for (let page = 1; page <= pages; page += 1) {
+    doc.setPage(page);
+    doc.setDrawColor(215, 223, 234); doc.line(PDF_MARGIN, 287, PDF_PAGE_WIDTH - PDF_MARGIN, 287);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+    doc.text("Documento gerado pelo sistema", PDF_MARGIN, 291);
+    doc.text(`Página ${page} de ${pages}`, PDF_PAGE_WIDTH - PDF_MARGIN, 291, { align: "right" });
   }
-  if (quote.diagnosis) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("Diagnóstico:", margin, y); y += 4.5;
-    doc.setFont("helvetica", "normal");
-    doc.splitTextToSize(quote.diagnosis, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-    y += 2;
-  }
-  y = itemsTable(doc, y, items);
-  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
-  const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
-  y = totals(doc, y, quote, partsSub, laborSub);
-  if (quote.valid_until) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    doc.text(`Validade: ${formatDate(quote.valid_until)}`, margin, y);
-    y += 5;
-  }
-  if (settings?.default_quote_text) {
-    doc.setFontSize(8);
-    doc.splitTextToSize(settings.default_quote_text, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-  }
-
-  // Fotos anexadas
-  if (quote.images && quote.images.length) {
-    doc.addPage();
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Fotos Anexadas", margin, margin + 5);
-    let imgY = margin + 10;
-    const colW = 90;
-    const maxH = 65;
-    let col = 0;
-    for (const imgUrl of quote.images) {
-      const dataUrl = await fetchImageAsDataURL(imgUrl);
-      if (!dataUrl) continue;
-      const img = new Image();
-      await new Promise((r) => { img.onload = r; img.onerror = r; img.src = dataUrl; });
-      if (!img.width || !img.height) continue;
-      const ratio = Math.min(colW / img.width, maxH / img.height);
-      const w = img.width * ratio;
-      const h = img.height * ratio;
-      const x = col === 0 ? margin : margin + colW + 5;
-      if (imgY + h > 280) { doc.addPage(); imgY = margin; }
-      doc.addImage(dataUrl, "JPEG", x, imgY, w, h);
-      if (col === 1) { imgY += maxH + 5; col = 0; } else { col = 1; }
-    }
-  }
-
-  return doc;
+  doc.setTextColor(0, 0, 0);
 }
 
-export async function generateQuotePDF(quote, items, settings) {
-  try {
-    const doc = await buildQuoteDoc(quote, items, settings);
-    doc.save(`orcamento-${quote.number}.pdf`);
-  } catch (e) {
-    console.error("Erro ao gerar PDF:", e);
+export async function createStyledDocument(settings, title, { subtitle = "", meta = "" } = {}) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const logo = await imageData(settings?.logo_url);
+  let x = PDF_MARGIN;
+  if (logo) {
+    try { doc.addImage(logo, undefined, PDF_MARGIN, PDF_MARGIN - 2, 15, 15); x += 19; } catch { /* A logo é opcional. */ }
   }
+  doc.setTextColor(...BRAND); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+  doc.text(settings?.name || "Oficina", x, PDF_MARGIN + 3);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  const details = [settings?.razao_social, settings?.cnpj && `CNPJ: ${settings.cnpj}`, settings?.address, [settings?.phone && `Tel: ${settings.phone}`, settings?.whatsapp && `WhatsApp: ${settings.whatsapp}`, settings?.email].filter(Boolean).join(" | ")].filter(Boolean);
+  details.slice(0, 4).forEach((line, index) => doc.text(line, x, PDF_MARGIN + 7 + index * 3.6));
+  doc.setTextColor(...BRAND); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text(title.toUpperCase(), PDF_PAGE_WIDTH - PDF_MARGIN, PDF_MARGIN + 3, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  if (subtitle) doc.text(subtitle, PDF_PAGE_WIDTH - PDF_MARGIN, PDF_MARGIN + 7, { align: "right" });
+  if (meta) doc.text(meta, PDF_PAGE_WIDTH - PDF_MARGIN, PDF_MARGIN + 10.5, { align: "right" });
+  doc.setDrawColor(193, 207, 225); doc.line(PDF_MARGIN, 35, PDF_PAGE_WIDTH - PDF_MARGIN, 35);
+  doc.setTextColor(0, 0, 0);
+  return { doc, y: 43 };
 }
 
-export async function generateQuotePDFBlob(quote, items, settings) {
-  const doc = await buildQuoteDoc(quote, items, settings);
-  return doc.output("blob");
+export function addSectionTitle(doc, y, title) {
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(title.toUpperCase(), PDF_MARGIN, y);
+  y += 2; doc.setDrawColor(181, 199, 220); doc.line(PDF_MARGIN, y, PDF_PAGE_WIDTH - PDF_MARGIN, y); doc.setTextColor(0, 0, 0);
+  return y + 5;
 }
 
-export function generateWorkOrderPDF(wo, items, settings) {
-  const doc = new jsPDF();
-  let y = header(doc, settings, "Ordem de Serviço", wo.number, wo.entry_date);
-  y = clientBlock(doc, y, wo);
-  if (wo.mileage_in != null) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text(`Km entrada: ${Number(wo.mileage_in || 0).toLocaleString("pt-BR")}`, margin, y);
-    y += 5;
+export function addKeyValueRows(doc, y, rows) {
+  rows.forEach(({ label, value, tone = "normal" }) => {
+    doc.setFillColor(248, 250, 253); doc.rect(PDF_MARGIN, y - 3.7, CONTENT_WIDTH, 5.5, "F");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(label, PDF_MARGIN + 1.5, y);
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...(tone === "success" ? [0, 137, 97] : tone === "danger" ? [220, 38, 38] : BRAND));
+    doc.text(String(value), PDF_PAGE_WIDTH - PDF_MARGIN - 1.5, y, { align: "right" }); doc.setTextColor(0, 0, 0); y += 6;
+  });
+  return y + 2;
+}
+
+export function addTable(doc, y, headers, rows, widths) {
+  const right = PDF_PAGE_WIDTH - PDF_MARGIN;
+  const tableHeader = () => {
+    doc.setFillColor(235, 241, 248); doc.rect(PDF_MARGIN, y - 3.8, CONTENT_WIDTH, 6, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...BRAND);
+    let x = PDF_MARGIN + 1.5;
+    headers.forEach((header, index) => {
+      const last = index === headers.length - 1;
+      doc.text(header, last ? right - 1.5 : x, y, last ? { align: "right" } : undefined); x += widths[index];
+    });
+    doc.setTextColor(0, 0, 0); y += 6;
+  };
+  tableHeader();
+  rows.forEach((row) => {
+    if (y > 275) { doc.addPage(); y = 20; tableHeader(); }
+    doc.setFont("helvetica", row.bold ? "bold" : "normal"); doc.setFontSize(7.5);
+    let x = PDF_MARGIN + 1.5;
+    row.cells.forEach((cell, index) => {
+      const last = index === row.cells.length - 1;
+      const text = doc.splitTextToSize(String(cell ?? "—"), last ? 28 : Math.max(14, widths[index] - 2))[0] || "—";
+      doc.text(text, last ? right - 1.5 : x, y, last ? { align: "right" } : undefined); x += widths[index];
+    });
+    doc.setDrawColor(229, 235, 242); doc.line(PDF_MARGIN, y + 2, right, y + 2); y += 5;
+  });
+  return y + 2;
+}
+
+function clientBlock(doc, y, data, customer) {
+  y = addSectionTitle(doc, y, "Cliente e veículo");
+  const address = customer ? [customer.address, customer.number, customer.neighborhood, customer.city, customer.state].filter(Boolean).join(", ") : "";
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+  doc.text(`Cliente: ${data.customer_name_snapshot || customer?.name || "—"}`, PDF_MARGIN, y);
+  doc.text(`CPF/CNPJ: ${customer?.cpf_cnpj || "—"}`, PDF_PAGE_WIDTH - PDF_MARGIN, y, { align: "right" }); y += 4.5;
+  doc.text(`Veículo: ${data.vehicle_description_snapshot || "—"}`, PDF_MARGIN, y);
+  doc.text(`Placa: ${normalizePlate(data.plate_snapshot || "") || "—"}`, PDF_PAGE_WIDTH - PDF_MARGIN, y, { align: "right" }); y += 4.5;
+  if (address) { doc.setTextColor(...MUTED); doc.text(address, PDF_MARGIN, y); doc.setTextColor(0, 0, 0); y += 4.5; }
+  return y + 3;
+}
+
+function noteBlock(doc, y, title, value) {
+  if (!value) return y;
+  y = addSectionTitle(doc, y, title);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  const lines = doc.splitTextToSize(String(value), CONTENT_WIDTH);
+  lines.forEach((line) => { doc.text(line, PDF_MARGIN, y); y += 3.8; });
+  return y + 3;
+}
+
+export const paymentMethodLabel = (method) => ({ dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão de débito", cartao_credito: "Cartão de crédito", outro: "Outro" }[method] || method || "—");
+
+async function buildServiceDocument({ title, data, items, settings, customer, payments = [], disclaimer = "" }) {
+  const { doc, y: startY } = await createStyledDocument(settings, title, { subtitle: `OS #${data.number || "—"}`, meta: `Emitido em: ${formatDateTime(new Date())}` });
+  let y = clientBlock(doc, startY, data, customer);
+  y = noteBlock(doc, y, "Relato do cliente", data.customer_report);
+  y = noteBlock(doc, y, "Diagnóstico", data.diagnosis);
+  y = addSectionTitle(doc, y, "Itens e serviços");
+  y = addTable(doc, y, ["Tipo", "Descrição", "Qtd.", "Unitário", "Total"], items.map((item) => ({ cells: [item.type === "material" ? "Peça" : "Serviço", item.description, item.quantity, formatCurrency(item.unit_price), formatCurrency(item.total)] })), [21, 82, 18, 30, 20]);
+  const parts = items.filter((item) => item.type === "material").reduce((sum, item) => sum + (item.total || 0), 0);
+  const labor = items.filter((item) => item.type === "servico").reduce((sum, item) => sum + (item.total || 0), 0);
+  const totals = [{ label: "Subtotal de peças", value: formatCurrency(parts) }, { label: "Subtotal de serviços", value: formatCurrency(labor) }];
+  if (data.socorro) totals.push({ label: "Deslocamento / socorro", value: formatCurrency(data.socorro) });
+  if (data.discount) totals.push({ label: "Desconto", value: `- ${formatCurrency(data.discount)}`, tone: "danger" });
+  totals.push({ label: "TOTAL", value: formatCurrency(data.total ?? Math.max(0, parts + labor + (data.socorro || 0) - (data.discount || 0))), tone: "success" });
+  y = addSectionTitle(doc, y, "Valores"); y = addKeyValueRows(doc, y, totals);
+  const activePayments = payments.filter((payment) => payment.status === "ativo");
+  if (activePayments.length) {
+    y = addSectionTitle(doc, y, "Pagamentos recebidos");
+    y = addTable(doc, y, ["Data", "Forma", "Valor"], activePayments.map((payment) => ({ cells: [formatDate(payment.date), paymentMethodLabel(payment.method), formatCurrency(payment.amount)] })), [45, 90, 35]);
   }
-  if (wo.customer_report) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("Relato:", margin, y); y += 4.5;
-    doc.setFont("helvetica", "normal");
-    doc.splitTextToSize(wo.customer_report, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-    y += 2;
+  if (disclaimer) {
+    y = addSectionTitle(doc, y, "Informação importante"); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(173, 95, 0);
+    doc.text(disclaimer, PDF_MARGIN, y, { maxWidth: CONTENT_WIDTH }); doc.setTextColor(0, 0, 0);
   }
-  if (wo.diagnosis) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("Diagnóstico:", margin, y); y += 4.5;
-    doc.setFont("helvetica", "normal");
-    doc.splitTextToSize(wo.diagnosis, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-    y += 2;
-  }
-  y = itemsTable(doc, y, items);
-  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
-  const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
-  y = totals(doc, y, wo, partsSub, laborSub);
-  if (wo.internal_notes) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("Observações Internas:", margin, y); y += 4.5;
-    doc.setFont("helvetica", "normal");
-    doc.splitTextToSize(wo.internal_notes, pageW - margin * 2).forEach((l) => { doc.text(l, margin, y); y += 4; });
-  }
-  doc.save(`os-${wo.number}.pdf`);
+  y = noteBlock(doc, y, "Observações", data.internal_notes || data.customer_notes);
+  finalizeStyledDocument(doc); return doc;
+}
+
+export async function generateQuotePDF(quote, items, settings, customer) {
+  const doc = await buildServiceDocument({ title: "Orçamento", data: quote, items, settings, customer }); doc.save(`orcamento-${quote.number}.pdf`);
+}
+
+export async function generateQuotePDFBlob(quote, items, settings, customer) {
+  const doc = await buildServiceDocument({ title: "Orçamento", data: quote, items, settings, customer }); return doc.output("blob");
+}
+
+export async function generateWorkOrderPDF(wo, items, settings, customer) {
+  const doc = await buildServiceDocument({ title: "Ordem de serviço", data: wo, items, settings, customer }); doc.save(`os-${wo.number}.pdf`);
+}
+
+export async function generateNonFiscalReceiptPDF(wo, items, settings, customer, payments) {
+  const doc = await buildServiceDocument({ title: "Recibo de prestação de serviço", data: wo, items, settings, customer, payments, disclaimer: "DOCUMENTO NÃO FISCAL - NÃO SUBSTITUI NOTA FISCAL." });
+  doc.save(`recibo-nao-fiscal-os-${wo.number}.pdf`);
 }

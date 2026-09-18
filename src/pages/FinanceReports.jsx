@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileDown, Mail, Send, Printer } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
 import { Image as ImgCmp } from "@/components/ui/image";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { toast } from "@/components/ui/use-toast";
+import { addSectionTitle, createStyledDocument, finalizeStyledDocument } from "@/lib/pdf";
 
 export default function FinanceReports() {
   const navigate = useNavigate();
@@ -106,37 +106,13 @@ export default function FinanceReports() {
   const periodLabel = `${formatDate(startDate)} a ${formatDate(endDate)}`;
 
   const generatePDF = async () => {
-    const doc = new jsPDF();
+    const { doc, y: initialY } = await createStyledDocument(settings, "Relatório financeiro", { subtitle: `Período: ${periodLabel}` });
     const margin = 14;
     const pageW = 210;
-    let y = margin;
-
-    // Header with logo + company info
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(settings?.name || "Oficina", margin, y);
-    y += 6;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    if (settings?.cnpj) { doc.text(`CNPJ: ${settings.cnpj}`, margin, y); y += 4; }
-    if (settings?.address) { doc.text(settings.address, margin, y); y += 4; }
-    if (settings?.phone) { doc.text(`Tel: ${settings.phone}`, margin, y); y += 4; }
-    y += 2;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Relatório Financeiro", pageW - margin, margin, { align: "right" });
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(periodLabel, pageW - margin, margin + 5, { align: "right" });
-    y = Math.max(y, margin + 12);
-    doc.setDrawColor(200);
-    doc.line(margin, y, pageW - margin, y);
-    y += 8;
+    let y = initialY;
 
     // Summary
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Resumo Financeiro", margin, y); y += 6;
+    y = addSectionTitle(doc, y, "Resumo financeiro");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text(`Entradas: ${formatCurrency(totalEntradas)}`, margin, y); y += 5;
@@ -202,6 +178,7 @@ export default function FinanceReports() {
       });
     }
 
+    finalizeStyledDocument(doc);
     doc.save(`relatorio-financeiro-${startDate}-${endDate}.pdf`);
     toast({ title: "PDF gerado" });
   };

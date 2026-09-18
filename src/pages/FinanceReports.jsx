@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileDown, Mail, Send, Printer } from "lucide-react";
+import { FileDown, Mail, MessageCircle, Printer } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,7 +217,7 @@ export default function FinanceReports() {
         <div className="flex gap-2 flex-wrap">
           <Button size="sm" variant="outline" onClick={generatePDF}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
           <Button size="sm" variant="outline" onClick={sendEmailReport} disabled={saving}><Mail className="w-4 h-4 mr-1" /> E-mail</Button>
-          <Button size="sm" variant="outline" onClick={sendWhatsAppReport}><Send className="w-4 h-4 mr-1" /> WhatsApp</Button>
+          <Button size="sm" variant="outline" onClick={sendWhatsAppReport}><MessageCircle className="w-4 h-4 mr-1" /> WhatsApp</Button>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { FileDown, Mail, Send, Printer, FileText } from "lucide-react";
+import { FileDown, Mail, MessageCircle, Printer, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -489,7 +489,7 @@ export default function Reports() {
               <>
                 <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-1" /> Imprimir</Button>
                 <Button size="sm" variant="outline" onClick={generatePDF}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
-                <Button size="sm" variant="outline" onClick={sendWhatsApp}><Send className="w-4 h-4 mr-1" /> WhatsApp</Button>
+                <Button size="sm" variant="outline" onClick={sendWhatsApp}><MessageCircle className="w-4 h-4 mr-1" /> WhatsApp</Button>
                 <Button size="sm" variant="outline" onClick={sendEmail} disabled={saving}><Mail className="w-4 h-4 mr-1" /> E-mail</Button>
               </>
             )}

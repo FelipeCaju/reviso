@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X, ReceiptText,
+  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X, ReceiptText, MessageCircle,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -20,7 +20,8 @@ import { WorkOrderStatusBadge, workOrderStatusInfo } from "@/components/StatusBa
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDateTime, todayISO,
 } from "@/lib/format";
-import { generateNonFiscalReceiptPDF, generateWorkOrderPDF } from "@/lib/pdf";
+import { generateNonFiscalReceiptPDF, generateWorkOrderPDF, generateWorkOrderPDFBlob } from "@/lib/pdf";
+import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
 import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
@@ -51,6 +52,7 @@ export default function WorkOrderEditor() {
   const [plateQ, setPlateQ] = useState("");
   const [showPlateResults, setShowPlateResults] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -298,6 +300,28 @@ export default function WorkOrderEditor() {
     await generateWorkOrderPDF(wo, items, settings, customers.find((customer) => customer.id === wo.customer_id));
   };
 
+  const sendViaWhatsApp = async () => {
+    const customer = customers.find((customer) => customer.id === wo.customer_id);
+    const phone = customer?.whatsapp || customer?.phone;
+    if (!phone) {
+      toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    try {
+      const blob = await generateWorkOrderPDFBlob(wo, items, settings, customer);
+      await sendWhatsAppDocument({
+        blob, fileName: `os-${wo.number}.pdf`, phone, recipientName: customer?.name,
+        reference: wo.number, documentType: "work-order",
+      });
+      toast({ title: "Ordem de Serviço enviada pelo WhatsApp." });
+    } catch (error) {
+      toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(error), variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const exportNonFiscalReceipt = async () => {
     if (!wo || wo.status !== "finalizada" || wo.payment_status !== "pago") return;
     await generateNonFiscalReceiptPDF(wo, items, settings, customers.find((customer) => customer.id === wo.customer_id), payments);
@@ -316,6 +340,7 @@ export default function WorkOrderEditor() {
         <div className="flex items-center gap-2">
           {editing && <WorkOrderStatusBadge status={wo.status} />}
           {editing && <Button size="sm" variant="outline" onClick={exportPDF}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>}
+          {editing && <Button size="sm" variant="secondary" onClick={sendViaWhatsApp} disabled={sending}><MessageCircle className="w-4 h-4 mr-1" /> {sending ? "Enviando..." : "WhatsApp"}</Button>}
           {editing && wo.status === "finalizada" && wo.payment_status === "pago" && (
             <Button size="sm" variant="outline" onClick={exportNonFiscalReceipt}><ReceiptText className="w-4 h-4 mr-1" /> Recibo</Button>
           )}

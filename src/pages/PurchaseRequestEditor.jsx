@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, Copy, Send, ShoppingCart, Check, Package, Mail, UserPlus } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Copy, ShoppingCart, Check, Package, Mail, UserPlus, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
+import { generatePurchaseRequestPDFBlob } from "@/lib/pdf";
+import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -47,6 +49,7 @@ export default function PurchaseRequestEditor() {
   const [generated, setGenerated] = useState(false);
   const [savingItemIdx, setSavingItemIdx] = useState(null);
   const [registerIdx, setRegisterIdx] = useState(null);
+  const [sendingSupplierId, setSendingSupplierId] = useState(null);
   const [registerForm, setRegisterForm] = useState({ description: "", category: "", brand: "", unit: "un", cost: 0, sale_price: 0 });
 
   useEffect(() => {
@@ -179,12 +182,23 @@ export default function PurchaseRequestEditor() {
     toast({ title: "Texto copiado!" });
   };
 
-  const sendWhatsApp = (supplierId) => {
+  const sendWhatsApp = async (supplierId) => {
     const sup = suppliers.find((s) => s.id === supplierId);
-    let phone = (sup?.whatsapp || sup?.phone || "").replace(/\D/g, "");
-    if (!phone) { toast({ title: "Fornecedor sem WhatsApp/telefone", variant: "destructive" }); return; }
-    if (!phone.startsWith("55")) phone = "55" + phone;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(generateText())}`, "_blank");
+    const phone = sup?.whatsapp || sup?.phone;
+    if (!phone) { toast({ title: "Número de Telefone incorreto", variant: "destructive" }); return; }
+    setSendingSupplierId(supplierId);
+    try {
+      const blob = await generatePurchaseRequestPDFBlob(request, items, settings);
+      await sendWhatsAppDocument({
+        blob, fileName: `cotacao-${request.number}.pdf`, phone, recipientName: sup?.name,
+        reference: request.number, documentType: "purchase-quote",
+      });
+      toast({ title: `Cotação enviada para ${sup.name} pelo WhatsApp.` });
+    } catch (error) {
+      toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(error), variant: "destructive" });
+    } finally {
+      setSendingSupplierId(null);
+    }
   };
 
   const sendEmail = async (supplierId) => {
@@ -647,8 +661,8 @@ export default function PurchaseRequestEditor() {
               <Button size="sm" variant="outline" onClick={copyText}><Copy className="w-4 h-4 mr-1" /> Copiar Texto</Button>
               {selectedSuppliers.map((sup) => (
                 <div key={sup.id} className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)}>
-                    <Send className="w-4 h-4 mr-1" /> {sup.name}
+                  <Button size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)} disabled={sendingSupplierId === sup.id}>
+                    <MessageCircle className="w-4 h-4 mr-1" /> {sendingSupplierId === sup.id ? "Enviando..." : sup.name}
                   </Button>
                   {sup.email && (
                     <Button size="sm" variant="outline" onClick={() => sendEmail(sup.id)}>

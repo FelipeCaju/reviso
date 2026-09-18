@@ -122,7 +122,8 @@ function noteBlock(doc, y, title, value) {
 export const paymentMethodLabel = (method) => ({ dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão de débito", cartao_credito: "Cartão de crédito", outro: "Outro" }[method] || method || "—");
 
 async function buildServiceDocument({ title, data, items, settings, customer, payments = [], disclaimer = "" }) {
-  const { doc, y: startY } = await createStyledDocument(settings, title, { subtitle: `OS #${data.number || "—"}`, meta: `Emitido em: ${formatDateTime(new Date())}` });
+  const documentReference = title === "Orçamento" ? "Orçamento" : "OS";
+  const { doc, y: startY } = await createStyledDocument(settings, title, { subtitle: `${documentReference} #${data.number || "—"}`, meta: `Emitido em: ${formatDateTime(new Date())}` });
   let y = clientBlock(doc, startY, data, customer);
   y = noteBlock(doc, y, "Relato do cliente", data.customer_report);
   y = noteBlock(doc, y, "Diagnóstico", data.diagnosis);
@@ -158,6 +159,24 @@ export async function generateQuotePDFBlob(quote, items, settings, customer) {
 
 export async function generateWorkOrderPDF(wo, items, settings, customer) {
   const doc = await buildServiceDocument({ title: "Ordem de serviço", data: wo, items, settings, customer }); doc.save(`os-${wo.number}.pdf`);
+}
+
+export async function generateWorkOrderPDFBlob(wo, items, settings, customer) {
+  const doc = await buildServiceDocument({ title: "Ordem de serviço", data: wo, items, settings, customer }); return doc.output("blob");
+}
+
+export async function generatePurchaseRequestPDFBlob(request, items, settings) {
+  const { doc, y: startY } = await createStyledDocument(settings, "Solicitação de cotação", {
+    subtitle: `Cotação #${request.number || "—"}`,
+    meta: `Emitido em: ${formatDateTime(new Date())}`,
+  });
+  let y = addSectionTitle(doc, startY, "Itens solicitados");
+  y = addTable(doc, y, ["Item", "Quantidade", "Unidade"], items.map((item) => ({
+    cells: [item.description, item.quantity || 0, item.unit || "un"],
+  })), [120, 30, 30]);
+  noteBlock(doc, y, "Observações", request.notes);
+  finalizeStyledDocument(doc);
+  return doc.output("blob");
 }
 
 export async function generateNonFiscalReceiptPDF(wo, items, settings, customer, payments) {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList, Camera, Send,
+  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList, Camera, MessageCircle,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -25,6 +25,7 @@ import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
 import { generateQuotePDF, generateQuotePDFBlob } from "@/lib/pdf";
+import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -322,22 +323,21 @@ export default function QuoteEditor() {
 
   const sendViaWhatsApp = async () => {
     const customer = customers.find((c) => c.id === quote.customer_id);
-    let phone = (customer?.whatsapp || customer?.phone || "").replace(/\D/g, "");
+    const phone = customer?.whatsapp || customer?.phone;
     if (!phone) {
       toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
       return;
     }
-    if (!phone.startsWith("55")) phone = "55" + phone;
     setSending(true);
     try {
       const blob = await generateQuotePDFBlob(quote, items, settings, customer);
-      const file = new File([blob], `orcamento-${quote.number}.pdf`, { type: "application/pdf" });
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-      const msg = `Olá ${customer.name || ""}! Segue o orçamento #${quote.number} da ${settings?.name || "nossa oficina"}.\n\nAcesse o PDF: ${file_url}`;
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-      toast({ title: "PDF gerado! Confirme o envio no WhatsApp." });
+      await sendWhatsAppDocument({
+        blob, fileName: `orcamento-${quote.number}.pdf`, phone, recipientName: customer?.name,
+        reference: quote.number, documentType: "quote",
+      });
+      toast({ title: "Orçamento enviado pelo WhatsApp." });
     } catch (e) {
-      toast({ title: "Erro ao gerar/enviar", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(e), variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -365,7 +365,7 @@ export default function QuoteEditor() {
           )}
           {editing && (
             <Button size="sm" variant="secondary" onClick={sendViaWhatsApp} disabled={sending}>
-              <Send className="w-4 h-4 mr-1" /> {sending ? "Gerando..." : "WhatsApp"}
+              <MessageCircle className="w-4 h-4 mr-1" /> {sending ? "Enviando..." : "WhatsApp"}
             </Button>
           )}
           {editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento", "agendado"].includes(quote.status) && (

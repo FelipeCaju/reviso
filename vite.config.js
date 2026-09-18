@@ -1,20 +1,22 @@
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
-function gitValue(args, fallback) {
-  try {
-    return execFileSync('git', args, { encoding: 'utf8' }).trim() || fallback;
-  } catch {
-    return fallback;
-  }
+const versionFile = fileURLToPath(new URL('./config/version.php', import.meta.url));
+const versionConfig = readFileSync(versionFile, 'utf8');
+
+function versionConstant(name) {
+  const match = versionConfig.match(new RegExp(`const\\s+${name}\\s*=\\s*['\"]([^'\"]+)['\"]`));
+  if (!match) throw new Error(`Constante ${name} não encontrada em config/version.php`);
+  return match[1];
 }
 
-const appVersion = process.env.npm_package_version || '1.0.0';
-const commitDate = gitValue(['log', '-1', '--format=%cs'], 'sem-data').replaceAll('-', '');
-const commitId = gitValue(['log', '-1', '--format=%h'], 'local');
-const buildLabel = `Versão ${appVersion} · Build ${commitDate}.${commitId}`;
+const appVersion = versionConstant('APP_VERSION');
+const appBuild = versionConstant('APP_BUILD');
+const commit = process.env.APP_COMMIT_SHA?.slice(0, 7);
+const buildLabel = `Versão ${appVersion} · Build ${appBuild}${commit ? ` · ${commit}` : ''}`;
 
 // https://vite.dev/config/
 export default defineConfig({

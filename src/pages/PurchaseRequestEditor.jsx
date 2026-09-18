@@ -175,7 +175,7 @@ export default function PurchaseRequestEditor() {
   // Generate text for sending
   const generateText = () => {
     const lines = items.map((it) => `${it.quantity}x ${it.description}`);
-    const text = `Cotação #${request.number}\n\nOlá, gostaria de orçamento para:\n\n${lines.join("\n")}\n\nFavor informar:\n- Preço unitário\n- Disponibilidade\n- Prazo de entrega\n\nObrigado.`;
+    const text = `Cotação #${request.number}\n\nOlá, aqui é ${settings?.name || "a oficina"}. Gostaria de orçamento para:\n\n${lines.join("\n")}\n\nFavor informar:\n- Preço unitário\n- Disponibilidade\n- Prazo de entrega\n\nObrigado.`;
     return text;
   };
 

@@ -25,7 +25,8 @@ import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
 import { generateQuotePDF, generateQuotePDFBlob } from "@/lib/pdf";
-import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -65,6 +66,7 @@ export default function QuoteEditor() {
   const [partialSelection, setPartialSelection] = useState({});
   const [uploadingImages, setUploadingImages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
 
   // vehicle search
   const [plateQ, setPlateQ] = useState("");
@@ -336,11 +338,21 @@ export default function QuoteEditor() {
         reference: quote.number, documentType: "quote",
       });
       toast({ title: "Orçamento enviado pelo WhatsApp." });
+      setWhatsAppPreviewOpen(false);
     } catch (e) {
       toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(e), variant: "destructive" });
     } finally {
       setSending(false);
     }
+  };
+
+  const openWhatsAppPreview = () => {
+    const customer = customers.find((c) => c.id === quote.customer_id);
+    if (!(customer?.whatsapp || customer?.phone)) {
+      toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    setWhatsAppPreviewOpen(true);
   };
 
   if (loading || !quote) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
@@ -351,6 +363,15 @@ export default function QuoteEditor() {
 
   return (
     <div className="space-y-4 pb-28 md:pb-6">
+      <WhatsAppPreviewDialog
+        open={whatsAppPreviewOpen}
+        onOpenChange={setWhatsAppPreviewOpen}
+        recipientName={selectedCustomer?.name}
+        message={getWhatsAppDocumentPreview({ recipientName: selectedCustomer?.name, workshopName: settings?.name, reference: quote.number, documentType: "quote" })}
+        attachmentName={`orcamento-${quote.number}.pdf`}
+        onConfirm={sendViaWhatsApp}
+        sending={sending}
+      />
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -364,8 +385,8 @@ export default function QuoteEditor() {
             </Button>
           )}
           {editing && (
-            <Button size="sm" variant="secondary" onClick={sendViaWhatsApp} disabled={sending}>
-              <MessageCircle className="w-4 h-4 mr-1" /> {sending ? "Enviando..." : "WhatsApp"}
+            <Button size="sm" onClick={openWhatsAppPreview} disabled={sending} className="bg-[#25D366] text-white hover:bg-[#1ebe5d]">
+              <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
             </Button>
           )}
           {editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento", "agendado"].includes(quote.status) && (

@@ -2,6 +2,8 @@
 
 O sistema envia PDFs de orçamento, Ordem de Serviço e solicitação de cotação pela instância Z-API configurada no Base44. O envio só acontece quando o usuário aciona o botão com o ícone do WhatsApp; gerar ou salvar um documento não dispara mensagens.
 
+Antes do envio, o sistema mostra uma prévia da mensagem e do PDF anexado. A mensagem só é enviada após a confirmação explícita do usuário.
+
 ## Identificação da oficina e isolamento
 
 A identificação da origem é montada no backend com o nome da oficina vinculada ao usuário autenticado. A tela não informa esse nome ao servidor. Assim, cada mensagem contém `Aqui é {nome da oficina}` e um usuário só pode enviar documentos da própria oficina.

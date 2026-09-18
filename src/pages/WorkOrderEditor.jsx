@@ -21,7 +21,8 @@ import {
   normalizePlate, vehicleDescription, formatCurrency, formatDateTime, todayISO,
 } from "@/lib/format";
 import { generateNonFiscalReceiptPDF, generateWorkOrderPDF, generateWorkOrderPDFBlob } from "@/lib/pdf";
-import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
@@ -53,6 +54,7 @@ export default function WorkOrderEditor() {
   const [showPlateResults, setShowPlateResults] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -315,11 +317,21 @@ export default function WorkOrderEditor() {
         reference: wo.number, documentType: "work-order",
       });
       toast({ title: "Ordem de Serviço enviada pelo WhatsApp." });
+      setWhatsAppPreviewOpen(false);
     } catch (error) {
       toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(error), variant: "destructive" });
     } finally {
       setSending(false);
     }
+  };
+
+  const openWhatsAppPreview = () => {
+    const customer = customers.find((customer) => customer.id === wo.customer_id);
+    if (!(customer?.whatsapp || customer?.phone)) {
+      toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    setWhatsAppPreviewOpen(true);
   };
 
   const exportNonFiscalReceipt = async () => {
@@ -333,6 +345,15 @@ export default function WorkOrderEditor() {
 
   return (
     <div className="space-y-4 pb-28 md:pb-6">
+      <WhatsAppPreviewDialog
+        open={whatsAppPreviewOpen}
+        onOpenChange={setWhatsAppPreviewOpen}
+        recipientName={customers.find((customer) => customer.id === wo.customer_id)?.name}
+        message={getWhatsAppDocumentPreview({ recipientName: customers.find((customer) => customer.id === wo.customer_id)?.name, workshopName: settings?.name, reference: wo.number, documentType: "work-order" })}
+        attachmentName={`os-${wo.number}.pdf`}
+        onConfirm={sendViaWhatsApp}
+        sending={sending}
+      />
       <div className="flex items-center justify-between gap-2">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Voltar
@@ -340,7 +361,7 @@ export default function WorkOrderEditor() {
         <div className="flex items-center gap-2">
           {editing && <WorkOrderStatusBadge status={wo.status} />}
           {editing && <Button size="sm" variant="outline" onClick={exportPDF}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>}
-          {editing && <Button size="sm" variant="secondary" onClick={sendViaWhatsApp} disabled={sending}><MessageCircle className="w-4 h-4 mr-1" /> {sending ? "Enviando..." : "WhatsApp"}</Button>}
+          {editing && <Button size="sm" onClick={openWhatsAppPreview} disabled={sending} className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><MessageCircle className="w-4 h-4 mr-1" /> WhatsApp</Button>}
           {editing && wo.status === "finalizada" && wo.payment_status === "pago" && (
             <Button size="sm" variant="outline" onClick={exportNonFiscalReceipt}><ReceiptText className="w-4 h-4 mr-1" /> Recibo</Button>
           )}

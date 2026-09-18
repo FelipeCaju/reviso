@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { generatePurchaseRequestPDFBlob } from "@/lib/pdf";
-import { getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 
 const STATUS_OPTIONS = [
@@ -50,6 +51,7 @@ export default function PurchaseRequestEditor() {
   const [savingItemIdx, setSavingItemIdx] = useState(null);
   const [registerIdx, setRegisterIdx] = useState(null);
   const [sendingSupplierId, setSendingSupplierId] = useState(null);
+  const [previewSupplier, setPreviewSupplier] = useState(null);
   const [registerForm, setRegisterForm] = useState({ description: "", category: "", brand: "", unit: "un", cost: 0, sale_price: 0 });
 
   useEffect(() => {
@@ -194,11 +196,20 @@ export default function PurchaseRequestEditor() {
         reference: request.number, documentType: "purchase-quote",
       });
       toast({ title: `Cotação enviada para ${sup.name} pelo WhatsApp.` });
+      setPreviewSupplier(null);
     } catch (error) {
       toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(error), variant: "destructive" });
     } finally {
       setSendingSupplierId(null);
     }
+  };
+
+  const openWhatsAppPreview = (supplier) => {
+    if (!(supplier?.whatsapp || supplier?.phone)) {
+      toast({ title: "Número de Telefone incorreto", variant: "destructive" });
+      return;
+    }
+    setPreviewSupplier(supplier);
   };
 
   const sendEmail = async (supplierId) => {
@@ -654,15 +665,17 @@ export default function PurchaseRequestEditor() {
         <Card>
           <CardContent className="p-4 space-y-3">
             <h2 className="font-medium text-sm">Enviar Solicitação</h2>
-            <div className="rounded-lg bg-accent/30 p-3 text-sm whitespace-pre-wrap font-mono text-xs max-h-48 overflow-y-auto">
-              {generateText()}
+            <div className="rounded-lg bg-[#e5ddd5] p-3 max-h-48 overflow-y-auto">
+              <div className="max-w-[90%] rounded-lg bg-white p-3 text-sm whitespace-pre-wrap font-mono text-xs shadow-sm">
+                {generateText()}
+              </div>
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" onClick={copyText}><Copy className="w-4 h-4 mr-1" /> Copiar Texto</Button>
               {selectedSuppliers.map((sup) => (
                 <div key={sup.id} className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => sendWhatsApp(sup.id)} disabled={sendingSupplierId === sup.id}>
-                    <MessageCircle className="w-4 h-4 mr-1" /> {sendingSupplierId === sup.id ? "Enviando..." : sup.name}
+                  <Button size="sm" onClick={() => openWhatsAppPreview(sup)} disabled={sendingSupplierId === sup.id} className="bg-[#25D366] text-white hover:bg-[#1ebe5d]">
+                    <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp: {sup.name}
                   </Button>
                   {sup.email && (
                     <Button size="sm" variant="outline" onClick={() => sendEmail(sup.id)}>
@@ -675,6 +688,16 @@ export default function PurchaseRequestEditor() {
           </CardContent>
         </Card>
       )}
+
+      <WhatsAppPreviewDialog
+        open={!!previewSupplier}
+        onOpenChange={(open) => { if (!open) setPreviewSupplier(null); }}
+        recipientName={previewSupplier?.name}
+        message={getWhatsAppDocumentPreview({ recipientName: previewSupplier?.name, workshopName: settings?.name, reference: request.number, documentType: "purchase-quote" })}
+        attachmentName={`cotacao-${request.number}.pdf`}
+        onConfirm={() => sendWhatsApp(previewSupplier?.id)}
+        sending={sendingSupplierId === previewSupplier?.id}
+      />
 
       {/* Gerar pedido de compra */}
       {editing && items.length > 0 && request.status !== "pedido_realizado" && (

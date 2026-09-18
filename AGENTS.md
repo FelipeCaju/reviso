@@ -26,6 +26,7 @@ npx skills add base44/skills
 
 ## Working Notes
 
+- **Versionamento obrigatório:** para cada alteração funcional enviada ao GitHub, incremente a versão em `package.json` e `package-lock.json` antes do commit. O rótulo ao lado de **Sair** é gerado pelo `vite.config.js` com essa versão e a data/hash do último commit; confira-o no build antes de concluir.
 - Use `base44 dev` as the default local development command when you need the local Base44 backend. It can run the backend and frontend together.
 - When docs or code mention the frontend being started automatically, that usually means the Base44 project config includes `site.serveCommand`, for example `"serveCommand": "npm run dev"` in `base44/config.jsonc`.
 - Use `npm run dev` only for frontend-only work against the hosted Base44 backend.

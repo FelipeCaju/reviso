@@ -161,6 +161,6 @@ export async function generateWorkOrderPDF(wo, items, settings, customer) {
 }
 
 export async function generateNonFiscalReceiptPDF(wo, items, settings, customer, payments) {
-  const doc = await buildServiceDocument({ title: "Recibo de prestação de serviço", data: wo, items, settings, customer, payments, disclaimer: "DOCUMENTO NÃO FISCAL - NÃO SUBSTITUI NOTA FISCAL." });
+  const doc = await buildServiceDocument({ title: "Recibo de prestação de serviço", data: wo, items, settings, customer, payments });
   doc.save(`recibo-nao-fiscal-os-${wo.number}.pdf`);
 }

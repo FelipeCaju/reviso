@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
 const EMPTY = {
-  name: "", cpf_cnpj: "", phone: "", whatsapp: "", email: "",
+  person_type: "PF", name: "", razao_social: "", fantasy_name: "", cpf_cnpj: "",
+  inscricao_estadual: "", inscricao_municipal: "", phone: "", whatsapp: "", email: "",
   cep: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "",
+  city_ibge_code: "", country: "Brasil", country_code: "1058", final_consumer: true, foreign_indicator: false,
   notes: "", active: true,
 };
 
@@ -62,10 +64,21 @@ export default function CustomerForm() {
       <h1 className="text-xl md:text-2xl font-heading font-semibold">{id ? "Editar Cliente" : "Novo Cliente"}</h1>
 
       <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
+        <div className="space-y-1.5"><Label>Tipo de pessoa</Label>
+          <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.person_type || "PF"} onChange={(e) => set("person_type", e.target.value)}>
+            <option value="PF">Pessoa física</option><option value="PJ">Pessoa jurídica</option><option value="EXTERIOR">Exterior</option>
+          </select>
+        </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Nome / Razão Social *</Label>
           <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
         </div>
+        {form.person_type === "PJ" && <>
+          <div className="space-y-1.5"><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Nome Fantasia</Label><Input value={form.fantasy_name} onChange={(e) => set("fantasy_name", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Inscrição Estadual</Label><Input value={form.inscricao_estadual} onChange={(e) => set("inscricao_estadual", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Inscrição Municipal</Label><Input value={form.inscricao_municipal} onChange={(e) => set("inscricao_municipal", e.target.value)} /></div>
+        </>}
         <div className="space-y-1.5"><Label>CPF / CNPJ</Label>
           <Input value={form.cpf_cnpj} onChange={(e) => set("cpf_cnpj", e.target.value)} /></div>
         <div className="space-y-1.5"><Label>Telefone</Label>
@@ -88,6 +101,10 @@ export default function CustomerForm() {
           <Input value={form.city} onChange={(e) => set("city", e.target.value)} /></div>
         <div className="space-y-1.5"><Label>Estado</Label>
           <Input value={form.state} onChange={(e) => set("state", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Código IBGE</Label><Input value={form.city_ibge_code} onChange={(e) => set("city_ibge_code", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>País</Label><Input value={form.country} onChange={(e) => set("country", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Código do País</Label><Input value={form.country_code} onChange={(e) => set("country_code", e.target.value)} /></div>
+        <div className="space-y-1.5 flex items-end"><label className="flex items-center gap-2 text-sm"><Switch checked={form.final_consumer} onCheckedChange={(v) => set("final_consumer", v)} /> Consumidor final</label></div>
         <div className="space-y-1.5 flex items-end">
           <label className="flex items-center gap-2 text-sm">
             <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} /> Ativo

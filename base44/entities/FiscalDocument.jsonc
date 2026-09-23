@@ -1,0 +1,42 @@
+{
+  "name": "FiscalDocument",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "document_type": { "type": "string", "enum": ["NFSE"], "title": "Tipo de Documento" },
+    "source_type": { "type": "string", "enum": ["WORK_ORDER"], "title": "Tipo de Origem" },
+    "source_id": { "type": "string", "title": "ID da Origem" },
+    "customer_id": { "type": "string", "title": "Cliente" },
+    "status": { "type": "string", "enum": ["DRAFT", "VALIDATION_ERROR", "READY", "SENT", "PROCESSING", "AUTHORIZED", "REJECTED", "CANCELED", "REPLACED", "ERROR"], "default": "DRAFT", "title": "Status" },
+    "issue_date": { "type": "string", "format": "date-time", "title": "Data de Emissão" },
+    "competence_date": { "type": "string", "format": "date", "title": "Competência" },
+    "provider": { "type": "string", "title": "Provedor" },
+    "environment": { "type": "string", "enum": ["homologacao", "producao"], "title": "Ambiente" },
+    "number": { "type": "string", "title": "Número" },
+    "series": { "type": "string", "title": "Série" },
+    "external_id": { "type": "string", "title": "ID Externo" },
+    "verification_code": { "type": "string", "title": "Código de Verificação" },
+    "protocol": { "type": "string", "title": "Protocolo" },
+    "total_services": { "type": "number", "default": 0, "title": "Total de Serviços" },
+    "total_products": { "type": "number", "default": 0, "title": "Total de Produtos" },
+    "discount": { "type": "number", "default": 0, "title": "Desconto" },
+    "deductions": { "type": "number", "default": 0, "title": "Deduções" },
+    "taxes": { "type": "object", "title": "Totais de Tributos" },
+    "total_document": { "type": "number", "default": 0, "title": "Total do Documento" },
+    "issuer_snapshot": { "type": "object", "title": "Snapshot do Prestador" },
+    "customer_snapshot": { "type": "object", "title": "Snapshot do Tomador" },
+    "fiscal_setting_snapshot": { "type": "object", "title": "Snapshot da Configuração Fiscal" },
+    "xml_url": { "type": "string", "title": "XML" },
+    "pdf_url": { "type": "string", "title": "PDF" },
+    "public_url": { "type": "string", "title": "URL Pública" },
+    "last_error_code": { "type": "string", "title": "Último Código de Erro" },
+    "last_error_message": { "type": "string", "title": "Último Erro" }
+  },
+  "required": ["workshop_id", "document_type", "source_type", "source_id", "status"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

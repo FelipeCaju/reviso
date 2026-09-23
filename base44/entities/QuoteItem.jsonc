@@ -28,6 +28,11 @@
       "default": 1,
       "title": "Quantidade"
     },
+    "unit": {
+      "type": "string",
+      "default": "un",
+      "title": "Unidade"
+    },
     "unit_price": {
       "type": "number",
       "default": 0,

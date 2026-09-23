@@ -16,6 +16,8 @@ const DEFAULT = {
   name: "Minha Oficina",
   razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "",
   address: "", logo_url: "", default_quote_text: "Orçamento válido por {validade} dias a partir da data de emissão.",
+  cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "",
+  codigo_ibge: "", pais: "Brasil", codigo_pais: "1058",
   default_validity_days: 15, default_os_note: "",
   default_capacity: 8,
   is_demo: false,
@@ -60,7 +62,7 @@ export default function Settings() {
     setSaving(true);
     try {
       if (!id || id !== getWorkshopId()) throw new Error("Oficina não autorizada.");
-      const protectedFields = ['id', 'created_date', 'updated_date', 'created_by', 'plan', 'plan_value', 'trial_started_at', 'is_demo', 'demo_email', 'demo_password'];
+      const protectedFields = ['id', 'created_date', 'updated_date', 'created_by', 'plan', 'plan_value', 'trial_started_at', 'is_demo', 'demo_email', 'demo_password', 'fiscal_module_enabled'];
       const data = Object.fromEntries(Object.entries(form).filter(([key]) => !protectedFields.includes(key)));
       await base44.entities.WorkshopSetting.update(id, data);
       toast({ title: "Configurações salvas" });
@@ -126,10 +128,21 @@ export default function Settings() {
           <div className="space-y-1.5">
             <Label>WhatsApp</Label>
             <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
-          </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Endereço</Label>
+            <Label>Endereço legado</Label>
             <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
+            <p className="text-xs text-muted-foreground">Preservado para documentos antigos. Complete os campos estruturados abaixo.</p>
+          </div>
+          <div className="space-y-1.5"><Label>CEP</Label><Input value={form.cep} onChange={(e) => set("cep", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Logradouro</Label><Input value={form.logradouro} onChange={(e) => set("logradouro", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>UF</Label><Input maxLength={2} value={form.uf} onChange={(e) => set("uf", e.target.value.toUpperCase())} /></div>
+          <div className="space-y-1.5"><Label>Código IBGE</Label><Input value={form.codigo_ibge} onChange={(e) => set("codigo_ibge", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>País</Label><Input value={form.pais} onChange={(e) => set("pais", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Código do País</Label><Input value={form.codigo_pais} onChange={(e) => set("codigo_pais", e.target.value)} /></div>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Logo da Empresa</Label>

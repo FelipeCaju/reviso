@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Search, Truck, Mail, Loader2 } from "lucide-react";
+import { Plus, Pencil, Search, Truck, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,9 @@ const BR_STATES = [
 ];
 
 const EMPTY = {
-  name: "", fantasy_name: "", cpf_cnpj: "", phone: "", whatsapp: "", email: "",
+  person_type: "PJ", name: "", razao_social: "", fantasy_name: "", cpf_cnpj: "", inscricao_estadual: "", inscricao_municipal: "", phone: "", whatsapp: "", email: "",
   cep: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "",
-  contact_name: "", notes: "", active: true,
+  city_ibge_code: "", country: "Brasil", country_code: "1058", contact_name: "", notes: "", active: true,
 };
 
 export default function Suppliers() {
@@ -173,10 +173,12 @@ export default function Suppliers() {
             <DialogTitle>{editingId ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5"><Label>Tipo de pessoa</Label><Select value={form.person_type || "PJ"} onValueChange={(v) => set("person_type", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PF">Pessoa física</SelectItem><SelectItem value="PJ">Pessoa jurídica</SelectItem><SelectItem value="EXTERIOR">Exterior</SelectItem></SelectContent></Select></div>
             <div className="space-y-1.5">
               <Label>Nome / Razão Social *</Label>
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
             </div>
+            <div className="space-y-1.5"><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} /></div>
             <div className="space-y-1.5">
               <Label>Nome Fantasia</Label>
               <Input value={form.fantasy_name} onChange={(e) => set("fantasy_name", e.target.value)} />
@@ -185,6 +187,8 @@ export default function Suppliers() {
               <Label>CPF/CNPJ</Label>
               <Input value={form.cpf_cnpj} onChange={(e) => set("cpf_cnpj", e.target.value)} />
             </div>
+            <div className="space-y-1.5"><Label>Inscrição Estadual</Label><Input value={form.inscricao_estadual} onChange={(e) => set("inscricao_estadual", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Inscrição Municipal</Label><Input value={form.inscricao_municipal} onChange={(e) => set("inscricao_municipal", e.target.value)} /></div>
             <div className="space-y-1.5">
               <Label>Nome do Contato</Label>
               <Input value={form.contact_name} onChange={(e) => set("contact_name", e.target.value)} />
@@ -235,6 +239,9 @@ export default function Suppliers() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5"><Label>Código IBGE</Label><Input value={form.city_ibge_code} onChange={(e) => set("city_ibge_code", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>País</Label><Input value={form.country} onChange={(e) => set("country", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Código do País</Label><Input value={form.country_code} onChange={(e) => set("country_code", e.target.value)} /></div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />

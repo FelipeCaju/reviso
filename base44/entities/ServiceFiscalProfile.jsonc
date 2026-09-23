@@ -1,0 +1,26 @@
+{
+  "name": "ServiceFiscalProfile",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "service_id": { "type": "string", "title": "Serviço" },
+    "codigo_servico_municipal": { "type": "string", "title": "Código Municipal" },
+    "item_lista_servico": { "type": "string", "title": "Item da Lista de Serviços" },
+    "nbs": { "type": "string", "title": "NBS" },
+    "aliquota_iss": { "type": "number", "title": "Alíquota ISS" },
+    "iss_retido": { "type": "boolean", "title": "ISS Retido" },
+    "municipio_incidencia_codigo_ibge": { "type": "string", "title": "Município de Incidência" },
+    "natureza_operacao": { "type": "string", "title": "Natureza da Operação" },
+    "exigibilidade": { "type": "string", "title": "Exigibilidade" },
+    "configuracoes_retencao": { "type": "object", "title": "Configurações de Retenção" },
+    "observacao_fiscal": { "type": "string", "title": "Observação Fiscal" },
+    "active": { "type": "boolean", "default": true, "title": "Ativo" }
+  },
+  "required": ["workshop_id", "service_id"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

@@ -11,9 +11,30 @@
       "type": "string",
       "title": "Nome / Raz\u00e3o Social"
     },
+    "person_type": {
+      "type": "string",
+      "enum": ["PF", "PJ", "EXTERIOR"],
+      "title": "Tipo de Pessoa"
+    },
+    "razao_social": {
+      "type": "string",
+      "title": "Raz\u00e3o Social"
+    },
+    "fantasy_name": {
+      "type": "string",
+      "title": "Nome Fantasia"
+    },
     "cpf_cnpj": {
       "type": "string",
       "title": "CPF / CNPJ"
+    },
+    "inscricao_estadual": {
+      "type": "string",
+      "title": "Inscri\u00e7\u00e3o Estadual"
+    },
+    "inscricao_municipal": {
+      "type": "string",
+      "title": "Inscri\u00e7\u00e3o Municipal"
     },
     "phone": {
       "type": "string",
@@ -54,6 +75,30 @@
     "state": {
       "type": "string",
       "title": "Estado"
+    },
+    "city_ibge_code": {
+      "type": "string",
+      "title": "C\u00f3digo IBGE do Munic\u00edpio"
+    },
+    "country": {
+      "type": "string",
+      "default": "Brasil",
+      "title": "Pa\u00eds"
+    },
+    "country_code": {
+      "type": "string",
+      "default": "1058",
+      "title": "C\u00f3digo do Pa\u00eds"
+    },
+    "final_consumer": {
+      "type": "boolean",
+      "default": true,
+      "title": "Consumidor Final"
+    },
+    "foreign_indicator": {
+      "type": "boolean",
+      "default": false,
+      "title": "Pessoa do Exterior"
     },
     "notes": {
       "type": "string",

@@ -11,6 +11,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [workshop, setWorkshop] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
@@ -100,6 +101,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await base44.functions.invoke(visitor ? 'getDemoAccess' : 'manageWorkshops', { action: visitor ? 'context' : 'resolveAccess' });
       const currentUser = data.user;
       setUser(currentUser);
+      setWorkshop(data.workshop || null);
       setWorkshopId(currentUser?.workshop_id);
       
       let demoActive = visitor;
@@ -138,6 +140,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('User auth check failed:', error);
       setUser(null);
+      setWorkshop(null);
       setWorkshopId(null);
       setDemoModeActive(false);
       setIsDemo(false);
@@ -164,6 +167,7 @@ export const AuthProvider = ({ children }) => {
     setDemoModeActive(false);
     setIsDemo(false);
     setUser(null);
+    setWorkshop(null);
     setIsAuthenticated(false);
     setWorkshopId(null);
     setNeedsOnboarding(false);
@@ -187,7 +191,8 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user,
+      workshop,
       isAuthenticated, 
       isLoadingAuth,
       isLoadingPublicSettings,

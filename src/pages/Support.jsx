@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { LifeBuoy, Phone, Mail, MessageCircle } from "lucide-react";
+import { LifeBuoy, Mail, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { Image as ImgCmp } from "@/components/ui/image";
 
 export default function Support() {
   const [settings, setSettings] = useState(null);

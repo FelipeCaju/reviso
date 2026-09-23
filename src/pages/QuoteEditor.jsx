@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Mic, CalendarDays, Check, X, Car, User, Save, ChevronDown, FileDown, ClipboardList, Camera, MessageCircle,
+  ArrowLeft, Plus, Trash2, CalendarDays, Check, X, Car, User, Save, FileDown, ClipboardList, Camera, MessageCircle,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -198,7 +198,7 @@ export default function QuoteEditor() {
     setItems((arr) => {
       const others = arr.filter((it) => !(it.type === "servico" && !it.service_id && it.description === "Mão de Obra"));
       if (!value || value === 0) return others;
-      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit_price: value, discount: 0, total: value, service_id: "" }];
+      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit: "un", unit_price: value, discount: 0, total: value, service_id: "" }];
     });
   };
 

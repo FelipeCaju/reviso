@@ -22,6 +22,8 @@ import {
   Receipt,
   Wallet,
   LifeBuoy,
+  Landmark,
+  FileCheck2,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -47,10 +49,12 @@ const NAV = [
   { to: "/despesas", label: "Despesas", icon: Receipt, roles: ["admin"] },
   { to: "/financeiro", label: "Financeiro", icon: Wallet, roles: ["admin"] },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
+  { to: "/documentos-fiscais", label: "Documentos Fiscais", icon: FileCheck2, roles: ["admin"], fiscal: true },
 ];
 
 const NAV_SECONDARY = [
   { to: "/configuracoes", label: "Configurações", icon: SettingsIcon, roles: ["admin"] },
+  { to: "/fiscal", label: "Configurações Fiscais", icon: Landmark, roles: ["admin"], fiscal: true },
   { to: "/suporte", label: "Suporte", icon: LifeBuoy, roles: ["admin", "user"] },
   { to: "/admin", label: "Nova Oficina", icon: Building2, roles: ["admin"] },
 ];
@@ -84,7 +88,7 @@ function NavItem({ item, onNavigate }) {
 }
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, workshop, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -97,11 +101,11 @@ export default function Layout() {
   const visibleNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
     : isDemo
-      ? NAV
-      : NAV.filter((item) => !item.roles || item.roles.includes(userRole));
+      ? NAV.filter((item) => !item.fiscal || workshop?.fiscal_module_enabled)
+      : NAV.filter((item) => (!item.roles || item.roles.includes(userRole)) && (!item.fiscal || workshop?.fiscal_module_enabled));
   const visibleSecondary = isPlatformOwner
     ? []
-    : NAV_SECONDARY.filter((item) => canAccessPage(item.to, user, isDemo));
+    : NAV_SECONDARY.filter((item) => canAccessPage(item.to, user, isDemo) && (!item.fiscal || workshop?.fiscal_module_enabled));
   const visibleBottomNav = isPlatformOwner
     ? [{ to: "/admin", label: "Nova Oficina", icon: Building2, end: true }]
     : isDemo

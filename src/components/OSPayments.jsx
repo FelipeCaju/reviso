@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CreditCard, Plus, X, Check, AlertCircle } from "lucide-react";
+import { CreditCard, Plus, X, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

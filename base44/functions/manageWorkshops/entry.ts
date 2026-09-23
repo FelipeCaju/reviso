@@ -111,7 +111,7 @@ export default async function(req) {
 
     // Profile completion is scoped to the caller's own workshop; plans are platform-only.
     if (!isPlatformOwner) {
-      if (body.action !== 'update' || user.role !== 'admin' || !user.workshop_id || body.workshopId !== user.workshop_id || body.plan !== undefined || body.plan_value !== undefined) return deny();
+      if (body.action !== 'update' || user.role !== 'admin' || !user.workshop_id || body.workshopId !== user.workshop_id || body.plan !== undefined || body.plan_value !== undefined || body.fiscal_module_enabled !== undefined) return deny();
     }
 
     if (body.action === 'create') {
@@ -129,7 +129,7 @@ export default async function(req) {
       const workshop = await db.WorkshopSetting.create({
         name: body.name.trim(), razao_social: body.razao_social || '', cnpj: body.cnpj || '',
         phone: body.phone, whatsapp: body.whatsapp || '', email: body.email, address: body.address,
-        plan: 'free', plan_value: 0, trial_started_at: new Date().toISOString(),
+        plan: 'free', plan_value: 0, fiscal_module_enabled: !!body.fiscal_module_enabled, trial_started_at: new Date().toISOString(),
         default_capacity: 8, capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
         capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
       });
@@ -162,6 +162,7 @@ export default async function(req) {
           address: w.address,
           plan: w.plan || 'free',
           plan_value: w.plan_value || 0,
+          fiscal_module_enabled: !!w.fiscal_module_enabled,
           is_demo: w.is_demo,
           trial_started_at: w.trial_started_at,
           created_date: w.created_date,
@@ -183,6 +184,7 @@ export default async function(req) {
           address: '',
           plan: 'free',
           plan_value: 0,
+          fiscal_module_enabled: false,
           is_demo: false,
           trial_started_at: null,
           created_date: user.created_date,
@@ -197,7 +199,7 @@ export default async function(req) {
 
     // PROVISION — create a workshop for an orphan user and set them as admin
     if (body.action === 'provision') {
-      const { userId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value } = body;
+      const { userId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value, fiscal_module_enabled } = body;
       const missing = ['name', 'phone', 'email', 'address'].filter((f) => !body[f] || !String(body[f]).trim());
       if (!userId || missing.length > 0) return Response.json({ error: `Campos obrigatórios faltando: ${missing.join(', ')}` }, { status: 400 });
 
@@ -217,6 +219,7 @@ export default async function(req) {
         address: address || '',
         plan: plan || 'free',
         plan_value: plan_value || 0,
+        fiscal_module_enabled: !!fiscal_module_enabled,
         trial_started_at: new Date().toISOString(),
         default_capacity: 8,
         capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
@@ -233,7 +236,7 @@ export default async function(req) {
 
     // UPDATE — update workshop data (all fields)
     if (body.action === 'update') {
-      const { workshopId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value } = body;
+      const { workshopId, name, razao_social, cnpj, phone, whatsapp, email, address, plan, plan_value, fiscal_module_enabled } = body;
       if (!workshopId) return Response.json({ error: 'workshopId required' }, { status: 400 });
 
       // Validate mandatory fields are not being set to empty
@@ -252,6 +255,7 @@ export default async function(req) {
       if (address !== undefined) updateData.address = address;
       if (plan !== undefined) updateData.plan = plan;
       if (plan_value !== undefined) updateData.plan_value = plan_value;
+      if (fiscal_module_enabled !== undefined) updateData.fiscal_module_enabled = !!fiscal_module_enabled;
 
       await base44.asServiceRole.entities.WorkshopSetting.update(workshopId, updateData);
       return Response.json({ success: true });

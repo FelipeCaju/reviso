@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, ClipboardList, Bell, CreditCard } from "lucide-react";
+import { Plus, Search, ClipboardList, Bell } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { WorkOrderStatusBadge } from "@/components/StatusBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency, formatDate, normalizePlate, todayISO } from "@/lib/format";
+import { formatCurrency, formatDate, normalizePlate } from "@/lib/format";
 
 const PAY_BADGE = {
   nao_pago: { label: "Não Pago", color: "bg-amber-100 text-amber-700" },

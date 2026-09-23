@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X, ReceiptText, MessageCircle,
+  ArrowLeft, Plus, Trash2, Car, User, Save, FileDown, Camera, X, ReceiptText, MessageCircle, FileCheck2,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -18,7 +18,7 @@ import CurrencyInput from "@/components/CurrencyInput";
 import { Image as ImgCmp } from "@/components/ui/image";
 import { WorkOrderStatusBadge, workOrderStatusInfo } from "@/components/StatusBadge";
 import {
-  normalizePlate, vehicleDescription, formatCurrency, formatDateTime, todayISO,
+  normalizePlate, vehicleDescription, formatCurrency, formatDateTime,
 } from "@/lib/format";
 import { generateNonFiscalReceiptPDF, generateWorkOrderPDF, generateWorkOrderPDFBlob } from "@/lib/pdf";
 import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
@@ -26,6 +26,7 @@ import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
+import FiscalPreviewDialog from "@/components/FiscalPreviewDialog";
 
 const STATUS_OPTIONS = [
   "aberta", "aguardando_pecas", "em_execucao", "finalizada", "cancelada",
@@ -55,6 +56,7 @@ export default function WorkOrderEditor() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [sending, setSending] = useState(false);
   const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
+  const [fiscalPreviewOpen, setFiscalPreviewOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -105,7 +107,7 @@ export default function WorkOrderEditor() {
             quote_id: fromQuoteId,
           });
           setItems(qi.map((it) => ({
-            type: it.type, description: it.description, quantity: it.quantity,
+            type: it.type, description: it.description, quantity: it.quantity, unit: it.unit || "un",
             unit_price: it.unit_price, discount: it.discount, total: it.total,
             material_id: it.material_id || "", service_id: it.service_id || "",
             added_after_approval: false, approval_status: "aprovado",
@@ -199,7 +201,7 @@ export default function WorkOrderEditor() {
       const flags = pastApproval
         ? { added_after_approval: true, approval_status: "aguardando" }
         : { added_after_approval: false, approval_status: "aprovado" };
-      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit_price: value, discount: 0, total: value, service_id: "", ...flags }];
+      return [...others, { type: "servico", description: "Mão de Obra", quantity: 1, unit: "un", unit_price: value, discount: 0, total: value, service_id: "", ...flags }];
     });
   };
 
@@ -354,6 +356,7 @@ export default function WorkOrderEditor() {
         onConfirm={sendViaWhatsApp}
         sending={sending}
       />
+      <FiscalPreviewDialog open={fiscalPreviewOpen} onOpenChange={setFiscalPreviewOpen} workOrderId={id} />
       <div className="flex items-center justify-between gap-2">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Voltar
@@ -364,6 +367,9 @@ export default function WorkOrderEditor() {
           {editing && <Button size="sm" onClick={openWhatsAppPreview} disabled={sending} className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><MessageCircle className="w-4 h-4 mr-1" /> WhatsApp</Button>}
           {editing && wo.status === "finalizada" && wo.payment_status === "pago" && (
             <Button size="sm" variant="outline" onClick={exportNonFiscalReceipt}><ReceiptText className="w-4 h-4 mr-1" /> Recibo</Button>
+          )}
+          {editing && settings?.fiscal_module_enabled && wo.status === "finalizada" && (
+            <Button size="sm" variant="outline" onClick={() => setFiscalPreviewOpen(true)}><FileCheck2 className="w-4 h-4 mr-1" /> Emitir NFS-e</Button>
           )}
           <Button size="sm" onClick={() => save()} disabled={saving}><Save className="w-4 h-4 mr-1" /> Salvar</Button>
         </div>
@@ -580,14 +586,17 @@ export default function WorkOrderEditor() {
                   </div>
                   <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-4 h-4" /></button>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div><Label className="text-[10px] text-muted-foreground">Qtd</Label>
                     <Input type="number" className="h-9 text-sm" value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })} /></div>
+                  <div><Label className="text-[10px] text-muted-foreground">Unidade</Label>
+                    <Input className="h-9 text-sm" value={it.unit || "un"} onChange={(e) => updateItem(idx, { unit: e.target.value })} /></div>
                   <div><Label className="text-[10px] text-muted-foreground">Unit.</Label>
                     <CurrencyInput className="h-9 text-sm" value={it.unit_price} onValueChange={(v) => updateItem(idx, { unit_price: v })} /></div>
                   <div><Label className="text-[10px] text-muted-foreground">Desc.</Label>
                     <CurrencyInput className="h-9 text-sm" value={it.discount} onValueChange={(v) => updateItem(idx, { discount: v })} /></div>
                 </div>
+                {settings?.fiscal_module_enabled && <div className="mt-2 max-w-xs"><Label className="text-[10px] text-muted-foreground">Tratamento fiscal</Label><Select value={it.fiscal_treatment || "automatico"} onValueChange={(value) => updateItem(idx, { fiscal_treatment: value })}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="automatico">Automático pelo tipo</SelectItem><SelectItem value="excluir">Não incluir</SelectItem></SelectContent></Select></div>}
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
               </div>
             ))}

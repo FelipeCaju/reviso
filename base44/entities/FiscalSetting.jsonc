@@ -1,0 +1,36 @@
+{
+  "name": "FiscalSetting",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "regime_tributario": { "type": "string", "enum": ["MEI", "SIMPLES_NACIONAL", "LUCRO_PRESUMIDO", "LUCRO_REAL", "OUTRO"], "title": "Regime Tributário" },
+    "simples_nacional": { "type": "boolean", "default": false, "title": "Optante pelo Simples Nacional" },
+    "mei": { "type": "boolean", "default": false, "title": "MEI" },
+    "inscricao_municipal": { "type": "string", "title": "Inscrição Municipal" },
+    "inscricao_estadual": { "type": "string", "title": "Inscrição Estadual" },
+    "municipio_codigo_ibge": { "type": "string", "title": "Código IBGE do Município" },
+    "municipio_nome": { "type": "string", "title": "Município" },
+    "uf": { "type": "string", "title": "UF" },
+    "ambiente_fiscal": { "type": "string", "enum": ["homologacao", "producao"], "default": "homologacao", "title": "Ambiente" },
+    "provedor_fiscal": { "type": "string", "default": "nao_configurado", "title": "Provedor" },
+    "modo_emissao": { "type": "string", "enum": ["manual", "automatica_finalizacao"], "default": "manual", "title": "Modo de Emissão" },
+    "codigo_servico_municipal_padrao": { "type": "string", "title": "Código de Serviço Padrão" },
+    "item_lista_servico_padrao": { "type": "string", "title": "Item da Lista Padrão" },
+    "nbs_padrao": { "type": "string", "title": "NBS Padrão" },
+    "aliquota_iss_padrao": { "type": "number", "title": "Alíquota ISS Padrão" },
+    "iss_retido_padrao": { "type": "boolean", "default": false, "title": "ISS Retido por Padrão" },
+    "natureza_operacao_padrao": { "type": "string", "title": "Natureza da Operação Padrão" },
+    "exigibilidade_padrao": { "type": "string", "title": "Exigibilidade Padrão" },
+    "contador_nome": { "type": "string", "title": "Nome do Contador" },
+    "contador_escritorio": { "type": "string", "title": "Escritório Contábil" },
+    "contador_telefone": { "type": "string", "title": "Telefone do Contador" },
+    "contador_email": { "type": "string", "title": "E-mail do Contador" }
+  },
+  "required": ["workshop_id"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

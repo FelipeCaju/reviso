@@ -4,7 +4,7 @@ import { Plus, Search, Car, ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { normalizePlate, vehicleDescription, vehicleTypeLabel } from "@/lib/format";
+import { normalizePlate, vehicleDescription } from "@/lib/format";
 import VehicleFormDialog from "@/components/VehicleFormDialog";
 
 export default function Vehicles() {

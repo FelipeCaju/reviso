@@ -19,8 +19,8 @@ import {
 const UNITS = ["un", "pç", "metro", "m", "kg", "g", "litro", "ml", "par", "cj", "galão", "rolo", "caixa", "saco", "tubo", "L", "mL"];
 
 const EMPTY = {
-  code: "", description: "", category: "", brand: "", unit: "un",
-  cost: 0, sale_price: 0, stock: 0, notes: "", active: true,
+  code: "", barcode: "", gtin: "", name: "", description: "", category: "", brand: "", unit: "un",
+  cost: 0, sale_price: 0, stock: 0, minimum_stock: 0, preferred_supplier_id: "", notes: "", active: true,
 };
 
 export default function Materials() {
@@ -140,6 +140,9 @@ export default function Materials() {
               <Label>Código</Label>
               <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
             </div>
+            <div className="space-y-1.5"><Label>Código de Barras</Label><Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>GTIN</Label><Input value={form.gtin} onChange={(e) => setForm({ ...form, gtin: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Nome Comercial</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="space-y-1.5">
               <Label>Descrição *</Label>
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -173,6 +176,7 @@ export default function Materials() {
               <Label>Estoque</Label>
               <Input type="number" value={form.stock || 0} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />
             </div>
+            <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.minimum_stock || 0} onChange={(e) => setForm({ ...form, minimum_stock: Number(e.target.value) })} /></div>
             <div className="space-y-1.5 flex items-end">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />

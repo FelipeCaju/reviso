@@ -7,6 +7,7 @@ export function isPlatformOwner(user) {
 const ADMIN_PAGES = new Set([
   'orcamentos', 'materiais', 'servicos', 'fornecedores', 'compras', 'pedidos',
   'despesas', 'financeiro', 'relatorios', 'relatorios-financeiros', 'configuracoes',
+  'fiscal', 'documentos-fiscais',
 ]);
 
 export function canAccessPage(pathname, user, isDemo = false) {

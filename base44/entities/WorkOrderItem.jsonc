@@ -28,6 +28,17 @@
       "default": 1,
       "title": "Quantidade"
     },
+    "unit": {
+      "type": "string",
+      "default": "un",
+      "title": "Unidade"
+    },
+    "fiscal_treatment": {
+      "type": "string",
+      "enum": ["automatico", "incluir", "excluir"],
+      "default": "automatico",
+      "title": "Tratamento Fiscal"
+    },
     "unit_price": {
       "type": "number",
       "default": 0,

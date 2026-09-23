@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  ArrowLeft, Car, FileText, CalendarDays, ClipboardList, Plus, History, User,
+  ArrowLeft, FileText, CalendarDays, ClipboardList, Plus, History, User,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";

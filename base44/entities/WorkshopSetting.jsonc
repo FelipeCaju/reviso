@@ -28,7 +28,49 @@
     },
     "address": {
       "type": "string",
-      "title": "Endere\u00e7o"
+      "title": "Endere\u00e7o (legado)"
+    },
+    "cep": {
+      "type": "string",
+      "title": "CEP"
+    },
+    "logradouro": {
+      "type": "string",
+      "title": "Logradouro"
+    },
+    "numero": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "complemento": {
+      "type": "string",
+      "title": "Complemento"
+    },
+    "bairro": {
+      "type": "string",
+      "title": "Bairro"
+    },
+    "cidade": {
+      "type": "string",
+      "title": "Cidade"
+    },
+    "uf": {
+      "type": "string",
+      "title": "UF"
+    },
+    "codigo_ibge": {
+      "type": "string",
+      "title": "C\u00f3digo IBGE"
+    },
+    "pais": {
+      "type": "string",
+      "default": "Brasil",
+      "title": "Pa\u00eds"
+    },
+    "codigo_pais": {
+      "type": "string",
+      "default": "1058",
+      "title": "C\u00f3digo do Pa\u00eds"
     },
     "logo_url": {
       "type": "string",
@@ -127,6 +169,14 @@
       "type": "number",
       "default": 0,
       "title": "Valor Mensal (R$)",
+      "rls": {
+        "write": false
+      }
+    },
+    "fiscal_module_enabled": {
+      "type": "boolean",
+      "default": false,
+      "title": "M\u00f3dulo Fiscal Habilitado",
       "rls": {
         "write": false
       }

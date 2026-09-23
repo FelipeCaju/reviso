@@ -1,0 +1,20 @@
+{
+  "name": "MaterialFiscalProfile",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "material_id": { "type": "string", "title": "Material" },
+    "ncm": { "type": "string", "title": "NCM" },
+    "cest": { "type": "string", "title": "CEST" },
+    "origem_mercadoria": { "type": "string", "title": "Origem da Mercadoria" },
+    "observacao_fiscal": { "type": "string", "title": "Observação Fiscal" },
+    "active": { "type": "boolean", "default": true, "title": "Ativo" }
+  },
+  "required": ["workshop_id", "material_id"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

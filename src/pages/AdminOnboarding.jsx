@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -32,7 +33,7 @@ export default function AdminOnboarding() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "",
-    ownerEmail: "",
+    ownerEmail: "", fiscal_module_enabled: false,
   });
   const [workshops, setWorkshops] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
@@ -46,6 +47,7 @@ export default function AdminOnboarding() {
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editEmailField, setEditEmailField] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editFiscalEnabled, setEditFiscalEnabled] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -80,7 +82,7 @@ export default function AdminOnboarding() {
         action: "create", ...form, ownerEmail: form.ownerEmail.trim().toLowerCase(),
       });
       toast({ title: "Oficina pré-cadastrada!", description: `${form.ownerEmail} já pode entrar com Google.` });
-      setForm({ name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "", ownerEmail: "" });
+      setForm({ name: "", razao_social: "", cnpj: "", phone: "", whatsapp: "", email: "", address: "", ownerEmail: "", fiscal_module_enabled: false });
       loadWorkshops();
     } catch (e) {
       toast({ title: "Erro ao criar oficina", description: e.message, variant: "destructive" });
@@ -100,6 +102,7 @@ export default function AdminOnboarding() {
     setEditWhatsapp(ws.whatsapp || "");
     setEditEmailField(ws.email || "");
     setEditAddress(ws.address || "");
+    setEditFiscalEnabled(!!ws.fiscal_module_enabled);
   };
 
   const savePlan = async () => {
@@ -125,6 +128,7 @@ export default function AdminOnboarding() {
           address: editAddress,
           plan: editPlan,
           plan_value: Number(editValue) || 0,
+          fiscal_module_enabled: editFiscalEnabled,
         });
         toast({ title: "Oficina criada!", description: `${editName.trim()} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
       } else {
@@ -140,6 +144,7 @@ export default function AdminOnboarding() {
           address: editAddress,
           plan: editPlan,
           plan_value: Number(editValue) || 0,
+          fiscal_module_enabled: editFiscalEnabled,
         });
         toast({ title: "Dados atualizados!", description: `${editName || editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
       }
@@ -189,6 +194,17 @@ export default function AdminOnboarding() {
             <p className="text-xs text-muted-foreground">O proprietário receberá um convite por e-mail. A oficina inicia no plano Free (24h).</p>
           </div>
         </div>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+          <div>
+            <Label htmlFor="new-workshop-fiscal">Oficina fiscal</Label>
+            <p className="text-xs text-muted-foreground">Ativa o cadastro tributário e a emissão de documentos fiscais para esta oficina.</p>
+          </div>
+          <Switch
+            id="new-workshop-fiscal"
+            checked={form.fiscal_module_enabled}
+            onCheckedChange={(checked) => set("fiscal_module_enabled", checked)}
+          />
+        </div>
         <div className="flex justify-end">
           <Button onClick={submit} disabled={saving} size="lg">
             {saving ? "Criando..." : "Pré-cadastrar Oficina"} <ArrowRight className="w-4 h-4 ml-1" />
@@ -220,6 +236,7 @@ export default function AdminOnboarding() {
                     <th className="py-2 px-3 font-medium">Proprietário</th>
                     <th className="py-2 px-3 font-medium">Contato</th>
                     <th className="py-2 px-3 font-medium">Plano</th>
+                    <th className="py-2 px-3 font-medium">Fiscal</th>
                     <th className="py-2 px-3 font-medium">Valor</th>
                     <th className="py-2 pl-3 font-medium text-right">Ações</th>
                   </tr>
@@ -255,6 +272,11 @@ export default function AdminOnboarding() {
                         {ws.email && <div className="text-xs text-muted-foreground">{ws.email}</div>}
                       </td>
                       <td className="py-3 px-3"><PlanBadge plan={ws.plan} /></td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${ws.fiscal_module_enabled ? "border-blue-200 bg-blue-100 text-blue-700" : "border-border bg-muted text-muted-foreground"}`}>
+                          {ws.fiscal_module_enabled ? "Sim" : "Não"}
+                        </span>
+                      </td>
                       <td className="py-3 px-3 text-sm">
                         {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}` : "—"}
                       </td>
@@ -300,9 +322,10 @@ export default function AdminOnboarding() {
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                    <span className="text-xs text-muted-foreground">
-                      {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}/mês` : "Sem valor definido"}
-                    </span>
+                    <div className="text-xs text-muted-foreground">
+                      <div>{ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}/mês` : "Sem valor definido"}</div>
+                      <div>Fiscal: {ws.fiscal_module_enabled ? "sim" : "não"}</div>
+                    </div>
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(ws); }}>
                       <Pencil className="w-3.5 h-3.5" /> Editar
                     </Button>
@@ -379,6 +402,10 @@ export default function AdminOnboarding() {
                   onChange={(e) => setEditValue(e.target.value)}
                   placeholder="0.00"
                 />
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+                <div><Label htmlFor="edit-workshop-fiscal">Oficina fiscal</Label><p className="text-xs text-muted-foreground">Pode ser ativada ou desativada depois; os documentos já emitidos permanecem preservados.</p></div>
+                <Switch id="edit-workshop-fiscal" checked={editFiscalEnabled} onCheckedChange={setEditFiscalEnabled} />
               </div>
             </div>
           )}

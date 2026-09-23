@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { QuoteStatusBadge, quoteStatusInfo } from "@/components/StatusBadge";
+import { QuoteStatusBadge } from "@/components/StatusBadge";
 import { normalizePlate, formatCurrency, formatDate } from "@/lib/format";
 
 const FILTERS = [

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { todayISO, addDaysISO, formatDate, normalizePlate, vehicleDescription, formatCurrency } from "@/lib/format";
+import { todayISO, addDaysISO, formatDate, normalizePlate, formatCurrency } from "@/lib/format";
 import { AppointmentStatusBadge, appointmentTypeInfo } from "@/components/StatusBadge";
 
 export default function Dashboard() {

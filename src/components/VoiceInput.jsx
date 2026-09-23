@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { Mic, MicOff, Loader2, X } from "lucide-react";
+import { Mic, MicOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Web Speech API (pt-BR). Fala -> texto. Nunca impede a digitação normal.

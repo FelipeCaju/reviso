@@ -37,6 +37,8 @@ import Finance from '@/pages/Finance';
 import FinanceReports from '@/pages/FinanceReports';
 import Support from '@/pages/Support';
 import WorkshopOnboarding from '@/pages/WorkshopOnboarding';
+import FiscalSettings from '@/pages/FiscalSettings';
+import FiscalDocuments from '@/pages/FiscalDocuments';
 import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
@@ -100,6 +102,8 @@ const AuthenticatedApp = () => {
           <Route path="/materiais" element={<Materials />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/fiscal" element={<FiscalSettings />} />
+          <Route path="/documentos-fiscais" element={<FiscalDocuments />} />
           <Route path="/suporte" element={<Support />} />
           <Route path="/fornecedores" element={<Suppliers />} />
           <Route path="/fornecedores/:id" element={<SupplierDetail />} />

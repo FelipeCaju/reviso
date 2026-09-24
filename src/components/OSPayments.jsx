@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import CurrencyInput from "@/components/CurrencyInput";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
@@ -170,7 +171,7 @@ export default function OSPayments({ workOrderId, wo, total, onPaymentsChange })
             <div className="text-sm text-muted-foreground">Saldo pendente: {formatCurrency(balance)}</div>
             <div className="space-y-1.5">
               <Label>Valor</Label>
-              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
+              <CurrencyInput value={amount} onValueChange={setAmount} />
             </div>
             <div className="space-y-1.5">
               <Label>Forma de Pagamento</Label>

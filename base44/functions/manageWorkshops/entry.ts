@@ -32,6 +32,9 @@ export default async function(req) {
         throw error;
       }
       if (!workshop?.id) return deny();
+      if (workshop.is_active === false && !isPlatformOwner) {
+        return Response.json({ error: 'Esta oficina está inativa. Entre em contato com o administrador do sistema.' }, { status: 403 });
+      }
       if (grant && (!user.workshop_id || user.role !== grant.role)) {
         await db.User.update(user.id, { workshop_id: workshopId, role: grant.role });
         user.workshop_id = workshopId;
@@ -42,6 +45,37 @@ export default async function(req) {
     }
 
     if (body.action === 'selfRegister') return deny();
+
+    // Only the platform owner can suspend or permanently remove a tenant.
+    if (body.action === 'setActive' || body.action === 'deleteWorkshop') {
+      if (!isPlatformOwner) return deny();
+      const workshopId = String(body.workshopId || '');
+      if (!workshopId) return Response.json({ error: 'Oficina não informada.' }, { status: 400 });
+      const workshop = await db.WorkshopSetting.get(workshopId);
+      if (!workshop?.id) return Response.json({ error: 'Oficina não encontrada.' }, { status: 404 });
+
+      if (body.action === 'setActive') {
+        await db.WorkshopSetting.update(workshopId, { is_active: !!body.is_active });
+        return Response.json({ success: true, is_active: !!body.is_active });
+      }
+
+      // Remove all records that belong to the tenant. The account itself remains,
+      // unlinked, so it cannot access or restore this workshop after deletion.
+      const tenantEntities = [
+        'Appointment', 'AppointmentHistory', 'Customer', 'Expense', 'FinancialTransaction',
+        'FiscalCredential', 'FiscalDocument', 'FiscalDocumentEvent', 'FiscalDocumentItem', 'FiscalSetting',
+        'Material', 'MaterialFiscalProfile', 'Payment', 'PurchaseOrder', 'PurchaseOrderItem',
+        'PurchaseRequest', 'PurchaseRequestItem', 'Quote', 'QuoteItem', 'Service',
+        'ServiceFiscalProfile', 'StockMovement', 'Supplier', 'SupplierMaterial', 'Vehicle',
+        'VehicleOwner', 'WorkOrder', 'WorkOrderItem',
+      ];
+      for (const entityName of tenantEntities) await db[entityName].deleteMany({ workshop_id: workshopId });
+      await db.WorkshopAccess.deleteMany({ workshop_id: workshopId });
+      const members = await db.User.filter({ workshop_id: workshopId }, '-created_date', 500);
+      for (const member of members) await db.User.update(member.id, { workshop_id: '', role: 'user' });
+      await db.WorkshopSetting.delete(workshopId);
+      return Response.json({ success: true, deletedWorkshop: workshop.name || workshopId });
+    }
 
     // A workshop admin can manage only members of their own workshop.
     const employeeActions = ['listEmployees', 'inviteEmployee', 'changeEmployeeRole', 'removeEmployee'];
@@ -129,7 +163,7 @@ export default async function(req) {
       const workshop = await db.WorkshopSetting.create({
         name: body.name.trim(), razao_social: body.razao_social || '', cnpj: body.cnpj || '',
         phone: body.phone, whatsapp: body.whatsapp || '', email: body.email, address: body.address,
-        plan: 'free', plan_value: 0, fiscal_module_enabled: !!body.fiscal_module_enabled, trial_started_at: new Date().toISOString(),
+        plan: 'free', plan_value: 0, fiscal_module_enabled: !!body.fiscal_module_enabled, is_active: true, trial_started_at: new Date().toISOString(),
         default_capacity: 8, capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
         capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
       });
@@ -163,6 +197,7 @@ export default async function(req) {
           plan: w.plan || 'free',
           plan_value: w.plan_value || 0,
           fiscal_module_enabled: !!w.fiscal_module_enabled,
+          is_active: w.is_active !== false,
           is_demo: w.is_demo,
           trial_started_at: w.trial_started_at,
           created_date: w.created_date,
@@ -185,6 +220,7 @@ export default async function(req) {
           plan: 'free',
           plan_value: 0,
           fiscal_module_enabled: false,
+          is_active: false,
           is_demo: false,
           trial_started_at: null,
           created_date: user.created_date,
@@ -220,6 +256,7 @@ export default async function(req) {
         plan: plan || 'free',
         plan_value: plan_value || 0,
         fiscal_module_enabled: !!fiscal_module_enabled,
+        is_active: true,
         trial_started_at: new Date().toISOString(),
         default_capacity: 8,
         capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,

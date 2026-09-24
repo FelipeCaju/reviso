@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Users, ArrowRight, Mail, Crown, Clock, CheckCircle2, Pencil } from "lucide-react";
+import { Building2, Plus, Users, ArrowRight, Mail, Crown, Clock, CheckCircle2, Pencil, Power, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getValidationMessage } from "@/lib/workshopValidation";
 
 const PLAN_LABELS = {
@@ -49,6 +53,8 @@ export default function AdminOnboarding() {
   const [editAddress, setEditAddress] = useState("");
   const [editFiscalEnabled, setEditFiscalEnabled] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [workshopAction, setWorkshopAction] = useState(null);
+  const [processingWorkshopAction, setProcessingWorkshopAction] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -157,6 +163,44 @@ export default function AdminOnboarding() {
     }
   };
 
+  const confirmWorkshopAction = async () => {
+    if (!workshopAction?.workshop) return;
+    const { workshop, type } = workshopAction;
+    setProcessingWorkshopAction(true);
+    try {
+      if (type === "delete") {
+        await base44.functions.invoke("manageWorkshops", { action: "deleteWorkshop", workshopId: workshop.id });
+        toast({ title: "Oficina excluída", description: `${workshop.name} e seus dados foram removidos.` });
+      } else {
+        const isActive = type === "activate";
+        await base44.functions.invoke("manageWorkshops", { action: "setActive", workshopId: workshop.id, is_active: isActive });
+        toast({ title: isActive ? "Oficina ativada" : "Oficina inativada", description: workshop.name });
+      }
+      setWorkshopAction(null);
+      await loadWorkshops();
+    } catch (error) {
+      toast({ title: "Não foi possível concluir a ação", description: error.response?.data?.error || error.message, variant: "destructive" });
+    } finally {
+      setProcessingWorkshopAction(false);
+    }
+  };
+
+  const WorkshopActions = ({ workshop }) => {
+    if (workshop.isOrphan) return null;
+    const active = workshop.is_active !== false;
+    return (
+      <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+        <Button variant="ghost" size="sm" onClick={() => openEdit(workshop)}><Pencil className="w-3.5 h-3.5" /> Editar</Button>
+        <Button variant="ghost" size="sm" className={active ? "text-amber-700 hover:text-amber-800" : "text-emerald-700 hover:text-emerald-800"} onClick={() => setWorkshopAction({ workshop, type: active ? "deactivate" : "activate" })}>
+          <Power className="w-3.5 h-3.5" /> {active ? "Inativar" : "Ativar"}
+        </Button>
+        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setWorkshopAction({ workshop, type: "delete" })}>
+          <Trash2 className="w-3.5 h-3.5" /> Excluir
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
@@ -243,7 +287,7 @@ export default function AdminOnboarding() {
                 </thead>
                 <tbody>
                   {workshops.map((ws) => (
-                    <tr key={ws.id} className="border-b border-border/60 hover:bg-muted/30 cursor-pointer" onClick={() => openEdit(ws)}>
+                    <tr key={ws.id} className={`border-b border-border/60 hover:bg-muted/30 cursor-pointer ${ws.is_active === false ? "opacity-60" : ""}`} onClick={() => openEdit(ws)}>
                       <td className="py-3 pr-3">
                         {ws.isOrphan ? (
                           <>
@@ -252,7 +296,7 @@ export default function AdminOnboarding() {
                           </>
                         ) : (
                           <>
-                            <div className="font-medium">{ws.name || "—"}</div>
+                            <div className="font-medium flex items-center gap-2">{ws.name || "—"}{ws.is_active === false && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">Inativa</span>}</div>
                             {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
                           </>
                         )}
@@ -281,9 +325,7 @@ export default function AdminOnboarding() {
                         {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}` : "—"}
                       </td>
                       <td className="py-3 pl-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(ws); }}>
-                          <Pencil className="w-3.5 h-3.5" /> Editar
-                        </Button>
+                        <WorkshopActions workshop={ws} />
                       </td>
                     </tr>
                   ))}
@@ -294,7 +336,7 @@ export default function AdminOnboarding() {
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
               {workshops.map((ws) => (
-                <div key={ws.id} className="rounded-lg border border-border p-3 space-y-2" onClick={() => openEdit(ws)}>
+                <div key={ws.id} className={`rounded-lg border border-border p-3 space-y-2 ${ws.is_active === false ? "opacity-60" : ""}`} onClick={() => openEdit(ws)}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       {ws.isOrphan ? (
@@ -304,7 +346,7 @@ export default function AdminOnboarding() {
                         </>
                       ) : (
                         <>
-                          <div className="font-medium truncate">{ws.name || "—"}</div>
+                          <div className="font-medium truncate">{ws.name || "—"} {ws.is_active === false && <span className="text-xs text-amber-700">(Inativa)</span>}</div>
                           {ws.cnpj && <div className="text-xs text-muted-foreground">CNPJ: {ws.cnpj}</div>}
                         </>
                       )}
@@ -326,9 +368,7 @@ export default function AdminOnboarding() {
                       <div>{ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}/mês` : "Sem valor definido"}</div>
                       <div>Fiscal: {ws.fiscal_module_enabled ? "sim" : "não"}</div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(ws); }}>
-                      <Pencil className="w-3.5 h-3.5" /> Editar
-                    </Button>
+                    <WorkshopActions workshop={ws} />
                   </div>
                 </div>
               ))}
@@ -418,6 +458,27 @@ export default function AdminOnboarding() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!workshopAction} onOpenChange={(open) => !open && !processingWorkshopAction && setWorkshopAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{workshopAction?.type === "delete" ? "Excluir oficina definitivamente?" : workshopAction?.type === "activate" ? "Ativar oficina?" : "Inativar oficina?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {workshopAction?.type === "delete"
+                ? `A oficina ${workshopAction?.workshop?.name || "selecionada"}, todos os seus dados e vínculos de usuários serão removidos permanentemente.`
+                : workshopAction?.type === "activate"
+                  ? `A oficina ${workshopAction?.workshop?.name || "selecionada"} voltará a permitir acesso aos seus usuários.`
+                  : `A oficina ${workshopAction?.workshop?.name || "selecionada"} deixará de permitir novos acessos até ser ativada novamente.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingWorkshopAction}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmWorkshopAction} disabled={processingWorkshopAction} className={workshopAction?.type === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
+              {processingWorkshopAction ? "Processando..." : workshopAction?.type === "delete" ? "Excluir definitivamente" : workshopAction?.type === "activate" ? "Ativar oficina" : "Inativar oficina"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -137,6 +137,14 @@
         "write": false
       }
     },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Oficina Ativa",
+      "rls": {
+        "write": false
+      }
+    },
     "demo_email": {
       "type": "string",
       "title": "E-mail Demo",

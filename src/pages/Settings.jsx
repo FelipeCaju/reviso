@@ -104,7 +104,7 @@ export default function Settings() {
 
       <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
         <h2 className="font-medium">Dados da Oficina</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-1.5">
             <Label>Nome *</Label>
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
@@ -128,13 +128,14 @@ export default function Settings() {
           <div className="space-y-1.5">
             <Label>WhatsApp</Label>
             <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
-          <div className="space-y-1.5 sm:col-span-2">
+          </div>
+          <div className="space-y-1.5 md:col-span-2 xl:col-span-3">
             <Label>Endereço legado</Label>
             <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
             <p className="text-xs text-muted-foreground">Preservado para documentos antigos. Complete os campos estruturados abaixo.</p>
           </div>
           <div className="space-y-1.5"><Label>CEP</Label><Input value={form.cep} onChange={(e) => set("cep", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Logradouro</Label><Input value={form.logradouro} onChange={(e) => set("logradouro", e.target.value)} /></div>
+          <div className="space-y-1.5 md:col-span-1 xl:col-span-2"><Label>Logradouro</Label><Input value={form.logradouro} onChange={(e) => set("logradouro", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
@@ -143,8 +144,7 @@ export default function Settings() {
           <div className="space-y-1.5"><Label>Código IBGE</Label><Input value={form.codigo_ibge} onChange={(e) => set("codigo_ibge", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>País</Label><Input value={form.pais} onChange={(e) => set("pais", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Código do País</Label><Input value={form.codigo_pais} onChange={(e) => set("codigo_pais", e.target.value)} /></div>
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5 md:col-span-2 xl:col-span-3">
             <Label>Logo da Empresa</Label>
             <div className="flex items-center gap-3">
               {form.logo_url ? (

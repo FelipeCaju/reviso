@@ -33,9 +33,22 @@ test('fiscal backend enforces role, tenant, feature, validation and duplicate pr
   assert.match(source, /FISCAL_CREDENTIAL_NOT_READY/);
 });
 
-test('provider contract exposes the complete lifecycle', () => {
+test('provider contract exposes connection testing and the complete lifecycle', () => {
   const source = readFileSync(new URL('../base44/shared/fiscalProvider.ts', import.meta.url), 'utf8');
-  for (const method of ['validate', 'issue', 'query', 'cancel', 'replace', 'downloadXml', 'downloadPdf']) assert.match(source, new RegExp(`${method}\\(`));
+  for (const method of ['validate', 'testConnection', 'issue', 'query', 'cancel', 'replace', 'downloadXml', 'downloadPdf']) assert.match(source, new RegExp(`${method}\\(`));
+});
+
+test('fiscal onboarding blocks production until homologation is approved', () => {
+  const setting = entity('FiscalSetting').properties;
+  for (const field of ['nfse_serie', 'nfse_proximo_rps', 'connection_status', 'connection_tested_at', 'homologation_status', 'homologation_approved_at']) assert.ok(setting[field], field);
+  const backend = readFileSync(new URL('../base44/functions/manageFiscal/entry.ts', import.meta.url), 'utf8');
+  const screen = readFileSync(new URL('../src/pages/FiscalSettings.jsx', import.meta.url), 'utf8');
+  assert.match(backend, /FISCAL_HOMOLOGATION_REQUIRED/);
+  assert.match(backend, /action === "testConnection"/);
+  assert.match(backend, /homologationStatus === "APPROVED"/);
+  assert.match(backend, /data\.connection_status = "NOT_TESTED"/);
+  assert.match(screen, /disabled={!context\.onboarding\?\.homologationApproved}/);
+  assert.match(screen, /Preparação para emissão/);
 });
 
 test('platform owner can choose fiscal mode when creating, provisioning and editing workshops', () => {

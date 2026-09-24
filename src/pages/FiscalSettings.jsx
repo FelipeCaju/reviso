@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Landmark, Save } from "lucide-react";
+import { CheckCircle2, Circle, Landmark, PlugZap, Save } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { fiscalErrorMessage, getFiscalContext, saveFiscalSetting, saveMaterialFiscalProfile, saveServiceFiscalProfile } from "@/lib/fiscal";
+import { fiscalErrorMessage, getFiscalContext, saveFiscalSetting, saveMaterialFiscalProfile, saveServiceFiscalProfile, testFiscalConnection } from "@/lib/fiscal";
 
 const EMPTY = {
   regime_tributario: "", simples_nacional: false, mei: false, inscricao_municipal: "", inscricao_estadual: "",
   municipio_codigo_ibge: "", municipio_nome: "", uf: "", ambiente_fiscal: "homologacao", provedor_fiscal: "nao_configurado",
-  modo_emissao: "manual", codigo_servico_municipal_padrao: "", item_lista_servico_padrao: "", nbs_padrao: "",
+  modo_emissao: "manual", nfse_serie: "", nfse_proximo_rps: 1, codigo_servico_municipal_padrao: "", item_lista_servico_padrao: "", nbs_padrao: "",
   aliquota_iss_padrao: "", iss_retido_padrao: false, natureza_operacao_padrao: "", exigibilidade_padrao: "",
   contador_nome: "", contador_escritorio: "", contador_telefone: "", contador_email: "",
 };
@@ -32,6 +32,7 @@ export default function FiscalSettings() {
   const [form, setForm] = useState(EMPTY);
   const [tab, setTab] = useState("empresa");
   const [saving, setSaving] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
 
@@ -70,13 +71,30 @@ export default function FiscalSettings() {
     finally { setSaving(false); }
   };
 
+  const testConnection = async () => {
+    setTestingConnection(true);
+    try { await testFiscalConnection(); await load(); toast({ title: "Conexão fiscal validada" }); }
+    catch (error) { await load(); toast({ title: "Conexão fiscal não aprovada", description: fiscalErrorMessage(error), variant: "destructive" }); }
+    finally { setTestingConnection(false); }
+  };
+
   if (!context) return <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>;
   if (!context.workshop.fiscal_module_enabled) return <div className="rounded-xl border border-border bg-card p-6"><h1 className="text-xl font-semibold">Módulo Fiscal</h1><p className="mt-2 text-sm text-muted-foreground">O módulo fiscal não está habilitado no plano desta oficina. A operação não fiscal continua funcionando normalmente.</p></div>;
   const status = STATUS[context.configurationStatus] || STATUS.ERROR;
   const tabs = [["empresa", "Empresa"], ["tributacao", "Tributação"], ["servicos", "Serviços"], ["produtos", "Produtos/Peças"], ["emissao", "Emissão"], ["contador", "Contador"]];
+  const steps = [
+    ["Dados fiscais da empresa", context.onboarding?.companyReady],
+    ["Provedor escolhido", context.onboarding?.providerReady],
+    ["Credencial segura configurada", context.onboarding?.credentialReady],
+    ["Série e numeração definidas", context.onboarding?.numberingReady],
+    ["Conexão testada", context.onboarding?.connectionReady],
+    ["Emissão homologada", context.onboarding?.homologationApproved],
+    ["Produção habilitada", context.onboarding?.productionEnabled],
+  ];
 
   return <div className="space-y-5 max-w-5xl">
     <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl md:text-2xl font-heading font-semibold flex items-center gap-2"><Landmark className="w-5 h-5" /> Configurações fiscais</h1><p className="text-sm text-muted-foreground">Parâmetros isolados desta oficina</p></div><span className={`rounded-full px-3 py-1 text-xs font-medium ${status.color}`}>{status.label}</span></div>
+    <section className="rounded-xl border border-border bg-card p-4"><h2 className="mb-3 text-sm font-semibold">Preparação para emissão</h2><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{steps.map(([label, ready]) => <div key={label} className="flex items-center gap-2 text-sm">{ready ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Circle className="h-4 w-4 text-muted-foreground" />}<span className={ready ? "" : "text-muted-foreground"}>{label}</span></div>)}</div></section>
     <div className="flex flex-wrap gap-2 border-b border-border pb-3">{tabs.map(([key, label]) => <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}>{label}</Button>)}</div>
 
     {tab === "empresa" && <section className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
@@ -107,8 +125,11 @@ export default function FiscalSettings() {
 
     {tab === "emissao" && <section className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
       <div className="space-y-1.5"><Label>Modo de emissão</Label><Select value={form.modo_emissao} onValueChange={(v) => set("modo_emissao", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Manual</SelectItem><SelectItem value="automatica_finalizacao" disabled>Automática ao finalizar (futuro)</SelectItem></SelectContent></Select></div>
-      <div className="space-y-1.5"><Label>Ambiente</Label><Select value={form.ambiente_fiscal} onValueChange={(v) => set("ambiente_fiscal", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="homologacao">Homologação</SelectItem><SelectItem value="producao">Produção</SelectItem></SelectContent></Select></div>
+      <div className="space-y-1.5"><Label>Ambiente</Label><Select value={form.ambiente_fiscal} onValueChange={(v) => set("ambiente_fiscal", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="homologacao">Homologação</SelectItem><SelectItem value="producao" disabled={!context.onboarding?.homologationApproved}>Produção</SelectItem></SelectContent></Select>{!context.onboarding?.homologationApproved && <p className="text-xs text-muted-foreground">Produção bloqueada até uma emissão ser autorizada em homologação.</p>}</div>
       <div className="space-y-1.5 sm:col-span-2"><Label>Provedor fiscal</Label><Select value={form.provedor_fiscal} onValueChange={(v) => set("provedor_fiscal", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nao_configurado">Não configurado</SelectItem></SelectContent></Select><p className="text-xs text-amber-700">O adaptador real será disponibilizado após escolha e homologação do provedor. Nenhum segredo é armazenado nesta tela.</p></div>
+      <Field label="Série da NFS-e/RPS" value={form.nfse_serie} onChange={(v) => set("nfse_serie", v)} />
+      <Field label="Próximo número de RPS" type="number" value={form.nfse_proximo_rps} onChange={(v) => set("nfse_proximo_rps", v === "" ? "" : Number(v))} />
+      <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-lg border border-border p-3"><div><div className="text-sm font-medium">Conexão com o provedor</div><div className="text-xs text-muted-foreground">{form.connection_status === "CONNECTED" ? `Validada${form.connection_tested_at ? ` em ${new Date(form.connection_tested_at).toLocaleString("pt-BR")}` : ""}` : form.connection_status === "ERROR" ? "Falhou no último teste" : "Ainda não testada"}</div></div><Button type="button" variant="outline" onClick={testConnection} disabled={testingConnection || form.provedor_fiscal === "nao_configurado"}><PlugZap className="mr-2 h-4 w-4" />{testingConnection ? "Testando..." : "Testar conexão"}</Button></div>
     </section>}
 
     {tab === "contador" && <section className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4"><Field label="Nome" value={form.contador_nome} onChange={(v) => set("contador_nome", v)} /><Field label="Escritório" value={form.contador_escritorio} onChange={(v) => set("contador_escritorio", v)} /><Field label="Telefone" value={form.contador_telefone} onChange={(v) => set("contador_telefone", v)} /><Field label="E-mail" value={form.contador_email} onChange={(v) => set("contador_email", v)} /></section>}

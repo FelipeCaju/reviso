@@ -10,6 +10,11 @@ export async function saveFiscalSetting(data) {
   return response.data;
 }
 
+export async function testFiscalConnection() {
+  const response = await base44.functions.invoke("manageFiscal", { action: "testConnection" });
+  return response.data;
+}
+
 export async function saveServiceFiscalProfile(data) {
   const response = await base44.functions.invoke("manageFiscal", { action: "saveServiceProfile", data });
   return response.data;

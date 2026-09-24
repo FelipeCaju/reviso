@@ -65,6 +65,12 @@ Legenda: `[x]` concluído e verificado; `[ ]` pendente; `[!]` depende de decisã
 
 ## Fase 7 — Emissão real
 
+- [x] Criar checklist operacional por oficina.
+- [x] Configurar série e próximo RPS por oficina.
+- [x] Criar contrato e ação genérica de teste de conexão.
+- [x] Bloquear produção até uma emissão autorizada em homologação.
+- [x] Reiniciar conexão/homologação ao trocar de provedor.
+- [x] Documentar decisões por responsável em `DECISOES-PENDENTES-EMISSAO-FISCAL.md`.
 - [!] Escolher provedor/API e obter documentação/credenciais de homologação.
 - [!] Confirmar regras tributárias com a contadora.
 - [!] Configurar cofre de segredos/certificado por oficina.

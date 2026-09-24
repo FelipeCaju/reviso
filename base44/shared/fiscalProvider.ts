@@ -6,6 +6,7 @@ export type FiscalProviderContext = {
 
 export interface FiscalProvider {
   validate(context: FiscalProviderContext): Promise<{ errors: string[]; warnings: string[] }>;
+  testConnection(context: FiscalProviderContext): Promise<Record<string, unknown>>;
   issue(context: FiscalProviderContext): Promise<Record<string, unknown>>;
   query(externalId: string): Promise<Record<string, unknown>>;
   cancel(externalId: string, reason: string): Promise<Record<string, unknown>>;
@@ -27,6 +28,7 @@ class UnconfiguredFiscalProvider implements FiscalProvider {
   }
 
   async issue(): Promise<Record<string, unknown>> { return this.unavailable(); }
+  async testConnection(): Promise<Record<string, unknown>> { return this.unavailable(); }
   async query(): Promise<Record<string, unknown>> { return this.unavailable(); }
   async cancel(): Promise<Record<string, unknown>> { return this.unavailable(); }
   async replace(): Promise<Record<string, unknown>> { return this.unavailable(); }

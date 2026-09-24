@@ -55,6 +55,8 @@ async function buildPreview(db: any, workshop: any, setting: any, workOrderId: s
   if (setting && !cleanText(setting.inscricao_municipal)) errors.push("A inscrição municipal não foi informada.");
   if (setting && !cleanText(setting.regime_tributario)) errors.push("O regime tributário não foi informado.");
   if (setting && (!cleanText(setting.provedor_fiscal) || setting.provedor_fiscal === "nao_configurado")) errors.push("O provedor fiscal ainda não foi configurado.");
+  if (setting && !cleanText(setting.nfse_serie)) errors.push("A série da NFS-e/RPS não foi informada.");
+  if (setting && (!Number.isInteger(Number(setting.nfse_proximo_rps)) || Number(setting.nfse_proximo_rps) < 1)) errors.push("O próximo número de RPS é inválido.");
 
   const workOrder = await db.WorkOrder.get(workOrderId);
   if (!workOrder?.id || workOrder.workshop_id !== workshop.id) throw Object.assign(new Error("Ordem de Serviço não encontrada."), { status: 404 });
@@ -131,19 +133,63 @@ export default async function(req: Request) {
         db.FiscalCredential.filter({ workshop_id: workshop.id }, "-updated_date", 20),
         db.FiscalDocument.filter({ workshop_id: workshop.id }, "-created_date", 500),
       ]);
-      const status = !workshop.fiscal_module_enabled ? "DISABLED" : setting && setting.inscricao_municipal && setting.regime_tributario && setting.provedor_fiscal !== "nao_configurado" && workshop.cnpj && workshop.codigo_ibge ? "READY" : "INCOMPLETE";
-      return Response.json({ workshop, setting, serviceProfiles, materialProfiles, credentials, documents, configurationStatus: status });
+      const companyReady = !!(setting?.inscricao_municipal && setting?.regime_tributario && workshop.cnpj && workshop.codigo_ibge);
+      const providerReady = !!(setting?.provedor_fiscal && setting.provedor_fiscal !== "nao_configurado");
+      const activeCredentials = credentials.filter((credential: any) => credential.provider === setting?.provedor_fiscal && credential.status === "ativa");
+      const credentialReady = activeCredentials.length === 1;
+      const numberingReady = !!(setting?.nfse_serie && Number.isInteger(Number(setting?.nfse_proximo_rps)) && Number(setting?.nfse_proximo_rps) >= 1);
+      const connectionReady = setting?.connection_status === "CONNECTED";
+      const homologationApproved = setting?.homologation_status === "APPROVED";
+      const status = !workshop.fiscal_module_enabled ? "DISABLED" : companyReady && providerReady && credentialReady && numberingReady && connectionReady ? "READY" : "INCOMPLETE";
+      const onboarding = {
+        companyReady,
+        providerReady,
+        credentialReady,
+        numberingReady,
+        connectionReady,
+        homologationApproved,
+        productionEnabled: setting?.ambiente_fiscal === "producao" && homologationApproved,
+      };
+      return Response.json({ workshop, setting, serviceProfiles, materialProfiles, credentials, documents, configurationStatus: status, onboarding });
     }
 
-    if (!workshop.fiscal_module_enabled && ["saveSetting", "saveServiceProfile", "saveMaterialProfile", "preview", "validate", "issue", "replace"].includes(action)) {
+    if (!workshop.fiscal_module_enabled && ["saveSetting", "saveServiceProfile", "saveMaterialProfile", "testConnection", "preview", "validate", "issue", "replace"].includes(action)) {
       return Response.json({ error: "O módulo fiscal não está habilitado para esta oficina.", code: "FISCAL_MODULE_DISABLED" }, { status: 403 });
     }
 
     if (action === "saveSetting") {
-      const allowed = ["regime_tributario", "simples_nacional", "mei", "inscricao_municipal", "inscricao_estadual", "municipio_codigo_ibge", "municipio_nome", "uf", "ambiente_fiscal", "provedor_fiscal", "modo_emissao", "codigo_servico_municipal_padrao", "item_lista_servico_padrao", "nbs_padrao", "aliquota_iss_padrao", "iss_retido_padrao", "natureza_operacao_padrao", "exigibilidade_padrao", "contador_nome", "contador_escritorio", "contador_telefone", "contador_email"];
+      if (body.data?.ambiente_fiscal === "producao" && setting?.homologation_status !== "APPROVED") {
+        return Response.json({ error: "A produção só pode ser ativada depois de uma emissão autorizada em homologação.", code: "FISCAL_HOMOLOGATION_REQUIRED" }, { status: 409 });
+      }
+      const allowed = ["regime_tributario", "simples_nacional", "mei", "inscricao_municipal", "inscricao_estadual", "municipio_codigo_ibge", "municipio_nome", "uf", "ambiente_fiscal", "provedor_fiscal", "modo_emissao", "nfse_serie", "nfse_proximo_rps", "codigo_servico_municipal_padrao", "item_lista_servico_padrao", "nbs_padrao", "aliquota_iss_padrao", "iss_retido_padrao", "natureza_operacao_padrao", "exigibilidade_padrao", "contador_nome", "contador_escritorio", "contador_telefone", "contador_email"];
       const data = Object.fromEntries(allowed.filter((key) => body.data?.[key] !== undefined).map((key) => [key, body.data[key]]));
+      if (data.nfse_proximo_rps !== undefined && (!Number.isInteger(Number(data.nfse_proximo_rps)) || Number(data.nfse_proximo_rps) < 1)) {
+        return Response.json({ error: "O próximo RPS deve ser um número inteiro maior que zero.", code: "INVALID_RPS_NUMBER" }, { status: 422 });
+      }
+      if (data.provedor_fiscal !== undefined && data.provedor_fiscal !== setting?.provedor_fiscal) {
+        data.connection_status = "NOT_TESTED";
+        data.homologation_status = "NOT_STARTED";
+        data.ambiente_fiscal = "homologacao";
+      }
       const result = setting ? await db.FiscalSetting.update(setting.id, data) : await db.FiscalSetting.create({ ...data, workshop_id: workshop.id });
       return Response.json({ success: true, setting: result });
+    }
+
+    if (action === "testConnection") {
+      if (!setting?.provedor_fiscal || setting.provedor_fiscal === "nao_configurado") {
+        return Response.json({ error: "Escolha um provedor fiscal antes de testar a conexão.", code: "FISCAL_PROVIDER_NOT_CONFIGURED" }, { status: 409 });
+      }
+      const credentials = await db.FiscalCredential.filter({ workshop_id: workshop.id, provider: setting.provedor_fiscal, status: "ativa" }, "-updated_date", 2);
+      if (credentials.length !== 1) return Response.json({ error: "A credencial fiscal segura não está configurada ou está duplicada.", code: "FISCAL_CREDENTIAL_NOT_READY" }, { status: 409 });
+      const provider = createFiscalProvider(setting.provedor_fiscal);
+      try {
+        const result = await provider.testConnection({ document: {}, items: [], credentialReference: credentials[0].credential_reference });
+        const updated = await db.FiscalSetting.update(setting.id, { connection_status: "CONNECTED", connection_tested_at: new Date().toISOString() });
+        return Response.json({ success: true, setting: updated, result });
+      } catch (connectionError) {
+        await db.FiscalSetting.update(setting.id, { connection_status: "ERROR", connection_tested_at: new Date().toISOString() }).catch(() => {});
+        throw connectionError;
+      }
     }
 
     if (action === "saveServiceProfile" || action === "saveMaterialProfile") {
@@ -169,6 +215,8 @@ export default async function(req: Request) {
     }
 
     if (action === "issue") {
+      if (setting?.connection_status !== "CONNECTED") return Response.json({ error: "Teste e aprove a conexão com o provedor antes de emitir.", code: "FISCAL_CONNECTION_REQUIRED" }, { status: 409 });
+      if (setting?.ambiente_fiscal === "producao" && setting?.homologation_status !== "APPROVED") return Response.json({ error: "A emissão em produção exige homologação aprovada.", code: "FISCAL_HOMOLOGATION_REQUIRED" }, { status: 409 });
       const preview = await buildPreview(db, workshop, setting, cleanText(body.workOrderId));
       if (!preview.ready) return Response.json({ error: "Documento fiscal inválido.", ...preview }, { status: 422 });
       const existing = await db.FiscalDocument.filter({ workshop_id: workshop.id, source_type: "WORK_ORDER", source_id: preview.workOrder.id }, "-created_date", 20);
@@ -178,14 +226,14 @@ export default async function(req: Request) {
       const provider = createFiscalProvider(setting.provedor_fiscal);
       const credentials = await db.FiscalCredential.filter({ workshop_id: workshop.id, provider: setting.provedor_fiscal, status: "ativa" }, "-updated_date", 2);
       if (credentials.length !== 1) return Response.json({ error: "A credencial fiscal segura não está configurada ou está duplicada.", code: "FISCAL_CREDENTIAL_NOT_READY" }, { status: 409 });
-      const providerContext = { document: { source_id: preview.workOrder.id, competence_date: body.competenceDate || today() }, items: preview.items, credentialReference: credentials[0].credential_reference };
+      const providerContext = { document: { source_id: preview.workOrder.id, competence_date: body.competenceDate || today(), series: setting.nfse_serie || "", rps_number: Number(setting.nfse_proximo_rps || 1) }, items: preview.items, credentialReference: credentials[0].credential_reference };
       const providerValidation = await provider.validate(providerContext);
       if (providerValidation.errors.length) return Response.json({ error: providerValidation.errors[0], code: "FISCAL_PROVIDER_NOT_READY" }, { status: 409 });
 
       const document = await db.FiscalDocument.create({
         workshop_id: workshop.id, direction: "OUTBOUND", document_type: "NFSE", source_type: "WORK_ORDER", source_id: preview.workOrder.id,
         customer_id: preview.customer?.id || "", status: "READY", competence_date: body.competenceDate || today(),
-        provider: setting.provedor_fiscal, environment: setting.ambiente_fiscal || "homologacao",
+        provider: setting.provedor_fiscal, environment: setting.ambiente_fiscal || "homologacao", series: setting.nfse_serie || "",
         total_services: preview.totals.services, total_products: preview.totals.products, discount: 0, deductions: 0,
         total_document: preview.totals.services,
         issuer_snapshot: { name: workshop.name, razao_social: workshop.razao_social, cnpj: workshop.cnpj, phone: workshop.phone, email: workshop.email, cep: workshop.cep, logradouro: workshop.logradouro, numero: workshop.numero, complemento: workshop.complemento, bairro: workshop.bairro, cidade: workshop.cidade, uf: workshop.uf, codigo_ibge: workshop.codigo_ibge, pais: workshop.pais, codigo_pais: workshop.codigo_pais },
@@ -206,6 +254,13 @@ export default async function(req: Request) {
           xml_url: result.xml_url || "", pdf_url: result.pdf_url || "", public_url: result.public_url || "",
         });
         await db.FiscalDocumentEvent.create({ workshop_id: workshop.id, fiscal_document_id: document.id, event_type: finalStatus === "AUTHORIZED" ? "AUTHORIZED" : "PROCESSING", status: finalStatus, provider: setting.provedor_fiscal, request_id: result.request_id || "", protocol: result.protocol || "", created_by: user.email || user.id });
+        if ((setting.ambiente_fiscal || "homologacao") === "homologacao") {
+          const homologationStatus = finalStatus === "AUTHORIZED" ? "APPROVED" : finalStatus === "REJECTED" ? "REJECTED" : "PENDING";
+          await db.FiscalSetting.update(setting.id, {
+            homologation_status: homologationStatus,
+            ...(homologationStatus === "APPROVED" ? { homologation_approved_at: new Date().toISOString() } : {}),
+          });
+        }
         return Response.json({ success: true, document: updated });
       } catch (providerError) {
         const failure = safeError(providerError);

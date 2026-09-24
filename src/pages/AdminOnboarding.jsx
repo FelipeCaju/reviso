@@ -274,15 +274,24 @@ export default function AdminOnboarding() {
             {/* Desktop table */}
             <div className="hidden md:block">
               <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[19%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[11%]" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-3 font-medium">Oficina</th>
                     <th className="py-2 px-3 font-medium">Proprietário</th>
                     <th className="py-2 px-3 font-medium">Contato</th>
-                    <th className="py-2 px-3 font-medium">Plano</th>
-                    <th className="py-2 px-3 font-medium">Fiscal</th>
-                    <th className="py-2 px-3 font-medium">Valor</th>
-                    <th className="py-2 pl-3 font-medium text-right">Ações</th>
+                    <th className="whitespace-nowrap py-2 px-2 font-medium">Plano</th>
+                    <th className="whitespace-nowrap py-2 px-2 font-medium">Fiscal</th>
+                    <th className="whitespace-nowrap py-2 px-2 font-medium">Valor</th>
+                    <th className="whitespace-nowrap py-2 pl-2 font-medium text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,16 +324,16 @@ export default function AdminOnboarding() {
                         {ws.phone && <div className="text-xs">{ws.phone}</div>}
                         {ws.email && <div className="text-xs text-muted-foreground">{ws.email}</div>}
                       </td>
-                      <td className="py-3 px-3"><PlanBadge plan={ws.plan} /></td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-2"><PlanBadge plan={ws.plan} /></td>
+                      <td className="py-3 px-2">
                         <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${ws.fiscal_module_enabled ? "border-blue-200 bg-blue-100 text-blue-700" : "border-border bg-muted text-muted-foreground"}`}>
                           {ws.fiscal_module_enabled ? "Sim" : "Não"}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-sm">
+                      <td className="whitespace-nowrap py-3 px-2 text-sm">
                         {ws.plan_value > 0 ? `R$ ${ws.plan_value.toFixed(2)}` : "—"}
                       </td>
-                      <td className="py-3 pl-3 text-right">
+                      <td className="py-3 pl-2 text-right">
                         <WorkshopActions workshop={ws} />
                       </td>
                     </tr>

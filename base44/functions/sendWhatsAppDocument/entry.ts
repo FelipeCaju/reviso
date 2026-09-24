@@ -51,7 +51,7 @@ export default async function(req: Request) {
     const greeting = recipientName ? `Olá, ${recipientName}!` : 'Olá!';
     const referenceText = reference ? ` #${reference}` : '';
     const caption = `${greeting}\n\nAqui é ${workshop.name || 'a oficina'}.\nSegue ${labels[documentType]}${referenceText} para sua análise.\n\nFicamos à disposição.`;
-    const response = await fetch(`https://api.z-api.io/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(instanceToken)}/send-document`, {
+    const response = await fetch(`https://api.z-api.io/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(instanceToken)}/send-document/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
       body: JSON.stringify({ phone, document: documentUrl, fileName, caption }),

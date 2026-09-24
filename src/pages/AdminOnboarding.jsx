@@ -189,7 +189,7 @@ export default function AdminOnboarding() {
     if (workshop.isOrphan) return null;
     const active = workshop.is_active !== false;
     return (
-      <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+      <div className="flex flex-wrap items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
         <Button variant="ghost" size="sm" onClick={() => openEdit(workshop)}><Pencil className="w-3.5 h-3.5" /> Editar</Button>
         <Button variant="ghost" size="sm" className={active ? "text-amber-700 hover:text-amber-800" : "text-emerald-700 hover:text-emerald-800"} onClick={() => setWorkshopAction({ workshop, type: active ? "deactivate" : "activate" })}>
           <Power className="w-3.5 h-3.5" /> {active ? "Inativar" : "Ativar"}
@@ -202,7 +202,7 @@ export default function AdminOnboarding() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl font-heading font-semibold flex items-center gap-2">
           <Building2 className="w-5 h-5 text-primary" /> Gestão de Oficinas
@@ -272,8 +272,8 @@ export default function AdminOnboarding() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="hidden md:block">
+              <table className="w-full table-fixed text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-3 font-medium">Oficina</th>

@@ -96,7 +96,7 @@ export default function Settings() {
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl font-heading font-semibold">Configurações</h1>
         <p className="text-sm text-muted-foreground">Dados da oficina e capacidade da agenda</p>

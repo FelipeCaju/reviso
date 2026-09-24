@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Search, Truck, Loader2 } from "lucide-react";
+import { Plus, Search, Truck, Loader2, ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -142,26 +142,24 @@ export default function Suppliers() {
           <p className="text-sm">Nenhum fornecedor cadastrado.</p>
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
           {filtered.map((s) => (
             <button
               key={s.id}
               onClick={() => navigate(`/fornecedores/${s.id}`)}
-              className="text-left rounded-xl border border-border bg-card p-4 hover:shadow-md transition"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{s.name}</div>
-                  {s.fantasy_name && <div className="text-xs text-muted-foreground truncate">{s.fantasy_name}</div>}
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {[s.contact_name, s.phone, s.city].filter(Boolean).join(" · ") || "—"}
-                  </div>
-                </div>
-                <span onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-1.5 rounded hover:bg-accent shrink-0">
-                  <Pencil className="w-4 h-4 text-muted-foreground" />
-                </span>
+              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center font-semibold text-sm shrink-0">
+                {(s.name || "?").charAt(0).toUpperCase()}
               </div>
-              {!s.active && <div className="mt-2 text-xs text-muted-foreground">Inativo</div>}
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate">{s.name}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {[s.phone || s.whatsapp, s.cpf_cnpj].filter(Boolean).join(" · ") || "—"}
+                </div>
+              </div>
+              {!s.active && <span className="text-xs text-muted-foreground">Inativo</span>}
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             </button>
           ))}
         </div>

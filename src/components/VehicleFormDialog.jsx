@@ -27,10 +27,12 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
   const [form, setForm] = useState(EMPTY);
   const [customers, setCustomers] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (open) {
       setForm({ ...EMPTY, plate: prePlate || "", current_owner_id: preOwner || "" });
+      setErrors({});
       (async () => {
         try {
           const cs = await base44.entities.Customer.list("-updated_date", 500);
@@ -45,12 +47,16 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
   const save = async () => {
     const plate = normalizePlate(form.plate);
     if (!plate) {
+      setErrors({ plate: "Informe a placa do veículo." });
       toast({ title: "Informe a placa", variant: "destructive" });
       return;
     }
+    setErrors({});
     setSaving(true);
     try {
       const payload = { ...form, plate };
+      if (payload.year_manufacture === "") delete payload.year_manufacture;
+      if (payload.year_model === "") delete payload.year_model;
       const saved = await base44.entities.Vehicle.create(withWorkshop(payload));
       if (form.current_owner_id) {
         await base44.entities.VehicleOwner.create(withWorkshop({
@@ -63,6 +69,12 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
       }
       onOpenChange?.(false);
       onSaved?.(saved);
+    } catch (error) {
+      toast({
+        title: "Não foi possível salvar o veículo",
+        description: error.response?.data?.error || error.message || "Revise os dados informados.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -88,7 +100,14 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
           </div>
           <div className="space-y-1.5">
             <Label>Placa *</Label>
-            <Input value={form.plate} onChange={(e) => set("plate", e.target.value.toUpperCase())} placeholder="ABC1D23" />
+            <Input
+              value={form.plate}
+              onChange={(e) => { set("plate", e.target.value.toUpperCase()); setErrors((current) => ({ ...current, plate: "" })); }}
+              placeholder="ABC1D23"
+              aria-invalid={!!errors.plate}
+              className={errors.plate ? "border-destructive" : ""}
+            />
+            {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
           </div>
           <div className="space-y-1.5"><Label>Marca</Label>
             <Input value={form.brand} onChange={(e) => set("brand", e.target.value)} /></div>
@@ -136,7 +155,7 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-          <Button onClick={save} disabled={saving || !form.plate.trim()}>
+          <Button onClick={save} disabled={saving}>
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>

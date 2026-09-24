@@ -4,7 +4,7 @@
   "properties": {
     "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
     "fiscal_document_id": { "type": "string", "title": "Documento Fiscal" },
-    "event_type": { "type": "string", "enum": ["CREATED", "VALIDATION_ERROR", "SENT", "PROCESSING", "AUTHORIZED", "REJECTED", "CANCELED", "REPLACED", "RETRY", "QUERY", "ERROR"], "title": "Tipo do Evento" },
+    "event_type": { "type": "string", "enum": ["CREATED", "XML_IMPORTED", "XML_LINKED", "VALIDATION_ERROR", "REGISTERED", "STOCK_PROCESSED", "FINANCIAL_CREATED", "SENT", "PROCESSING", "AUTHORIZED", "REJECTED", "CANCELED", "REPLACED", "RETRY", "QUERY", "ERROR"], "title": "Tipo do Evento" },
     "status": { "type": "string", "title": "Status" },
     "provider": { "type": "string", "title": "Provedor" },
     "request_id": { "type": "string", "title": "ID da Requisição" },

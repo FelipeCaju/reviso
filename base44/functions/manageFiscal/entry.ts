@@ -172,7 +172,7 @@ export default async function(req: Request) {
       const preview = await buildPreview(db, workshop, setting, cleanText(body.workOrderId));
       if (!preview.ready) return Response.json({ error: "Documento fiscal inválido.", ...preview }, { status: 422 });
       const existing = await db.FiscalDocument.filter({ workshop_id: workshop.id, source_type: "WORK_ORDER", source_id: preview.workOrder.id }, "-created_date", 20);
-      if (existing.some((doc: any) => !["REJECTED", "ERROR"].includes(doc.status))) {
+      if (existing.some((doc: any) => doc.direction !== "INBOUND" && !["REJECTED", "ERROR"].includes(doc.status))) {
         return Response.json({ error: "Esta Ordem de Serviço já possui documento fiscal ativo." }, { status: 409 });
       }
       const provider = createFiscalProvider(setting.provedor_fiscal);
@@ -183,7 +183,7 @@ export default async function(req: Request) {
       if (providerValidation.errors.length) return Response.json({ error: providerValidation.errors[0], code: "FISCAL_PROVIDER_NOT_READY" }, { status: 409 });
 
       const document = await db.FiscalDocument.create({
-        workshop_id: workshop.id, document_type: "NFSE", source_type: "WORK_ORDER", source_id: preview.workOrder.id,
+        workshop_id: workshop.id, direction: "OUTBOUND", document_type: "NFSE", source_type: "WORK_ORDER", source_id: preview.workOrder.id,
         customer_id: preview.customer?.id || "", status: "READY", competence_date: body.competenceDate || today(),
         provider: setting.provedor_fiscal, environment: setting.ambiente_fiscal || "homologacao",
         total_services: preview.totals.services, total_products: preview.totals.products, discount: 0, deductions: 0,

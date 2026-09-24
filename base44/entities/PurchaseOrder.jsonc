@@ -92,6 +92,10 @@
     "receipt_notes": {
       "type": "string",
       "title": "Observa\u00e7\u00f5es do Recebimento"
+    },
+    "receipt_processing_token": {
+      "type": "string",
+      "title": "Bloqueio de Processamento do Recebimento"
     }
   },
   "required": [

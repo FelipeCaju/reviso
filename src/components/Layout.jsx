@@ -24,6 +24,7 @@ import {
   LifeBuoy,
   Landmark,
   FileCheck2,
+  FileInput,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,8 @@ const NAV = [
   { to: "/despesas", label: "Despesas", icon: Receipt, roles: ["admin"] },
   { to: "/financeiro", label: "Financeiro", icon: Wallet, roles: ["admin"] },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
-  { to: "/documentos-fiscais", label: "Documentos Fiscais", icon: FileCheck2, roles: ["admin"], fiscal: true },
+  { to: "/documentos-fiscais", label: "Documentos de Saída", icon: FileCheck2, roles: ["admin"], fiscal: true, end: true },
+  { to: "/documentos-fiscais/entrada", label: "Documentos de Entrada", icon: FileInput, roles: ["admin"], fiscal: true },
 ];
 
 const NAV_SECONDARY = [

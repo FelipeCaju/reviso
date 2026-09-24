@@ -387,7 +387,7 @@ export default function PurchaseRequestEditor() {
         }));
         await base44.entities.PurchaseOrderItem.bulkCreate(orderItems);
 
-        // Update SupplierMaterial last price + Material stock
+        // Update SupplierMaterial price history. Stock moves only when receiving the order.
         for (const it of supItems) {
           if (it.material_id) {
             const existing = await base44.entities.SupplierMaterial.filter({ supplier_id: supId, material_id: it.material_id });
@@ -405,13 +405,6 @@ export default function PurchaseRequestEditor() {
                 active: true,
               }));
             }
-            // Update Material cost + stock
-            const mat = materials.find((m) => m.id === it.material_id);
-            const currentStock = mat?.stock || 0;
-            await base44.entities.Material.update(it.material_id, {
-              cost: it.selected_unit_price,
-              stock: currentStock + (it.quantity || 0),
-            });
           }
         }
 

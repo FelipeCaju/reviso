@@ -1,0 +1,26 @@
+{
+  "name": "StockMovement",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "material_id": { "type": "string", "title": "Material" },
+    "type": { "type": "string", "enum": ["PURCHASE_ENTRY", "FISCAL_ENTRY", "ADJUSTMENT_IN", "ADJUSTMENT_OUT"], "title": "Tipo" },
+    "quantity": { "type": "number", "title": "Quantidade" },
+    "unit_cost": { "type": "number", "default": 0, "title": "Custo Unitário" },
+    "previous_stock": { "type": "number", "title": "Saldo Anterior" },
+    "resulting_stock": { "type": "number", "title": "Saldo Resultante" },
+    "source_type": { "type": "string", "enum": ["FISCAL_DOCUMENT", "PURCHASE_ORDER", "MANUAL_ADJUSTMENT"], "title": "Tipo da Origem" },
+    "source_id": { "type": "string", "title": "ID da Origem" },
+    "source_item_id": { "type": "string", "title": "Item da Origem" },
+    "occurred_at": { "type": "string", "format": "date-time", "title": "Data da Movimentação" },
+    "created_by": { "type": "string", "title": "Criado por" },
+    "notes": { "type": "string", "title": "Observações" }
+  },
+  "required": ["workshop_id", "material_id", "type", "quantity", "source_type", "source_id", "source_item_id", "occurred_at"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { markPurchaseOrderPaid } from "@/lib/finance";
 import { toast } from "@/components/ui/use-toast";
+import { receivePurchaseOrder } from "@/lib/inboundFiscal";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
@@ -73,14 +74,9 @@ export default function PurchaseOrders() {
 
   const markReceived = async (order) => {
     try {
-      await base44.entities.PurchaseOrder.update(order.id, { status: "recebido", received_date: new Date().toISOString() });
-      // Marcar todos os itens como recebidos
-      const orderItems = items.filter((i) => i.order_id === order.id);
-      if (orderItems.length) {
-        await base44.entities.PurchaseOrderItem.bulkUpdate(orderItems.map((i) => ({ id: i.id, received: true, received_quantity: i.quantity })));
-      }
+      await receivePurchaseOrder(order.id);
       await load();
-      toast({ title: "Pedido marcado como recebido" });
+      toast({ title: "Pedido recebido e estoque movimentado" });
     } catch (e) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }

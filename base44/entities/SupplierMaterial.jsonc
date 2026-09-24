@@ -15,6 +15,18 @@
       "type": "string",
       "title": "Material"
     },
+    "supplier_product_code": {
+      "type": "string",
+      "title": "Código do Produto no Fornecedor"
+    },
+    "supplier_description": {
+      "type": "string",
+      "title": "Descrição no Fornecedor"
+    },
+    "supplier_gtin": {
+      "type": "string",
+      "title": "GTIN/EAN no Fornecedor"
+    },
     "last_price": {
       "type": "number",
       "default": 0,

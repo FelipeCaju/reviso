@@ -14,7 +14,7 @@ OPERAÇÃO → CLASSIFICAÇÃO → VALIDAÇÃO → DOCUMENTO FISCAL → PROVEDOR
 
 - `WorkOrder` permanece operacional e nunca é transformada em nota.
 - `Payment` não dispara emissão automaticamente.
-- `FiscalDocument` é genérico; inicialmente aceita apenas `NFSE`.
+- `FiscalDocument` é genérico e distingue `INBOUND`/`OUTBOUND`, `NFE`/`NFSE` e origem manual/XML/OS.
 - Documentos guardam snapshots do prestador, tomador, configuração e itens.
 - Dados autorizados não dependem da versão atual dos cadastros.
 - Segredos não são persistidos nas entidades Base44.
@@ -41,6 +41,8 @@ OPERAÇÃO → CLASSIFICAÇÃO → VALIDAÇÃO → DOCUMENTO FISCAL → PROVEDOR
 - `FiscalDocument`: estado, origem, totais, identificadores externos, snapshots e artefatos.
 - `FiscalDocumentItem`: snapshot imutável dos itens fiscais.
 - `FiscalDocumentEvent`: trilha append-only de criação, envio, autorização, erro, consulta, cancelamento e substituição.
+- `StockMovement`: razão de estoque por material e item de origem, usada por recebimentos fiscais e pedidos de compra.
+- `FiscalOperationLock`: bloqueio curto e server-only para serializar estoque, financeiro e recebimentos concorrentes.
 
 ## Relacionamentos
 
@@ -61,8 +63,11 @@ erDiagram
   WorkOrder ||--o{ WorkOrderItem : contem
   WorkOrder ||--o{ Payment : recebe
   WorkOrder ||--o{ FiscalDocument : origina
+  Supplier ||--o{ FiscalDocument : fornece
   FiscalDocument ||--o{ FiscalDocumentItem : contem
   FiscalDocument ||--o{ FiscalDocumentEvent : registra
+  FiscalDocumentItem ||--o| StockMovement : movimenta
+  FiscalDocument ||--o| Expense : gera_opcionalmente
 ```
 
 ## Hierarquia de configuração de serviços
@@ -84,6 +89,17 @@ Configuração:
 Documento:
 
 - `DRAFT`, `VALIDATION_ERROR`, `READY`, `SENT`, `PROCESSING`, `AUTHORIZED`, `REJECTED`, `CANCELED`, `REPLACED`, `ERROR`.
+- Entradas também usam `REGISTERED`, `PARTIALLY_PROCESSED` e `PROCESSED`.
+
+## Documentos de entrada
+
+- NF-e e NFS-e recebidas usam as mesmas entidades documentais das saídas.
+- XML é interpretado no backend, confrontado com o CNPJ da oficina e armazenado de forma privada somente após confirmação.
+- Duplicidade usa a chave de acesso; sem chave, usa oficina, tipo, fornecedor e número.
+- Fornecedor e material nunca são criados automaticamente.
+- Estoque e conta a pagar são ações explícitas e independentes do registro fiscal.
+- `StockMovement` impede repetição e preserva saldo anterior e resultante.
+- `Expense` representa a obrigação; `FinancialTransaction` continua representando o pagamento efetivo.
 
 ## Validação
 

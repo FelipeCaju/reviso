@@ -63,7 +63,7 @@ export default async function(req) {
       // unlinked, so it cannot access or restore this workshop after deletion.
       const tenantEntities = [
         'Appointment', 'AppointmentHistory', 'Customer', 'Expense', 'FinancialTransaction',
-        'FiscalCredential', 'FiscalDocument', 'FiscalDocumentEvent', 'FiscalDocumentItem', 'FiscalSetting',
+        'FiscalCredential', 'FiscalDocument', 'FiscalDocumentEvent', 'FiscalDocumentItem', 'FiscalOperationLock', 'FiscalSetting',
         'Material', 'MaterialFiscalProfile', 'Payment', 'PurchaseOrder', 'PurchaseOrderItem',
         'PurchaseRequest', 'PurchaseRequestItem', 'Quote', 'QuoteItem', 'Service',
         'ServiceFiscalProfile', 'StockMovement', 'Supplier', 'SupplierMaterial', 'Vehicle',

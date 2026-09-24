@@ -51,3 +51,41 @@ test('platform owner can choose fiscal mode when creating, provisioning and edit
   assert.match(screen, /fiscal_module_enabled: editFiscalEnabled/);
 });
 
+test('inbound fiscal documents reuse the fiscal core and keep stock auditable', () => {
+  const document = entity('FiscalDocument');
+  const item = entity('FiscalDocumentItem');
+  const movement = entity('StockMovement');
+  assert.deepEqual(document.properties.direction.enum, ['INBOUND', 'OUTBOUND']);
+  assert.ok(document.properties.document_type.enum.includes('NFE'));
+  assert.ok(document.properties.source_type.enum.includes('XML'));
+  assert.ok(document.properties.xml_file_uri);
+  assert.ok(item.properties.material_id);
+  assert.ok(item.properties.track_stock);
+  assert.ok(movement.required.includes('source_item_id'));
+  for (const op of ['create', 'update', 'delete']) {
+    assert.ok(movement.rls[op].$and.some((rule) => rule.user_condition?.email === '__server_only__'));
+  }
+});
+
+test('inbound backend validates recipient, duplicates and idempotent side effects', () => {
+  const source = readFileSync(new URL('../base44/functions/manageInboundFiscal/entry.ts', import.meta.url), 'utf8');
+  assert.match(source, /RECIPIENT_MISMATCH/);
+  assert.match(source, /DUPLICATE_DOCUMENT/);
+  assert.match(source, /source_item_id: item\.id/);
+  assert.match(source, /stock_processed_at/);
+  assert.match(source, /fiscal_document_id: document\.id/);
+  assert.match(source, /UploadPrivateFile/);
+  assert.match(source, /CreateFileSignedUrl/);
+  assert.match(source, /stock_processing_token/);
+  assert.match(source, /financial_processing_token/);
+  assert.match(source, /receipt_processing_token/);
+  assert.doesNotMatch(source, /Nenhum item foi marcado para controle de estoque/);
+});
+
+test('purchase creation no longer changes stock before receipt', () => {
+  const source = readFileSync(new URL('../src/pages/PurchaseRequestEditor.jsx', import.meta.url), 'utf8');
+  const receipt = readFileSync(new URL('../src/pages/PurchaseOrders.jsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /stock:\s*currentStock\s*\+/);
+  assert.match(receipt, /receivePurchaseOrder\(order\.id\)/);
+});
+

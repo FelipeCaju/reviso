@@ -1,0 +1,20 @@
+{
+  "name": "FiscalOperationLock",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "source_type": { "type": "string", "enum": ["FISCAL_DOCUMENT", "PURCHASE_ORDER"], "title": "Tipo da Origem" },
+    "source_id": { "type": "string", "title": "ID da Origem" },
+    "operation": { "type": "string", "enum": ["STOCK", "FINANCIAL", "RECEIPT"], "title": "Operação" },
+    "token": { "type": "string", "title": "Token" },
+    "status": { "type": "string", "enum": ["ACTIVE", "RELEASED"], "default": "ACTIVE", "title": "Status" },
+    "expires_at": { "type": "string", "format": "date-time", "title": "Expira em" }
+  },
+  "required": ["workshop_id", "source_type", "source_id", "operation", "token", "status", "expires_at"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "role": "admin" } }] },
+    "create": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "update": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] },
+    "delete": { "$and": [{ "data.workshop_id": "{{user.data.workshop_id}}" }, { "user_condition": { "email": "__server_only__" } }] }
+  }
+}

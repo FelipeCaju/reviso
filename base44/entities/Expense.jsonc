@@ -116,6 +116,10 @@
       "type": "string",
       "title": "Pedido de Compra (origem)"
     },
+    "fiscal_document_id": {
+      "type": "string",
+      "title": "Documento Fiscal de Origem"
+    },
     "attachment_url": {
       "type": "string",
       "title": "Comprovante"

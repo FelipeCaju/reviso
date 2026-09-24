@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { MessageCircle } from "lucide-react";
 
 export const quoteStatusInfo = {
   rascunho: { label: "Rascunho", className: "bg-slate-100 text-slate-700" },
@@ -43,6 +44,10 @@ export const workOrderStatusInfo = {
 export function QuoteStatusBadge({ status }) {
   const info = quoteStatusInfo[status] || { label: status, className: "bg-slate-100 text-slate-700" };
   return <Badge className={info.className + " font-normal rounded-full border-0"}>{info.label}</Badge>;
+}
+
+export function QuoteWhatsAppSentBadge() {
+  return <Badge className="bg-[#dcf8e7] text-[#167c3a] font-normal rounded-full border-0"><MessageCircle className="w-3.5 h-3.5 mr-1" /> Orçamento enviado</Badge>;
 }
 
 export function AppointmentStatusBadge({ status }) {

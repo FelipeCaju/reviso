@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { QuoteStatusBadge } from "@/components/StatusBadge";
+import { QuoteStatusBadge, QuoteWhatsAppSentBadge } from "@/components/StatusBadge";
 import { normalizePlate, formatCurrency, formatDate } from "@/lib/format";
 
 const FILTERS = [
@@ -92,7 +92,10 @@ export default function Quotes() {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium text-sm">#{it.number}</div>
-                <QuoteStatusBadge status={it.status} />
+                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                  {it.whatsapp_sent_at && <QuoteWhatsAppSentBadge />}
+                  <QuoteStatusBadge status={it.status} />
+                </div>
               </div>
               <div className="mt-1 text-sm font-medium truncate">{it.customer_name_snapshot || "—"}</div>
               <div className="text-xs text-muted-foreground truncate">

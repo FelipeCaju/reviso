@@ -57,12 +57,15 @@ export default async function(req: Request) {
       body: JSON.stringify({ phone, document: documentUrl, fileName, caption }),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
+    const messageId = payload.zaapId || payload.messageId || payload.id || null;
+    const providerRejected = payload.success === false || payload.sent === false || payload.status === 'error' || !!payload.error || !!payload.errorMessage;
+    if (!response.ok || providerRejected || !messageId) {
       const providerMessage = JSON.stringify(payload).toLowerCase();
       if (providerMessage.includes('invalid') && (providerMessage.includes('phone') || providerMessage.includes('number'))) return invalidPhone();
+      console.error('Z-API did not confirm the document send', { status: response.status, providerMessage: payload.message || payload.error || null });
       return Response.json({ error: 'Não foi possível enviar o WhatsApp. Verifique a conexão da instância Z-API.' }, { status: 502 });
     }
-    return Response.json({ success: true, messageId: payload.messageId || payload.id || null });
+    return Response.json({ success: true, messageId });
   } catch (error) {
     console.error('Z-API WhatsApp document error', error);
     return Response.json({ error: 'Não foi possível enviar o WhatsApp.' }, { status: 500 });

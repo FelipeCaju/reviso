@@ -137,6 +137,15 @@
     "appointment_id": {
       "type": "string",
       "title": "Agendamento Relacionado"
+    },
+    "whatsapp_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Orçamento enviado por WhatsApp em"
+    },
+    "whatsapp_message_id": {
+      "type": "string",
+      "title": "Identificador da mensagem WhatsApp"
     }
   },
   "required": [

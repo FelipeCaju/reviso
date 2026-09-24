@@ -20,7 +20,7 @@ import VoiceInput from "@/components/VoiceInput";
 import { Image as ImgCmp } from "@/components/ui/image";
 import QuoteItemPicker from "@/components/QuoteItemPicker";
 import SchedulePicker from "@/components/SchedulePicker";
-import { QuoteStatusBadge, quoteStatusInfo } from "@/components/StatusBadge";
+import { QuoteStatusBadge, QuoteWhatsAppSentBadge, quoteStatusInfo } from "@/components/StatusBadge";
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
@@ -333,10 +333,13 @@ export default function QuoteEditor() {
     setSending(true);
     try {
       const blob = await generateQuotePDFBlob(quote, items, settings, customer);
-      await sendWhatsAppDocument({
+      const result = await sendWhatsAppDocument({
         blob, fileName: `orcamento-${quote.number}.pdf`, phone, recipientName: customer?.name,
         reference: quote.number, documentType: "quote",
       });
+      const sentAt = new Date().toISOString();
+      await base44.entities.Quote.update(id, { whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "" });
+      setQuote((current) => ({ ...current, whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "" }));
       toast({ title: "Orçamento enviado pelo WhatsApp." });
       setWhatsAppPreviewOpen(false);
     } catch (e) {
@@ -379,6 +382,7 @@ export default function QuoteEditor() {
         </button>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {editing && <QuoteStatusBadge status={quote.status} />}
+          {editing && quote.whatsapp_sent_at && <QuoteWhatsAppSentBadge />}
           {editing && (
             <Button size="sm" variant="outline" onClick={() => generateQuotePDF(quote, items, settings, selectedCustomer)}>
               <FileDown className="w-4 h-4 mr-1" /> PDF

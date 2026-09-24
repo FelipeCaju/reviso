@@ -19,7 +19,7 @@ export async function sendWhatsAppDocument({ blob, fileName, phone, recipientNam
 
   const file = new File([blob], fileName, { type: "application/pdf" });
   const { file_url: documentUrl } = await base44.integrations.Core.UploadPublicFile({ file });
-  await base44.functions.invoke("sendWhatsAppDocument", {
+  const { data } = await base44.functions.invoke("sendWhatsAppDocument", {
     phone: normalizedPhone,
     documentUrl,
     fileName,
@@ -27,6 +27,7 @@ export async function sendWhatsAppDocument({ blob, fileName, phone, recipientNam
     reference,
     documentType,
   });
+  return data;
 }
 
 export function getWhatsAppErrorMessage(error) {

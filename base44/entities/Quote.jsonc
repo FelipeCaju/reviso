@@ -146,6 +146,15 @@
     "whatsapp_message_id": {
       "type": "string",
       "title": "Identificador da mensagem WhatsApp"
+    },
+    "email_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Orçamento enviado por e-mail em"
+    },
+    "work_order_id": {
+      "type": "string",
+      "title": "Ordem de Serviço gerada"
     }
   },
   "required": [

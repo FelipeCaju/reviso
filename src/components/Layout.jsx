@@ -182,7 +182,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="lg:ml-60 pb-20 lg:pb-8 min-h-screen">
-        <div className="px-4 lg:px-6 py-4 lg:py-6 max-w-7xl mx-auto">
+        <div className={`px-4 lg:px-6 py-4 lg:py-6 mx-auto ${location.pathname === "/agenda" ? "max-w-[1600px]" : "max-w-7xl"}`}>
           {isDemo && <DemoBanner hoursRemaining={hoursRemaining} />}
           <Outlet />
         </div>

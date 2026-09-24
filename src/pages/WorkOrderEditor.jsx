@@ -667,7 +667,7 @@ export default function WorkOrderEditor() {
       {/* Payments + Notification (editing only) */}
       {editing && (
         <>
-          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} />
+          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} onWorkOrderUpdate={(patch) => setWo((current) => ({ ...current, ...patch }))} />
           <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} onWhatsAppNotify={openNotificationWhatsAppPreview} />
         </>
       )}

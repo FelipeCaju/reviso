@@ -28,7 +28,7 @@ const PAY_STATUS_INFO = {
   isento_cancelado: { label: "Isento/Cancelado", color: "bg-slate-100 text-slate-600" },
 };
 
-export default function OSPayments({ workOrderId, wo, total, onPaymentsChange }) {
+export default function OSPayments({ workOrderId, wo, total, onPaymentsChange, onWorkOrderUpdate }) {
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,7 @@ export default function OSPayments({ workOrderId, wo, total, onPaymentsChange })
         payment_status: newStatus,
         paid_amount: newPaid,
       });
+      onWorkOrderUpdate?.({ payment_status: newStatus, paid_amount: newPaid });
       setOpen(false);
       setAmount(0); setNotes("");
       await load();
@@ -101,6 +102,7 @@ export default function OSPayments({ workOrderId, wo, total, onPaymentsChange })
         payment_status: newStatus,
         paid_amount: newPaid,
       });
+      onWorkOrderUpdate?.({ payment_status: newStatus, paid_amount: newPaid });
       setCancelOpen(null);
       setCancelReason("");
       await load();

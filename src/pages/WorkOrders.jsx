@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, normalizePlate } from "@/lib/format";
+import { calcPaymentStatus } from "@/lib/finance";
 
 const PAY_BADGE = {
   nao_pago: { label: "Não Pago", color: "bg-amber-100 text-amber-700" },
@@ -23,15 +24,20 @@ export default function WorkOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [payFilter, setPayFilter] = useState("");
-  const [notifiedFilter, setNotifiedFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [payFilter, setPayFilter] = useState("todos");
+  const [notifiedFilter, setNotifiedFilter] = useState("todos");
+  const [payments, setPayments] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const list = await base44.entities.WorkOrder.list("-entry_date", 500);
+        const [list, paymentList] = await Promise.all([
+          base44.entities.WorkOrder.list("-entry_date", 500),
+          base44.entities.Payment.list("-date", 1000),
+        ]);
         setOrders(list);
+        setPayments(paymentList);
       } finally {
         setLoading(false);
       }
@@ -40,10 +46,18 @@ export default function WorkOrders() {
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
-    return orders.filter((w) => {
-      if (statusFilter && w.status !== statusFilter) return false;
+    const paymentsByOrder = payments.reduce((groups, payment) => {
+      (groups[payment.work_order_id] ||= []).push(payment);
+      return groups;
+    }, {});
+    return orders.map((order) => {
+      if (order.payment_status === "isento_cancelado") return order;
+      const payment = calcPaymentStatus(order.total || 0, paymentsByOrder[order.id] || []);
+      return { ...order, payment_status: payment.status, paid_amount: payment.paid };
+    }).filter((w) => {
+      if (statusFilter !== "todos" && w.status !== statusFilter) return false;
       if (payFilter === "pago" && w.payment_status !== "pago") return false;
-      if (payFilter === "nao_pago" && w.payment_status === "pago") return false;
+      if (payFilter === "nao_pago" && w.payment_status !== "nao_pago") return false;
       if (payFilter === "parcial" && w.payment_status !== "parcialmente_pago") return false;
       if (notifiedFilter === "sim" && !w.customer_notified) return false;
       if (notifiedFilter === "nao" && w.customer_notified) return false;
@@ -55,7 +69,7 @@ export default function WorkOrders() {
         (w.vehicle_description_snapshot || "").toLowerCase().includes(s)
       );
     });
-  }, [orders, q, statusFilter]);
+  }, [orders, payments, q, statusFilter, payFilter, notifiedFilter]);
 
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
@@ -80,7 +94,7 @@ export default function WorkOrders() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Status OS" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={null}>Todos status</SelectItem>
+            <SelectItem value="todos">Todos status</SelectItem>
             <SelectItem value="aberta">Aberta</SelectItem>
             <SelectItem value="aguardando_pecas">Aguardando Peças</SelectItem>
             <SelectItem value="em_execucao">Em Execução</SelectItem>
@@ -91,7 +105,7 @@ export default function WorkOrders() {
         <Select value={payFilter} onValueChange={setPayFilter}>
           <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Pagamento" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={null}>Pagamento: todos</SelectItem>
+            <SelectItem value="todos">Pagamento: todos</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
             <SelectItem value="nao_pago">Não Pago</SelectItem>
             <SelectItem value="parcial">Parcial</SelectItem>
@@ -100,7 +114,7 @@ export default function WorkOrders() {
         <Select value={notifiedFilter} onValueChange={setNotifiedFilter}>
           <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Notificado" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={null}>Notificação: todos</SelectItem>
+            <SelectItem value="todos">Notificação: todos</SelectItem>
             <SelectItem value="sim">Notificado</SelectItem>
             <SelectItem value="nao">Não Notificado</SelectItem>
           </SelectContent>

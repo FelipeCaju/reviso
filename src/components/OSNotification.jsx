@@ -21,13 +21,18 @@ const CHANNELS = [
   { value: "outro", label: "Outro", icon: Bell },
 ];
 
-export default function OSNotification({ wo, onUpdate }) {
+export default function OSNotification({ wo, onUpdate, onWhatsAppNotify }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState("whatsapp");
   const [saving, setSaving] = useState(false);
 
   const markNotified = async () => {
+    if (channel === "whatsapp") {
+      setOpen(false);
+      onWhatsAppNotify?.();
+      return;
+    }
     setSaving(true);
     try {
       const patch = {
@@ -83,7 +88,7 @@ export default function OSNotification({ wo, onUpdate }) {
             <DialogTitle>Registrar Notificação ao Cliente</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">Confirme como o cliente foi informado sobre o serviço/pronto e valor a pagar.</div>
+            <div className="text-sm text-muted-foreground">Para WhatsApp, será exibida uma prévia e o registro só será feito após a confirmação de envio.</div>
             <div className="space-y-1.5">
               <Label>Canal da Notificação</Label>
               <Select value={channel} onValueChange={setChannel}>
@@ -97,7 +102,7 @@ export default function OSNotification({ wo, onUpdate }) {
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
             <Button onClick={markNotified} disabled={saving}>
-              {saving ? "Salvando..." : "Confirmar Notificação"}
+              {saving ? "Salvando..." : channel === "whatsapp" ? "Abrir prévia do WhatsApp" : "Confirmar Notificação"}
             </Button>
           </DialogFooter>
         </DialogContent>

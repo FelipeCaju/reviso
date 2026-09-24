@@ -27,12 +27,14 @@ import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";
 import OSNotification from "@/components/OSNotification";
 import FiscalPreviewDialog from "@/components/FiscalPreviewDialog";
+import { useAuth } from "@/lib/AuthContext";
 
 const STATUS_OPTIONS = [
   "aberta", "aguardando_pecas", "em_execucao", "finalizada", "cancelada",
 ];
 
 export default function WorkOrderEditor() {
+  const { user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -56,6 +58,7 @@ export default function WorkOrderEditor() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [sending, setSending] = useState(false);
   const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
+  const [markNotificationAfterSend, setMarkNotificationAfterSend] = useState(false);
   const [fiscalPreviewOpen, setFiscalPreviewOpen] = useState(false);
 
   useEffect(() => {
@@ -318,9 +321,22 @@ export default function WorkOrderEditor() {
         blob, fileName: `os-${wo.number}.pdf`, phone, recipientName: customer?.name,
         reference: wo.number, documentType: "work-order",
       });
+      if (markNotificationAfterSend) {
+        const patch = {
+          customer_notified: true,
+          notified_at: new Date().toISOString(),
+          notified_channel: "whatsapp",
+          notified_by: user?.full_name || user?.email || "",
+        };
+        await base44.entities.WorkOrder.update(id, patch);
+        setWo((current) => ({ ...current, ...patch }));
+        setMarkNotificationAfterSend(false);
+        toast({ title: "Cliente notificado pelo WhatsApp." });
+      }
       toast({ title: "Ordem de Serviço enviada pelo WhatsApp." });
       setWhatsAppPreviewOpen(false);
     } catch (error) {
+      setMarkNotificationAfterSend(false);
       toast({ title: "Erro ao enviar", description: getWhatsAppErrorMessage(error), variant: "destructive" });
     } finally {
       setSending(false);
@@ -333,6 +349,16 @@ export default function WorkOrderEditor() {
       toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
       return;
     }
+    setWhatsAppPreviewOpen(true);
+  };
+
+  const openNotificationWhatsAppPreview = () => {
+    const customer = customers.find((customer) => customer.id === wo.customer_id);
+    if (!(customer?.whatsapp || customer?.phone)) {
+      toast({ title: "Cliente sem WhatsApp/telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    setMarkNotificationAfterSend(true);
     setWhatsAppPreviewOpen(true);
   };
 
@@ -349,7 +375,10 @@ export default function WorkOrderEditor() {
     <div className="space-y-4 pb-28 md:pb-6">
       <WhatsAppPreviewDialog
         open={whatsAppPreviewOpen}
-        onOpenChange={setWhatsAppPreviewOpen}
+        onOpenChange={(open) => {
+          setWhatsAppPreviewOpen(open);
+          if (!open) setMarkNotificationAfterSend(false);
+        }}
         recipientName={customers.find((customer) => customer.id === wo.customer_id)?.name}
         message={getWhatsAppDocumentPreview({ recipientName: customers.find((customer) => customer.id === wo.customer_id)?.name, workshopName: settings?.name, reference: wo.number, documentType: "work-order" })}
         attachmentName={`os-${wo.number}.pdf`}
@@ -635,6 +664,14 @@ export default function WorkOrderEditor() {
         <Textarea rows={2} value={wo.internal_notes} onChange={(e) => set("internal_notes", e.target.value)} />
       </div>
 
+      {/* Payments + Notification (editing only) */}
+      {editing && (
+        <>
+          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} />
+          <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} onWhatsAppNotify={openNotificationWhatsAppPreview} />
+        </>
+      )}
+
       {/* Status (editing) */}
       {editing && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-1.5">
@@ -653,14 +690,6 @@ export default function WorkOrderEditor() {
             </div>
           )}
         </div>
-      )}
-
-      {/* Payments + Notification (editing only) */}
-      {editing && (
-        <>
-          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} />
-          <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} />
-        </>
       )}
 
       {/* Totals */}

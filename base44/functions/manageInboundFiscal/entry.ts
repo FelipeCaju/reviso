@@ -90,7 +90,8 @@ export default async function(req: Request) {
     const body = await req.json().catch(() => ({}));
     const action = clean(body.action);
     const db = base44.asServiceRole.entities;
-    const workshop = await ensureWorkshopRecord(db.WorkshopSetting, user.workshop_id, user.workshop_id, "Oficina");
+    const workshop = await db.WorkshopSetting.get(user.workshop_id);
+    if (!workshop?.id || workshop.id !== user.workshop_id) throw error("Oficina não encontrada.", 404);
 
     if (action === "receivePurchaseOrder") {
       const order = await ensureWorkshopRecord(db.PurchaseOrder, clean(body.orderId), workshop.id, "Pedido");

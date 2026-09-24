@@ -92,6 +92,8 @@ test('inbound backend validates recipient, duplicates and idempotent side effect
   assert.match(source, /stock_processing_token/);
   assert.match(source, /financial_processing_token/);
   assert.match(source, /receipt_processing_token/);
+  assert.match(source, /db\.WorkshopSetting\.get\(user\.workshop_id\)/);
+  assert.doesNotMatch(source, /ensureWorkshopRecord\(db\.WorkshopSetting/);
   assert.doesNotMatch(source, /Nenhum item foi marcado para controle de estoque/);
 });
 

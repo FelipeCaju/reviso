@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Circle, Landmark, PlugZap, Save } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,10 +37,8 @@ export default function FiscalSettings() {
 
   const load = async () => {
     try {
-      const [ctx, serviceRows, materialRows] = await Promise.all([
-        getFiscalContext(), base44.entities.Service.list("description", 1000), base44.entities.Material.list("description", 1000),
-      ]);
-      setContext(ctx); setServices(serviceRows); setMaterials(materialRows); setForm({ ...EMPTY, ...(ctx.setting || {}) });
+      const ctx = await getFiscalContext();
+      setContext(ctx); setServices(ctx.services || []); setMaterials(ctx.materials || []); setForm({ ...EMPTY, ...(ctx.setting || {}) });
     } catch (error) { toast({ title: "Erro ao carregar fiscal", description: fiscalErrorMessage(error), variant: "destructive" }); }
   };
 
@@ -94,7 +91,7 @@ export default function FiscalSettings() {
 
   return <div className="space-y-5 max-w-5xl">
     <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl md:text-2xl font-heading font-semibold flex items-center gap-2"><Landmark className="w-5 h-5" /> Configurações fiscais</h1><p className="text-sm text-muted-foreground">Parâmetros isolados desta oficina</p></div><span className={`rounded-full px-3 py-1 text-xs font-medium ${status.color}`}>{status.label}</span></div>
-    <section className="rounded-xl border border-border bg-card p-4"><h2 className="mb-3 text-sm font-semibold">Preparação para emissão</h2><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{steps.map(([label, ready]) => <div key={label} className="flex items-center gap-2 text-sm">{ready ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Circle className="h-4 w-4 text-muted-foreground" />}<span className={ready ? "" : "text-muted-foreground"}>{label}</span></div>)}</div></section>
+    <section className="rounded-xl border border-border bg-card p-4"><h2 className="text-sm font-semibold">Preparação para emissão</h2><p className="mb-3 mt-1 text-xs text-muted-foreground">Este guia acompanha a prontidão fiscal da oficina. Cada etapa fica verde automaticamente quando o requisito correspondente estiver concluído.</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{steps.map(([label, ready]) => <div key={label} className="flex items-center gap-2 text-sm">{ready ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Circle className="h-4 w-4 text-muted-foreground" />}<span className={ready ? "" : "text-muted-foreground"}>{label}</span></div>)}</div></section>
     <div className="flex flex-wrap gap-2 border-b border-border pb-3">{tabs.map(([key, label]) => <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}>{label}</Button>)}</div>
 
     {tab === "empresa" && <section className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
@@ -119,9 +116,9 @@ export default function FiscalSettings() {
       <Field label="Exigibilidade padrão" value={form.exigibilidade_padrao} onChange={(v) => set("exigibilidade_padrao", v)} />
     </section>}
 
-    {tab === "servicos" && <section className="space-y-2">{services.map((service) => { const profile = serviceProfileMap.get(service.id); return <div key={service.id} className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-3"><div><div className="font-medium text-sm">{service.description}</div><div className="text-xs text-muted-foreground">{profile?.codigo_servico_municipal || form.codigo_servico_municipal_padrao ? "Configuração disponível" : "Sem código fiscal"}</div></div><Button size="sm" variant="outline" onClick={() => setEditingService({ service_id: service.id, codigo_servico_municipal: "", item_lista_servico: "", nbs: "", aliquota_iss: null, iss_retido: false, observacao_fiscal: "", active: true, ...(profile || {}) })}>Configurar</Button></div>; })}</section>}
+    {tab === "servicos" && <section className="space-y-2">{services.length === 0 ? <EmptyCatalog title="Nenhum serviço cadastrado" description="Cadastre os serviços no menu Serviços. Depois eles aparecerão aqui para receber os dados fiscais." /> : services.map((service) => { const profile = serviceProfileMap.get(service.id); return <div key={service.id} className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-3"><div><div className="font-medium text-sm">{service.description}</div><div className="text-xs text-muted-foreground">{service.active === false ? "Inativo" : profile?.codigo_servico_municipal || form.codigo_servico_municipal_padrao ? "Configuração disponível" : "Sem código fiscal"}</div></div><Button size="sm" variant="outline" onClick={() => setEditingService({ service_id: service.id, codigo_servico_municipal: "", item_lista_servico: "", nbs: "", aliquota_iss: null, iss_retido: false, observacao_fiscal: "", active: true, ...(profile || {}) })}>Configurar</Button></div>; })}</section>}
 
-    {tab === "produtos" && <section className="space-y-2">{materials.map((material) => { const profile = materialProfileMap.get(material.id); return <div key={material.id} className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-3"><div><div className="font-medium text-sm">{material.description}</div><div className="text-xs text-muted-foreground">{profile?.ncm ? `NCM ${profile.ncm}` : "Sem perfil fiscal (opcional para NFS-e)"}</div></div><Button size="sm" variant="outline" onClick={() => setEditingMaterial({ material_id: material.id, ncm: "", cest: "", origem_mercadoria: "", observacao_fiscal: "", active: true, ...(profile || {}) })}>Configurar</Button></div>; })}</section>}
+    {tab === "produtos" && <section className="space-y-2">{materials.length === 0 ? <EmptyCatalog title="Nenhum produto ou peça cadastrado" description="Cadastre os itens no menu Produtos/Peças. Depois eles aparecerão aqui para receber NCM, CEST e origem." /> : materials.map((material) => { const profile = materialProfileMap.get(material.id); return <div key={material.id} className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-3"><div><div className="font-medium text-sm">{material.description || material.name}</div><div className="text-xs text-muted-foreground">{material.active === false ? "Inativo" : profile?.ncm ? `NCM ${profile.ncm}` : "Sem perfil fiscal (opcional para NFS-e)"}</div></div><Button size="sm" variant="outline" onClick={() => setEditingMaterial({ material_id: material.id, ncm: "", cest: "", origem_mercadoria: "", observacao_fiscal: "", active: true, ...(profile || {}) })}>Configurar</Button></div>; })}</section>}
 
     {tab === "emissao" && <section className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
       <div className="space-y-1.5"><Label>Modo de emissão</Label><Select value={form.modo_emissao} onValueChange={(v) => set("modo_emissao", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Manual</SelectItem><SelectItem value="automatica_finalizacao" disabled>Automática ao finalizar (futuro)</SelectItem></SelectContent></Select></div>
@@ -143,4 +140,5 @@ export default function FiscalSettings() {
 
 function Field({ label, value, onChange, type = "text" }) { return <div className="space-y-1.5"><Label>{label}</Label><Input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} /></div>; }
 function Toggle({ label, checked, onChange }) { return <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm"><span>{label}</span><Switch checked={!!checked} onCheckedChange={onChange} /></label>; }
+function EmptyCatalog({ title, description }) { return <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center"><div className="text-sm font-medium">{title}</div><p className="mx-auto mt-1 max-w-lg text-xs text-muted-foreground">{description}</p></div>; }
 function Editor({ title, children, onClose, onSave, saving }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="w-full max-w-2xl rounded-xl bg-background p-5 shadow-xl"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">{title}</h2><button onClick={onClose}>×</button></div><div className="grid gap-3 sm:grid-cols-2">{children}</div><div className="mt-5 flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={onSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button></div></div></div>; }

@@ -127,11 +127,13 @@ export default async function(req: Request) {
     const setting = await one<any>(db.FiscalSetting, { workshop_id: workshop.id });
 
     if (action === "context") {
-      const [serviceProfiles, materialProfiles, credentials, documents] = await Promise.all([
+      const [serviceProfiles, materialProfiles, credentials, documents, services, materials] = await Promise.all([
         db.ServiceFiscalProfile.filter({ workshop_id: workshop.id }, "-updated_date", 1000),
         db.MaterialFiscalProfile.filter({ workshop_id: workshop.id }, "-updated_date", 1000),
         db.FiscalCredential.filter({ workshop_id: workshop.id }, "-updated_date", 20),
         db.FiscalDocument.filter({ workshop_id: workshop.id }, "-created_date", 500),
+        db.Service.filter({ workshop_id: workshop.id }, "description", 1000),
+        db.Material.filter({ workshop_id: workshop.id }, "description", 1000),
       ]);
       const companyReady = !!(setting?.inscricao_municipal && setting?.regime_tributario && workshop.cnpj && workshop.codigo_ibge);
       const providerReady = !!(setting?.provedor_fiscal && setting.provedor_fiscal !== "nao_configurado");
@@ -150,7 +152,7 @@ export default async function(req: Request) {
         homologationApproved,
         productionEnabled: setting?.ambiente_fiscal === "producao" && homologationApproved,
       };
-      return Response.json({ workshop, setting, serviceProfiles, materialProfiles, credentials, documents, configurationStatus: status, onboarding });
+      return Response.json({ workshop, setting, serviceProfiles, materialProfiles, credentials, documents, services, materials, configurationStatus: status, onboarding });
     }
 
     if (!workshop.fiscal_module_enabled && ["saveSetting", "saveServiceProfile", "saveMaterialProfile", "testConnection", "preview", "validate", "issue", "replace"].includes(action)) {

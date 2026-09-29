@@ -51,6 +51,18 @@ test('fiscal onboarding blocks production until homologation is approved', () =>
   assert.match(screen, /Preparação para emissão/);
 });
 
+test('fiscal settings load tenant catalogs through the protected backend and explain empty lists', () => {
+  const backend = readFileSync(new URL('../base44/functions/manageFiscal/entry.ts', import.meta.url), 'utf8');
+  const screen = readFileSync(new URL('../src/pages/FiscalSettings.jsx', import.meta.url), 'utf8');
+  assert.match(backend, /db\.Service\.filter\(\{ workshop_id: workshop\.id \}/);
+  assert.match(backend, /db\.Material\.filter\(\{ workshop_id: workshop\.id \}/);
+  assert.match(backend, /services, materials, configurationStatus/);
+  assert.match(screen, /setServices\(ctx\.services \|\| \[\]\)/);
+  assert.match(screen, /Nenhum serviço cadastrado/);
+  assert.match(screen, /Nenhum produto ou peça cadastrado/);
+  assert.doesNotMatch(screen, /base44\.entities\.Service\.list/);
+});
+
 test('platform owner can choose fiscal mode when creating, provisioning and editing workshops', () => {
   const backend = readFileSync(new URL('../base44/functions/manageWorkshops/entry.ts', import.meta.url), 'utf8');
   const screen = readFileSync(new URL('../src/pages/AdminOnboarding.jsx', import.meta.url), 'utf8');

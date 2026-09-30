@@ -25,6 +25,7 @@ import {
   Landmark,
   FileCheck2,
   FileInput,
+  Archive,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const NAV = [
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
   { to: "/documentos-fiscais", label: "Documentos de Saída", icon: FileCheck2, roles: ["admin"], fiscal: true, end: true },
   { to: "/documentos-fiscais/entrada", label: "Documentos de Entrada", icon: FileInput, roles: ["admin"], fiscal: true },
+  { to: "/central-contabil", label: "Central Contábil", icon: Archive, roles: ["admin"], fiscal: true },
 ];
 
 const NAV_SECONDARY = [

@@ -40,6 +40,7 @@ import WorkshopOnboarding from '@/pages/WorkshopOnboarding';
 import FiscalSettings from '@/pages/FiscalSettings';
 import FiscalDocuments from '@/pages/FiscalDocuments';
 import InboundFiscalDocuments from '@/pages/InboundFiscalDocuments';
+import AccountingCenter from '@/pages/AccountingCenter';
 import DemoExpired from '@/components/DemoExpired';
 import { useDemoStatus } from '@/hooks/useDemoStatus';
 
@@ -106,6 +107,7 @@ const AuthenticatedApp = () => {
           <Route path="/fiscal" element={<FiscalSettings />} />
           <Route path="/documentos-fiscais" element={<FiscalDocuments />} />
           <Route path="/documentos-fiscais/entrada" element={<InboundFiscalDocuments />} />
+          <Route path="/central-contabil" element={<AccountingCenter />} />
           <Route path="/suporte" element={<Support />} />
           <Route path="/fornecedores" element={<Suppliers />} />
           <Route path="/fornecedores/:id" element={<SupplierDetail />} />

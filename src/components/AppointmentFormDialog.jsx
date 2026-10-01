@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,10 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     status: "agendado",
   });
   const [saving, setSaving] = useState(false);
+  const [quickCustomerOpen, setQuickCustomerOpen] = useState(false);
+  const [quickCustomer, setQuickCustomer] = useState({ name: "", phone: "", whatsapp: "" });
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [createdCustomers, setCreatedCustomers] = useState([]);
 
   useEffect(() => {
     if (open) {
@@ -47,6 +52,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const customerOptions = [...customers, ...createdCustomers];
   const vehicleOptions = form.customer_id
     ? vehicles.filter((v) => v.current_owner_id === form.customer_id)
     : vehicles;
@@ -72,7 +78,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     }
     setSaving(true);
     try {
-      const cust = customers.find((c) => c.id === form.customer_id);
+      const cust = customerOptions.find((c) => c.id === form.customer_id);
       const veh = vehicles.find((v) => v.id === form.vehicle_id);
       const payload = {
         ...form,
@@ -92,6 +98,29 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     }
   };
 
+  const saveQuickCustomer = async () => {
+    if (!quickCustomer.name.trim()) return;
+    setSavingCustomer(true);
+    try {
+      const created = await base44.entities.Customer.create(withWorkshop({
+        name: quickCustomer.name.trim(),
+        phone: quickCustomer.phone.trim(),
+        whatsapp: quickCustomer.whatsapp.trim(),
+        active: true,
+      }));
+      setCreatedCustomers((current) => [...current, created]);
+      set("customer_id", created.id);
+      set("vehicle_id", "");
+      setQuickCustomer({ name: "", phone: "", whatsapp: "" });
+      setQuickCustomerOpen(false);
+      toast({ title: "Cliente cadastrado e selecionado" });
+    } catch (error) {
+      toast({ title: "Erro ao cadastrar cliente", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -100,12 +129,15 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Cliente *</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label>Cliente *</Label>
+              <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={() => setQuickCustomerOpen(true)}><Plus className="w-3.5 h-3.5 mr-1" /> Novo</Button>
+            </div>
             <Select value={form.customer_id || "nenhum"} onValueChange={(v) => set("customer_id", v === "nenhum" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="nenhum">—</SelectItem>
-                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {customerOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -157,6 +189,21 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={quickCustomerOpen} onOpenChange={setQuickCustomerOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5"><Label>Nome / Razão Social *</Label><Input value={quickCustomer.name} onChange={(event) => setQuickCustomer((current) => ({ ...current, name: event.target.value }))} autoFocus /></div>
+            <div className="space-y-1.5"><Label>Telefone</Label><Input value={quickCustomer.phone} onChange={(event) => setQuickCustomer((current) => ({ ...current, phone: event.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={quickCustomer.whatsapp} onChange={(event) => setQuickCustomer((current) => ({ ...current, whatsapp: event.target.value }))} /></div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button onClick={saveQuickCustomer} disabled={savingCustomer || !quickCustomer.name.trim()}>{savingCustomer ? "Salvando..." : "Salvar cliente"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

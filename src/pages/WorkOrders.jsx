@@ -27,6 +27,8 @@ export default function WorkOrders() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [payFilter, setPayFilter] = useState("todos");
   const [notifiedFilter, setNotifiedFilter] = useState("todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [payments, setPayments] = useState([]);
 
   useEffect(() => {
@@ -61,6 +63,9 @@ export default function WorkOrders() {
       if (payFilter === "parcial" && w.payment_status !== "parcialmente_pago") return false;
       if (notifiedFilter === "sim" && !w.customer_notified) return false;
       if (notifiedFilter === "nao" && w.customer_notified) return false;
+      const date = (w.entry_date || "").slice(0, 10);
+      if (startDate && date < startDate) return false;
+      if (endDate && date > endDate) return false;
       if (!s) return true;
       return (
         (w.number || "").toLowerCase().includes(s) ||
@@ -69,7 +74,7 @@ export default function WorkOrders() {
         (w.vehicle_description_snapshot || "").toLowerCase().includes(s)
       );
     });
-  }, [orders, payments, q, statusFilter, payFilter, notifiedFilter]);
+  }, [orders, payments, q, statusFilter, payFilter, notifiedFilter, startDate, endDate]);
 
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
@@ -119,6 +124,8 @@ export default function WorkOrders() {
             <SelectItem value="nao">Não Notificado</SelectItem>
           </SelectContent>
         </Select>
+        <Input className="w-40 h-9" type="date" aria-label="Data inicial" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+        <Input className="w-40 h-9" type="date" aria-label="Data final" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
       </div>
 
       {filtered.length === 0 ? (

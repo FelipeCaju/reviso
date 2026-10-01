@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, CalendarDays, Check, X, Car, User, Save, FileDown, ClipboardList, Camera, MessageCircle,
+  ArrowLeft, Plus, Trash2, Check, X, Car, User, Save, FileDown, Camera, MessageCircle, Mail,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
@@ -19,8 +19,7 @@ import {
 import VoiceInput from "@/components/VoiceInput";
 import { Image as ImgCmp } from "@/components/ui/image";
 import QuoteItemPicker from "@/components/QuoteItemPicker";
-import SchedulePicker from "@/components/SchedulePicker";
-import { QuoteStatusBadge, QuoteWhatsAppSentBadge, quoteStatusInfo } from "@/components/StatusBadge";
+import { QuoteStatusBadge, QuoteWhatsAppSentBadge } from "@/components/StatusBadge";
 import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
@@ -28,11 +27,6 @@ import { generateQuotePDF, generateQuotePDFBlob } from "@/lib/pdf";
 import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
 import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
-
-const STATUS_OPTIONS = [
-  "rascunho", "aguardando_aprovacao", "aprovado", "parcialmente_aprovado",
-  "aguardando_agendamento", "agendado", "recusado", "convertido_os", "cancelado",
-];
 
 const APPROVAL_METHODS = [
   { value: "whatsapp", label: "WhatsApp" },
@@ -59,11 +53,9 @@ export default function QuoteEditor() {
   const [quote, setQuote] = useState(null);
   const [items, setItems] = useState([]);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [approvalOpen, setApprovalOpen] = useState(null); // 'approve' | 'reject' | 'partial'
+  const [approvalOpen, setApprovalOpen] = useState(null); // 'approve' | 'cancel'
   const [approvalMethod, setApprovalMethod] = useState("whatsapp");
   const [approvalNotes, setApprovalNotes] = useState("");
-  const [partialSelection, setPartialSelection] = useState({});
   const [uploadingImages, setUploadingImages] = useState(false);
   const [sending, setSending] = useState(false);
   const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
@@ -175,7 +167,7 @@ export default function QuoteEditor() {
   };
 
   // Totals
-  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
+  const partsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
   const grandTotal = Math.max(0, partsSub + laborSub + (quote?.socorro || 0) - (quote?.discount || 0));
 
@@ -245,59 +237,45 @@ export default function QuoteEditor() {
     }
   };
 
+  const createWorkOrder = async () => {
+    const existing = await base44.entities.WorkOrder.filter({ quote_id: id }, "-created_date", 1);
+    if (existing[0]) return existing[0];
+    const allOrders = await base44.entities.WorkOrder.list("-created_date", 500);
+    const numbers = allOrders.map((order) => parseInt((order.number || "0").replace(/\D/g, ""), 10)).filter(Number.isFinite);
+    const order = await base44.entities.WorkOrder.create(withWorkshop({
+      number: String((numbers.length ? Math.max(...numbers) : 0) + 1).padStart(5, "0"),
+      customer_id: quote.customer_id, customer_name_snapshot: quote.customer_name_snapshot,
+      vehicle_id: quote.vehicle_id, plate_snapshot: quote.plate_snapshot, vehicle_description_snapshot: quote.vehicle_description_snapshot,
+      mileage_in: quote.mileage || 0, entry_date: new Date().toISOString(), expected_delivery: quote.forecast || "",
+      customer_report: quote.customer_report || "", diagnosis: quote.diagnosis || "", internal_notes: quote.notes || "", status: "aberta",
+      subtotal_parts: partsSub, subtotal_labor: laborSub, socorro: quote.socorro || 0, discount: quote.discount || 0, total: grandTotal, quote_id: id,
+    }));
+    if (items.length) await base44.entities.WorkOrderItem.bulkCreate(items.map(({ id: _id, quote_id: _quoteId, created_date: _created, updated_date: _updated, ...item }) => withWorkshop({
+      ...item, work_order_id: order.id, added_after_approval: false, approval_status: "aprovado",
+    })));
+    return order;
+  };
+
   const doApproval = async (newStatus) => {
     setSaving(true);
     try {
       const patch = {
         status: newStatus,
-        approval_date: new Date().toISOString(),
-        approval_method: approvalMethod,
-        approval_user: "usuário",
-        approval_notes: approvalNotes,
+        ...(newStatus === "aprovado" ? { approval_date: new Date().toISOString(), approval_method: approvalMethod, approval_user: "usuário", approval_notes: approvalNotes } : { cancel_reason: approvalNotes }),
       };
-      // partial: update item approved flags
-      if (newStatus === "parcialmente_aprovado") {
-        // save items with approved flags
-        const updatedItems = items.map((it) => ({ ...it, approved: !!partialSelection[it._localId || it.id] }));
-        setItems(updatedItems);
-        // persist items
-        if (editing) {
-          await base44.entities.QuoteItem.deleteMany({ quote_id: id });
-          if (updatedItems.length) await base44.entities.QuoteItem.bulkCreate(updatedItems.map((it) => withWorkshop({ ...it, quote_id: id })));
-        }
+      if (newStatus === "aprovado") {
+        const order = await createWorkOrder();
+        patch.work_order_id = order.id;
+        await base44.entities.Quote.update(id, patch);
+        toast({ title: `Orçamento aprovado — OS #${order.number} criada.` });
+        navigate(`/os/${order.id}`);
+        return;
       }
-      if (editing) await base44.entities.Quote.update(id, patch);
+      await base44.entities.Quote.update(id, patch);
       setQuote((q) => ({ ...q, ...patch }));
       setApprovalOpen(null);
       setApprovalNotes("");
-      toast({ title: `Orçamento ${newStatus === "aprovado" ? "aprovado" : newStatus === "recusado" ? "recusado" : "parcialmente aprovado"}` });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const scheduleService = async (date, time) => {
-    if (!editing) return;
-    setSaving(true);
-    try {
-      const appt = await base44.entities.Appointment.create(withWorkshop({
-        customer_id: quote.customer_id,
-        customer_name_snapshot: quote.customer_name_snapshot,
-        vehicle_id: quote.vehicle_id,
-        plate_snapshot: quote.plate_snapshot,
-        vehicle_description_snapshot: quote.vehicle_description_snapshot,
-        scheduled_date: date,
-        scheduled_time: time || "",
-        type: "servico_agendado",
-        reason: `Orçamento #${quote.number}`,
-        status: "agendado",
-        quote_id: id,
-      }));
-      await base44.entities.Quote.update(id, { status: "agendado", appointment_id: appt.id });
-      setQuote((q) => ({ ...q, status: "agendado", appointment_id: appt.id }));
-      toast({ title: `Agendado para ${formatDate(date)}` });
-    } catch (e) {
-      toast({ title: "Erro ao agendar", description: e.message, variant: "destructive" });
+      toast({ title: "Orçamento cancelado" });
     } finally {
       setSaving(false);
     }
@@ -338,8 +316,8 @@ export default function QuoteEditor() {
         reference: quote.number, documentType: "quote",
       });
       const sentAt = new Date().toISOString();
-      await base44.entities.Quote.update(id, { whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "" });
-      setQuote((current) => ({ ...current, whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "" }));
+      await base44.entities.Quote.update(id, { whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "", status: "aguardando_aprovacao" });
+      setQuote((current) => ({ ...current, whatsapp_sent_at: sentAt, whatsapp_message_id: result?.messageId || "", status: "aguardando_aprovacao" }));
       toast({ title: "Orçamento enviado pelo WhatsApp." });
       setWhatsAppPreviewOpen(false);
     } catch (e) {
@@ -358,11 +336,25 @@ export default function QuoteEditor() {
     setWhatsAppPreviewOpen(true);
   };
 
+  const sendViaEmail = async () => {
+    if (!selectedCustomer?.email) { toast({ title: "Cliente sem e-mail cadastrado", variant: "destructive" }); return; }
+    setSending(true);
+    try {
+      const blob = await generateQuotePDFBlob(quote, items, settings, selectedCustomer);
+      const file = new File([blob], `orcamento-${quote.number}.pdf`, { type: "application/pdf" });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      await base44.integrations.Core.SendEmail({ to: selectedCustomer.email, subject: `Orçamento #${quote.number} — ${settings?.name || "Oficina"}`, text: `Olá, ${selectedCustomer.name || "cliente"}!\n\nSegue o orçamento #${quote.number} no valor de ${formatCurrency(grandTotal)} para sua aprovação.\n\nAcesse o PDF: ${file_url}` });
+      const sentAt = new Date().toISOString();
+      await base44.entities.Quote.update(id, { email_sent_at: sentAt, status: "aguardando_aprovacao" });
+      setQuote((current) => ({ ...current, email_sent_at: sentAt, status: "aguardando_aprovacao" }));
+      toast({ title: "Orçamento enviado por e-mail." });
+    } catch (e) { toast({ title: "Erro ao enviar e-mail", description: e.message, variant: "destructive" }); }
+    finally { setSending(false); }
+  };
+
   if (loading || !quote) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
-  const canApprove = editing && quote.status === "aguardando_aprovacao";
-  const canSchedule = editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento"].includes(quote.status);
-  const expired = quote.valid_until && new Date(quote.valid_until) < new Date(todayISO());
+  const canDecide = editing && quote.status === "aguardando_aprovacao" && (quote.whatsapp_sent_at || quote.email_sent_at);
 
   return (
     <div className="space-y-4 pb-28 md:pb-6">
@@ -393,11 +385,9 @@ export default function QuoteEditor() {
               <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
             </Button>
           )}
-          {editing && ["aprovado", "parcialmente_aprovado", "aguardando_agendamento", "agendado"].includes(quote.status) && (
-            <Button size="sm" variant="secondary" onClick={() => navigate(`/os/novo?orcamento=${id}`)}>
-              <ClipboardList className="w-4 h-4 mr-1" /> Converter em OS
-            </Button>
-          )}
+          {editing && <Button size="sm" variant="outline" onClick={sendViaEmail} disabled={sending}><Mail className="w-4 h-4 mr-1" /> E-mail</Button>}
+          {canDecide && <Button size="sm" onClick={() => setApprovalOpen("approve")}><Check className="w-4 h-4 mr-1" /> Aprovar</Button>}
+          {canDecide && <Button size="sm" variant="destructive" onClick={() => setApprovalOpen("cancel")}><X className="w-4 h-4 mr-1" /> Cancelar</Button>}
           <Button size="sm" onClick={() => save()} disabled={saving}>
             <Save className="w-4 h-4 mr-1" /> Salvar
           </Button>
@@ -634,6 +624,7 @@ export default function QuoteEditor() {
                         {it.type === "material" ? "PEÇA" : "M.O."}
                       </span>
                       <span className="text-sm font-medium truncate">{it.description}</span>
+                      {it.type === "material" && it.customer_provided && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">DO CLIENTE</span>}
                     </div>
                   </div>
                   <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive shrink-0">
@@ -654,6 +645,10 @@ export default function QuoteEditor() {
                     <CurrencyInput className="h-9 text-sm" value={it.discount} onValueChange={(v) => updateItem(idx, { discount: v })} />
                   </div>
                 </div>
+                {it.type === "material" && <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={!!it.customer_provided} onChange={(event) => updateItem(idx, { customer_provided: event.target.checked })} />
+                  Peça do cliente <span className="text-muted-foreground">(não entra no total)</span>
+                </label>}
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
               </div>
             ))}
@@ -686,48 +681,6 @@ export default function QuoteEditor() {
         <CurrencyInput className="h-11" value={quote.discount} onValueChange={(v) => set("discount", v)} />
       </div>
 
-      {/* Status (editing) */}
-      {editing && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-1.5">
-          <Label className="text-xs">Status</Label>
-          <Select value={quote.status} onValueChange={(v) => { set("status", v); save(v); }}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{quoteStatusInfo[s]?.label || s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Approval actions */}
-      {canApprove && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-          <div className="text-sm font-medium text-amber-900">Aguardando aprovação do cliente</div>
-          <div className="grid grid-cols-3 gap-2">
-            <Button className="h-11" onClick={() => setApprovalOpen("approve")}><Check className="w-4 h-4 mr-1" /> Aprovar</Button>
-            <Button variant="outline" className="h-11" onClick={() => setApprovalOpen("partial")}>Parcial</Button>
-            <Button variant="destructive" className="h-11" onClick={() => setApprovalOpen("reject")}><X className="w-4 h-4 mr-1" /> Recusar</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Schedule action */}
-      {canSchedule && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-          <div className="text-sm font-medium text-blue-900">
-            {expired ? "Orçamento vencido" : "Aprovado — pronto para agendar"}
-          </div>
-          {expired && (
-            <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
-              Este orçamento venceu em {formatDate(quote.valid_until)}. Confirme os valores antes de realizar o agendamento.
-            </div>
-          )}
-          <Button className="w-full h-12" onClick={() => setScheduleOpen(true)}>
-            <CalendarDays className="w-4 h-4 mr-2" /> Agendar Serviço
-          </Button>
-        </div>
-      )}
-
       {/* Sticky totals bar (mobile) */}
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 md:static z-20 bg-background/95 backdrop-blur border-t md:border border-border px-4 py-3 md:rounded-xl">
         <div className="md:max-w-7xl md:mx-auto flex items-center justify-between gap-3">
@@ -745,18 +698,16 @@ export default function QuoteEditor() {
 
       {/* Pickers */}
       <QuoteItemPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onAdd={addItem} materials={materials} services={services} />
-      <SchedulePicker open={scheduleOpen} onClose={() => setScheduleOpen(false)} onConfirm={scheduleService} settings={settings} />
-
       {/* Approval dialog */}
       <Dialog open={!!approvalOpen} onOpenChange={(o) => !o && setApprovalOpen(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {approvalOpen === "approve" ? "Aprovar Orçamento" : approvalOpen === "partial" ? "Aprovação Parcial" : "Recusar Orçamento"}
+              {approvalOpen === "approve" ? "Aprovar orçamento" : "Cancelar orçamento"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5">
+            {approvalOpen === "approve" && <div className="space-y-1.5">
               <Label>Forma da Aprovação</Label>
               <Select value={approvalMethod} onValueChange={setApprovalMethod}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -764,39 +715,17 @@ export default function QuoteEditor() {
                   {APPROVAL_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            {approvalOpen === "partial" && (
-              <div className="space-y-1.5">
-                <Label>Selecione os itens aprovados</Label>
-                <div className="max-h-52 overflow-y-auto rounded-lg border border-border">
-                  {items.map((it, idx) => {
-                    const key = it._localId || it.id || idx;
-                    return (
-                      <label key={idx} className="flex items-center gap-2 px-3 py-2.5 border-b border-border last:border-0">
-                        <input
-                          type="checkbox"
-                          checked={!!partialSelection[key]}
-                          onChange={(e) => setPartialSelection((s) => ({ ...s, [key]: e.target.checked }))}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm flex-1 truncate">{it.description}</span>
-                        <span className="text-sm font-medium">{formatCurrency(it.total)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            </div>}
             <div className="space-y-1.5">
-              <Label>Observação</Label>
-              <Textarea rows={2} value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} />
+              <Label>{approvalOpen === "approve" ? "Observação" : <>Motivo do cancelamento <span className="text-muted-foreground">(opcional)</span></>}</Label>
+              <Textarea rows={2} value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} placeholder={approvalOpen === "cancel" ? "Ex.: cliente desistiu do serviço" : ""} />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
             <Button
-              variant={approvalOpen === "reject" ? "destructive" : "default"}
-              onClick={() => doApproval(approvalOpen === "approve" ? "aprovado" : approvalOpen === "partial" ? "parcialmente_aprovado" : "recusado")}
+              variant={approvalOpen === "cancel" ? "destructive" : "default"}
+              onClick={() => doApproval(approvalOpen === "approve" ? "aprovado" : "cancelado")}
               disabled={saving}
             >
               Confirmar

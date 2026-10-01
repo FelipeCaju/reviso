@@ -5,11 +5,6 @@ export const quoteStatusInfo = {
   rascunho: { label: "Rascunho", className: "bg-slate-100 text-slate-700" },
   aguardando_aprovacao: { label: "Aguardando Aprovação", className: "bg-amber-100 text-amber-800" },
   aprovado: { label: "Aprovado", className: "bg-emerald-100 text-emerald-800" },
-  parcialmente_aprovado: { label: "Parcialmente Aprovado", className: "bg-teal-100 text-teal-800" },
-  aguardando_agendamento: { label: "Aguardando Agendamento", className: "bg-blue-100 text-blue-800" },
-  agendado: { label: "Agendado", className: "bg-indigo-100 text-indigo-800" },
-  recusado: { label: "Recusado", className: "bg-rose-100 text-rose-800" },
-  convertido_os: { label: "Convertido em OS", className: "bg-violet-100 text-violet-800" },
   cancelado: { label: "Cancelado", className: "bg-slate-200 text-slate-600" },
 };
 

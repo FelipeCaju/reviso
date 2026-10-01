@@ -128,8 +128,8 @@ async function buildServiceDocument({ title, data, items, settings, customer, pa
   y = noteBlock(doc, y, "Relato do cliente", data.customer_report);
   y = noteBlock(doc, y, "Diagnóstico", data.diagnosis);
   y = addSectionTitle(doc, y, "Itens e serviços");
-  y = addTable(doc, y, ["Tipo", "Descrição", "Qtd.", "Unitário", "Total"], items.map((item) => ({ cells: [item.type === "material" ? "Peça" : "Serviço", item.description, item.quantity, formatCurrency(item.unit_price), formatCurrency(item.total)] })), [21, 82, 18, 30, 20]);
-  const parts = items.filter((item) => item.type === "material").reduce((sum, item) => sum + (item.total || 0), 0);
+  y = addTable(doc, y, ["Tipo", "Descrição", "Qtd.", "Unitário", "Total"], items.map((item) => ({ cells: [item.type === "material" ? (item.customer_provided ? "Peça · Do cliente" : "Peça") : "Serviço", item.description, item.quantity, item.customer_provided ? "—" : formatCurrency(item.unit_price), item.customer_provided ? "Do cliente" : formatCurrency(item.total)] })), [21, 82, 18, 30, 20]);
+  const parts = items.filter((item) => item.type === "material" && !item.customer_provided).reduce((sum, item) => sum + (item.total || 0), 0);
   const labor = items.filter((item) => item.type === "servico").reduce((sum, item) => sum + (item.total || 0), 0);
   const totals = [{ label: "Subtotal de peças", value: formatCurrency(parts) }, { label: "Subtotal de serviços", value: formatCurrency(labor) }];
   if (data.socorro) totals.push({ label: "Deslocamento / socorro", value: formatCurrency(data.socorro) });

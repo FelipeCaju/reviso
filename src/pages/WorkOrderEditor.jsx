@@ -111,7 +111,7 @@ export default function WorkOrderEditor() {
           });
           setItems(qi.map((it) => ({
             type: it.type, description: it.description, quantity: it.quantity, unit: it.unit || "un",
-            unit_price: it.unit_price, discount: it.discount, total: it.total,
+            unit_price: it.unit_price, discount: it.discount, total: it.total, customer_provided: !!it.customer_provided,
             material_id: it.material_id || "", service_id: it.service_id || "",
             added_after_approval: false, approval_status: "aprovado",
           })));
@@ -171,7 +171,7 @@ export default function WorkOrderEditor() {
     setShowPlateResults(false);
   };
 
-  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
+  const partsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
   const grandTotal = Math.max(0, partsSub + laborSub + (wo?.socorro || 0) - (wo?.discount || 0));
 
@@ -606,6 +606,7 @@ export default function WorkOrderEditor() {
                         {it.type === "material" ? "PEÇA" : "M.O."}
                       </span>
                       <span className="text-sm font-medium truncate">{it.description}</span>
+                      {it.type === "material" && it.customer_provided && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">DO CLIENTE</span>}
                       {it.added_after_approval && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${it.approval_status === "aguardando" ? "bg-orange-200 text-orange-800" : "bg-emerald-100 text-emerald-700"}`}>
                           {it.approval_status === "aguardando" ? "AGUARDANDO" : "APROVADO"}
@@ -625,6 +626,10 @@ export default function WorkOrderEditor() {
                   <div><Label className="text-[10px] text-muted-foreground">Desc.</Label>
                     <CurrencyInput className="h-9 text-sm" value={it.discount} onValueChange={(v) => updateItem(idx, { discount: v })} /></div>
                 </div>
+                {it.type === "material" && <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={!!it.customer_provided} onChange={(event) => updateItem(idx, { customer_provided: event.target.checked })} />
+                  Peça do cliente <span className="text-muted-foreground">(não entra no total)</span>
+                </label>}
                 {settings?.fiscal_module_enabled && <div className="mt-2 max-w-xs"><Label className="text-[10px] text-muted-foreground">Tratamento fiscal</Label><Select value={it.fiscal_treatment || "automatico"} onValueChange={(value) => updateItem(idx, { fiscal_treatment: value })}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="automatico">Automático pelo tipo</SelectItem><SelectItem value="excluir">Não incluir</SelectItem></SelectContent></Select></div>}
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
               </div>

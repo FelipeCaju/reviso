@@ -54,6 +54,11 @@
       "default": 0,
       "title": "Total"
     },
+    "customer_provided": {
+      "type": "boolean",
+      "default": false,
+      "title": "Peça fornecida pelo cliente"
+    },
     "material_id": {
       "type": "string",
       "title": "Material (origem)"

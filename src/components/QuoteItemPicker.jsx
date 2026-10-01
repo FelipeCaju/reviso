@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/format";
 import CurrencyInput from "@/components/CurrencyInput";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
@@ -17,13 +18,14 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [customerProvided, setCustomerProvided] = useState(false);
 
   // manual fields
   const [manualType, setManualType] = useState("servico");
   const [manualDesc, setManualDesc] = useState("");
 
   const reset = () => {
-    setPicked(null); setQty(1); setPrice(0); setDiscount(0); setQ(""); setManualDesc("");
+    setPicked(null); setQty(1); setPrice(0); setDiscount(0); setCustomerProvided(false); setQ(""); setManualDesc("");
   };
 
   const close = () => { reset(); onClose(); };
@@ -40,6 +42,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
     setPrice(type === "material" ? item.sale_price : item.default_price);
     setQty(1);
     setDiscount(0);
+    setCustomerProvided(false);
   };
 
   const addCatalog = () => {
@@ -52,6 +55,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
       unit_price: price,
       discount: discount || 0,
       total,
+      customer_provided: picked.type === "material" && customerProvided,
       material_id: picked.material_id || "",
       service_id: picked.service_id || "",
       approved: true,
@@ -71,6 +75,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
       unit_price: price,
       discount: discount || 0,
       total,
+      customer_provided: manualType === "material" && customerProvided,
       approved: true,
     });
     reset();
@@ -157,6 +162,11 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
                     <CurrencyInput className="h-11" value={discount} onValueChange={setDiscount} />
                   </div>
                 </div>
+                {picked.type === "material" && <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={customerProvided} onCheckedChange={(checked) => setCustomerProvided(checked === true)} />
+                  <span>Peça do cliente</span>
+                  <span className="text-xs text-muted-foreground">Não entra no total</span>
+                </label>}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="text-lg font-semibold">{formatCurrency(Math.max(0, qty * price - (discount || 0)))}</span>
@@ -174,7 +184,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
                   {["material", "servico"].map((t) => (
                     <button
                       key={t}
-                      onClick={() => setManualType(t)}
+                      onClick={() => { setManualType(t); if (t !== "material") setCustomerProvided(false); }}
                       className={`py-2 rounded-md text-xs font-medium ${manualType === t ? "bg-background shadow-sm" : "text-muted-foreground"}`}
                     >
                       {t === "material" ? "Peça" : "Serviço"}
@@ -201,6 +211,11 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
                 <CurrencyInput className="h-11" value={discount} onValueChange={setDiscount} />
               </div>
             </div>
+            {manualType === "material" && <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={customerProvided} onCheckedChange={(checked) => setCustomerProvided(checked === true)} />
+              <span>Peça do cliente</span>
+              <span className="text-xs text-muted-foreground">Não entra no total</span>
+            </label>}
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-lg font-semibold">{formatCurrency(Math.max(0, qty * price - (discount || 0)))}</span>

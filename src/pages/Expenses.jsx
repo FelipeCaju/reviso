@@ -72,11 +72,15 @@ export default function Expenses() {
 
   const categories = settings?.expense_categories || ["Água", "Energia", "Internet", "Aluguel", "Funcionários", "Impostos", "Contabilidade", "Material de limpeza", "Combustível", "Ferramentas", "Manutenção", "Alimentação", "Compras", "Outros"];
 
-  // Separar templates recorrentes das instâncias geradas
+  // Agrupar cada modelo recorrente aos lançamentos mensais que ele gerou.
   const recurringTemplates = items.filter((e) => e.is_recurring);
-  const regularExpenses = items.filter((e) => !e.is_recurring);
+  const recurringEntriesByParent = items.filter((e) => !e.is_recurring && e.parent_expense_id).reduce((grouped, entry) => {
+    grouped[entry.parent_expense_id] = [...(grouped[entry.parent_expense_id] || []), entry];
+    return grouped;
+  }, {});
+  const standaloneExpenses = items.filter((e) => !e.is_recurring && !e.parent_expense_id);
 
-  const filtered = regularExpenses.filter((e) => {
+  const matchesFilters = (e) => {
     const s = q.toLowerCase();
     if (statusFilter && e.status !== statusFilter) return false;
     if (typeFilter && e.type !== typeFilter) return false;
@@ -86,7 +90,14 @@ export default function Expenses() {
     if (endDate && expenseDate > endDate) return false;
     if (!s) return true;
     return (e.description || "").toLowerCase().includes(s) || (e.category || "").toLowerCase().includes(s) || (e.beneficiary || "").toLowerCase().includes(s);
-  });
+  };
+  const filtered = standaloneExpenses.filter(matchesFilters);
+  const hasActiveFilters = Boolean(q || statusFilter || typeFilter || categoryFilter !== "todas" || startDate || endDate);
+  const groupedRecurringExpenses = recurringTemplates.map((template) => ({
+    template,
+    entries: (recurringEntriesByParent[template.id] || []).filter(matchesFilters),
+  })).filter(({ entries }) => !hasActiveFilters || entries.length > 0);
+  const visibleExpenses = [...filtered, ...groupedRecurringExpenses.flatMap(({ entries }) => entries)];
 
   const openNew = () => { setForm(EMPTY); setEditingId(null); setOpen(true); };
   const openEdit = (e) => { setForm({ ...e }); setEditingId(e.id); setOpen(true); };
@@ -122,8 +133,8 @@ export default function Expenses() {
     }
   };
 
-  const totalGeral = filtered.filter((e) => e.status === "pago").reduce((s, e) => s + (e.amount || 0), 0);
-  const totalPendente = filtered.filter((e) => e.status === "pendente").reduce((s, e) => s + (e.amount || 0), 0);
+  const totalGeral = visibleExpenses.filter((e) => e.status === "pago").reduce((s, e) => s + (e.amount || 0), 0);
+  const totalPendente = visibleExpenses.filter((e) => e.status === "pendente").reduce((s, e) => s + (e.amount || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -171,21 +182,42 @@ export default function Expenses() {
         <Input type="date" className="w-40" aria-label="Data final" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
 
-      {/* Despesas recorrentes (templates) */}
-      {recurringTemplates.length > 0 && (
+      {/* Modelos recorrentes e seus lançamentos mensais */}
+      {groupedRecurringExpenses.length > 0 && (
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2">
-          <div className="text-sm font-medium text-blue-900">Despesas Recorrentes (modelos)</div>
+          <div className="text-sm font-medium text-blue-900">Despesas Recorrentes</div>
           <div className="space-y-1.5">
-            {recurringTemplates.map((e) => (
-              <div key={e.id} className="flex items-center justify-between gap-2 rounded-lg bg-card p-2.5">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{e.description}</div>
-                  <div className="text-xs text-muted-foreground">{e.category} · {e.recurrence_period} · venc. dia {e.recurrence_day}</div>
+            {groupedRecurringExpenses.map(({ template, entries }) => (
+              <div key={template.id} className="rounded-lg border border-blue-100 bg-card overflow-hidden">
+                <div className="flex items-center justify-between gap-2 p-2.5">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{template.description}</div>
+                    <div className="text-xs text-muted-foreground">{template.category} · {formatCurrency(template.amount)} · {template.recurrence_period} · venc. dia {template.recurrence_day}</div>
+                  </div>
+                  <button onClick={() => openEdit(template)} className="p-1 rounded hover:bg-accent shrink-0" aria-label={`Editar recorrência ${template.description}`}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-sm font-medium">{formatCurrency(e.amount)}</div>
-                  <button onClick={() => openEdit(e)} className="p-1 rounded hover:bg-accent"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
-                </div>
+                {entries.length > 0 ? (
+                  <div className="border-t border-blue-100 divide-y divide-blue-100">
+                    {entries.map((e) => (
+                      <div key={e.id} className="flex items-center justify-between gap-2 px-2.5 py-2 bg-blue-50/30">
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium">Lançamento de {formatDate(e.date)}</div>
+                          <div className="text-xs text-muted-foreground">Vencimento: {formatDate(e.due_date || e.date)}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <div className="text-sm font-semibold">{formatCurrency(e.amount)}</div>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${e.status === "pago" ? "bg-emerald-100 text-emerald-700" : e.status === "vencido" ? "bg-red-100 text-red-700" : e.status === "cancelado" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
+                              {{ pago: "Pago", vencido: "Vencida", cancelado: "Cancelada", pendente: "Pendente" }[e.status] || e.status}
+                            </span>
+                          </div>
+                          {e.status === "pendente" && <Button size="sm" variant="outline" className="h-8" onClick={() => { setPayOpen(e); setPayDate(todayISO()); }}>Pago</Button>}
+                          <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => openEdit(e)} aria-label={`Editar lançamento ${template.description}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="border-t border-blue-100 px-2.5 py-2 text-xs text-muted-foreground">Nenhum lançamento encontrado para os filtros selecionados.</div>}
               </div>
             ))}
           </div>
@@ -194,7 +226,7 @@ export default function Expenses() {
 
       {loading ? (
         <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>
-      ) : filtered.length === 0 ? (
+      ) : visibleExpenses.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Receipt className="w-10 h-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nenhuma despesa encontrada.</p>

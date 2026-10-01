@@ -1,0 +1,15 @@
+{
+  "name": "MaterialCategory",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "title": "Oficina", "minLength": 1 },
+    "name": { "type": "string", "title": "Nome", "minLength": 1 }
+  },
+  "required": ["workshop_id", "name"],
+  "rls": {
+    "read": { "$and": [{ "data.workshop_id": { "$nin": ["", null] } }, { "data.workshop_id": "{{user.data.workshop_id}}" }] },
+    "create": { "$and": [{ "data.workshop_id": { "$nin": ["", null] } }, { "data.workshop_id": "{{user.data.workshop_id}}" }] },
+    "update": { "$and": [{ "data.workshop_id": { "$nin": ["", null] } }, { "data.workshop_id": "{{user.data.workshop_id}}" }] },
+    "delete": { "$and": [{ "data.workshop_id": { "$nin": ["", null] } }, { "data.workshop_id": "{{user.data.workshop_id}}" }] }
+  }
+}

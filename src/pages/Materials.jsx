@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Search, Package } from "lucide-react";
+import { Plus, Pencil, Search, Package, Tags } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { withWorkshop } from "@/lib/workshop";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,9 @@ const EMPTY = {
 };
 
 export default function Materials() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -35,8 +38,11 @@ export default function Materials() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Material.list("-updated_date", 500);
-      setItems(data);
+      const [data, savedCategories] = await Promise.all([
+        base44.entities.Material.list("-updated_date", 500),
+        base44.entities.MaterialCategory.list("name", 500),
+      ]);
+      setItems(data); setCategories(savedCategories);
     } finally {
       setLoading(false);
     }
@@ -78,9 +84,7 @@ export default function Materials() {
           <h1 className="text-xl md:text-2xl font-heading font-semibold">Materiais / Peças</h1>
           <p className="text-sm text-muted-foreground">Cadastro de peças e materiais</p>
         </div>
-        <Button onClick={openNew} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Novo
-        </Button>
+        <div className="flex gap-2"><Button variant="outline" onClick={() => navigate("/materiais/categorias")}><Tags className="w-4 h-4 mr-2" /> Nova Categoria</Button><Button onClick={openNew} className="shrink-0"><Plus className="w-4 h-4 mr-2" /> Novo</Button></div>
       </div>
 
       <div className="relative max-w-sm">
@@ -149,7 +153,10 @@ export default function Materials() {
             </div>
             <div className="space-y-1.5">
               <Label>Categoria</Label>
-              <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              <Select value={form.category || "nenhuma"} onValueChange={(value) => setForm({ ...form, category: value === "nenhuma" ? "" : value })}>
+                <SelectTrigger><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                <SelectContent><SelectItem value="nenhuma">Sem categoria</SelectItem>{categories.map((category) => <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Marca</Label>

@@ -24,6 +24,7 @@ import Vehicles from '@/pages/Vehicles';
 import VehicleDetail from '@/pages/VehicleDetail';
 import VehicleForm from '@/pages/VehicleForm';
 import Materials from '@/pages/Materials';
+import MaterialCategories from '@/pages/MaterialCategories';
 import Services from '@/pages/Services';
 import Settings from '@/pages/Settings';
 import AdminOnboarding from '@/pages/AdminOnboarding';
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
           <Route path="/veiculos/:id" element={<VehicleDetail />} />
           <Route path="/veiculos/:id/editar" element={<VehicleForm />} />
           <Route path="/materiais" element={<Materials />} />
+          <Route path="/materiais/categorias" element={<MaterialCategories />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/configuracoes" element={<Settings />} />
           <Route path="/fiscal" element={<FiscalSettings />} />

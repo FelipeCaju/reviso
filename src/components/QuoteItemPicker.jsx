@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Package, Wrench, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/format";
 import CurrencyInput from "@/components/CurrencyInput";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { base44 } from "@/api/base44Client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
@@ -19,14 +21,21 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
   const [price, setPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [customerProvided, setCustomerProvided] = useState(false);
+  const [category, setCategory] = useState("todas");
+  const [categories, setCategories] = useState([]);
 
   // manual fields
   const [manualType, setManualType] = useState("servico");
   const [manualDesc, setManualDesc] = useState("");
 
   const reset = () => {
-    setPicked(null); setQty(1); setPrice(0); setDiscount(0); setCustomerProvided(false); setQ(""); setManualDesc("");
+    setPicked(null); setQty(1); setPrice(0); setDiscount(0); setCustomerProvided(false); setCategory("todas"); setQ(""); setManualDesc("");
   };
+
+  useEffect(() => {
+    if (!open) return;
+    base44.entities.MaterialCategory.list("name", 500).then(setCategories).catch(() => setCategories([]));
+  }, [open]);
 
   const close = () => { reset(); onClose(); };
 
@@ -83,7 +92,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
   };
 
   const s = q.toLowerCase();
-  const mats = materials.filter((m) => m.active && (!s || (m.description || "").toLowerCase().includes(s)));
+  const mats = materials.filter((m) => m.active && (!s || (m.description || "").toLowerCase().includes(s)) && (category === "todas" || m.category === category));
   const svcs = services.filter((m) => m.active && (!s || (m.description || "").toLowerCase().includes(s)));
 
   const tabs = [
@@ -105,7 +114,7 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
             return (
               <button
                 key={t.key}
-                onClick={() => { setTab(t.key); setPicked(null); }}
+                onClick={() => { setTab(t.key); setPicked(null); setCategory("todas"); }}
                 className={`flex flex-col items-center gap-1 py-2 rounded-md text-xs font-medium transition ${
                   tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground"
                 }`}
@@ -122,6 +131,11 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input className="pl-10 h-11" placeholder={`Buscar ${tab === "material" ? "peça" : "serviço"}...`} value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
             </div>
+
+            {tab === "material" && <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+              <SelectContent><SelectItem value="todas">Todas as categorias</SelectItem>{categories.map((item) => <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>)}</SelectContent>
+            </Select>}
 
             <div className="max-h-52 overflow-y-auto -mx-1 rounded-lg border border-border">
               {(tab === "material" ? mats : svcs).length === 0 ? (

@@ -92,7 +92,7 @@ export default function Finance() {
     if (t.status !== "ativo" || !inRange(t.date)) return false;
     if (filterScope === "cliente") {
       if (!t.customer_id || (filterCustomer && t.customer_id !== filterCustomer)) return false;
-    } else if (!t.supplier_id || (filterSupplier && t.supplier_id !== filterSupplier)) return false;
+    } else if (filterScope === "fornecedor" && (!t.supplier_id || (filterSupplier && t.supplier_id !== filterSupplier))) return false;
     return true;
   });
   const entradas = activeTx.filter((t) => t.type === "entrada");
@@ -139,9 +139,9 @@ export default function Finance() {
   const totalAReceber = aReceber.reduce((s, w) => s + w.balance, 0);
 
   // A pagar: despesas pendentes + pedidos não pagos
-  const despesasPendentes = filterScope === "fornecedor"
-    ? expenses.filter((e) => (e.status === "pendente" || e.status === "vencido") && e.supplier_id && (!filterSupplier || e.supplier_id === filterSupplier))
-    : [];
+  const despesasPendentes = filterScope === "cliente"
+    ? []
+    : expenses.filter((e) => (e.status === "pendente" || e.status === "vencido") && (filterScope === "todos" || (e.supplier_id && (!filterSupplier || e.supplier_id === filterSupplier))));
   const totalAPagar = despesasPendentes.reduce((s, e) => s + (e.amount || 0), 0);
 
   const methodLabels = { dinheiro: "Dinheiro", pix: "Pix", cartao_debito: "Cartão Débito", cartao_credito: "Cartão Crédito", outro: "Outro" };
@@ -188,6 +188,7 @@ export default function Finance() {
           <div className="flex h-9 rounded-md border border-input p-0.5">
             <button type="button" onClick={() => { setFilterScope("cliente"); setFilterSupplier(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "cliente" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Cliente</button>
             <button type="button" onClick={() => { setFilterScope("fornecedor"); setFilterCustomer(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "fornecedor" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Fornecedor</button>
+            <button type="button" onClick={() => { setFilterScope("todos"); setFilterCustomer(""); setFilterSupplier(""); }} className={`flex-1 rounded text-xs font-medium ${filterScope === "todos" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>Todos</button>
           </div>
         </div>
         {filterScope === "cliente" ? (
@@ -198,12 +199,20 @@ export default function Finance() {
               <SelectContent><SelectItem value="todos">Todos clientes</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-        ) : (
+        ) : filterScope === "fornecedor" ? (
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Fornecedor</label>
             <Select value={filterSupplier || "todos"} onValueChange={(v) => setFilterSupplier(v === "todos" ? "" : v)}>
               <SelectTrigger className="h-9"><SelectValue placeholder="Todos fornecedores" /></SelectTrigger>
               <SelectContent><SelectItem value="todos">Todos fornecedores</SelectItem>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Cliente / Fornecedor</label>
+            <Select disabled value="todos">
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos clientes e fornecedores</SelectItem></SelectContent>
             </Select>
           </div>
         )}

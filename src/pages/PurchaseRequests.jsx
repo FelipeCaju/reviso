@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 const STATUS_INFO = {
   rascunho: { label: "Rascunho", color: "bg-slate-100 text-slate-700" },
@@ -23,12 +26,22 @@ export default function PurchaseRequests() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [onlyOrders, setOnlyOrders] = useState(false);
+  const [supplierFilter, setSupplierFilter] = useState("todos");
+  const [suppliers, setSuppliers] = useState([]);
+  const [orderRequestIds, setOrderRequestIds] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await base44.entities.PurchaseRequest.list("-date", 500);
+        const [data, supplierData, orders] = await Promise.all([
+          base44.entities.PurchaseRequest.list("-date", 500),
+          base44.entities.Supplier.list("name", 500),
+          base44.entities.PurchaseOrder.list("-date", 500),
+        ]);
         setItems(data);
+        setSuppliers(supplierData);
+        setOrderRequestIds(orders.map((order) => order.request_id).filter(Boolean));
       } finally {
         setLoading(false);
       }
@@ -37,6 +50,8 @@ export default function PurchaseRequests() {
 
   const filtered = items.filter((r) => {
     const s = q.toLowerCase();
+    if (onlyOrders && !orderRequestIds.includes(r.id)) return false;
+    if (supplierFilter !== "todos" && !(r.supplier_ids || []).includes(supplierFilter)) return false;
     return !s || (r.number || "").toLowerCase().includes(s) || (r.responsible || "").toLowerCase().includes(s) || (r.notes || "").toLowerCase().includes(s);
   });
 
@@ -48,7 +63,7 @@ export default function PurchaseRequests() {
           <p className="text-sm text-muted-foreground">{items.length} no total</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/pedidos")}>
+          <Button variant={onlyOrders ? "default" : "outline"} onClick={() => setOnlyOrders((value) => !value)}>
             <ClipboardList className="w-4 h-4 mr-2" /> Pedidos
           </Button>
           <Button onClick={() => navigate("/compras/nova")}>
@@ -57,9 +72,18 @@ export default function PurchaseRequests() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input className="pl-10" placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap gap-2">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input className="pl-10" placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <SelectTrigger className="w-52"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos fornecedores</SelectItem>
+            {suppliers.map((supplier) => <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (

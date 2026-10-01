@@ -30,6 +30,8 @@ export default function Materials() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("todas");
+  const [brandFilter, setBrandFilter] = useState("todas");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -52,9 +54,12 @@ export default function Materials() {
 
   const filtered = items.filter((m) => {
     const s = q.toLowerCase();
+    if (categoryFilter !== "todas" && m.category !== categoryFilter) return false;
+    if (brandFilter !== "todas" && m.brand !== brandFilter) return false;
     return !s || (m.description || "").toLowerCase().includes(s) ||
       (m.code || "").toLowerCase().includes(s) || (m.category || "").toLowerCase().includes(s);
   });
+  const brands = [...new Set(items.map((item) => item.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   const openNew = () => { setForm(EMPTY); setEditingId(null); setOpen(true); };
   const openEdit = (m) => { setForm({ ...m }); setEditingId(m.id); setOpen(true); };
@@ -87,9 +92,25 @@ export default function Materials() {
         <div className="flex gap-2"><Button variant="outline" onClick={() => navigate("/materiais/categorias")}><Tags className="w-4 h-4 mr-2" /> Nova Categoria</Button><Button onClick={openNew} className="shrink-0"><Plus className="w-4 h-4 mr-2" /> Novo</Button></div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input className="pl-10" placeholder="Buscar material..." value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap gap-2">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input className="pl-10" placeholder="Buscar material..." value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas categorias</SelectItem>
+            {categories.map((category) => <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={brandFilter} onValueChange={setBrandFilter}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Marca" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas marcas</SelectItem>
+            {brands.map((brand) => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (

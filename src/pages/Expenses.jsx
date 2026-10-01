@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
-import { markExpensePaid } from "@/lib/finance";
+import { generateRecurringExpenses, markExpensePaid } from "@/lib/finance";
 import { toast } from "@/components/ui/use-toast";
 
 const PAYMENT_METHODS = [
@@ -40,6 +40,9 @@ export default function Expenses() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("todas");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -51,6 +54,7 @@ export default function Expenses() {
   const load = async () => {
     setLoading(true);
     try {
+      await generateRecurringExpenses();
       const [data, sups, sl] = await Promise.all([
         base44.entities.Expense.list("-date", 500),
         base44.entities.Supplier.list("-updated_date", 500),
@@ -76,6 +80,10 @@ export default function Expenses() {
     const s = q.toLowerCase();
     if (statusFilter && e.status !== statusFilter) return false;
     if (typeFilter && e.type !== typeFilter) return false;
+    if (categoryFilter !== "todas" && e.category !== categoryFilter) return false;
+    const expenseDate = (e.date || e.due_date || "").slice(0, 10);
+    if (startDate && expenseDate < startDate) return false;
+    if (endDate && expenseDate > endDate) return false;
     if (!s) return true;
     return (e.description || "").toLowerCase().includes(s) || (e.category || "").toLowerCase().includes(s) || (e.beneficiary || "").toLowerCase().includes(s);
   });
@@ -148,10 +156,19 @@ export default function Expenses() {
           <SelectTrigger className="w-36"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={null}>Todos</SelectItem>
-            <SelectItem value="fixa">Fixa</SelectItem>
+            <SelectItem value="fixa">Recorrente</SelectItem>
             <SelectItem value="eventual">Eventual</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas categorias</SelectItem>
+            {categories.filter(Boolean).map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Input type="date" className="w-40" aria-label="Data inicial" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <Input type="date" className="w-40" aria-label="Data final" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
 
       {/* Despesas recorrentes (templates) */}
@@ -190,7 +207,7 @@ export default function Expenses() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium truncate">{e.description}</span>
-                    {e.type === "fixa" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">FIXA</span>}
+                    {e.type === "fixa" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">RECORRENTE</span>}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {[e.category, e.beneficiary].filter(Boolean).join(" · ") || "—"}
@@ -201,15 +218,15 @@ export default function Expenses() {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-sm font-semibold">{formatCurrency(e.amount)}</div>
-                  <div className={`text-xs ${e.status === "pago" ? "text-emerald-600" : e.status === "vencido" ? "text-red-600" : e.status === "cancelado" ? "text-muted-foreground" : "text-amber-600"}`}>
-                    {e.status}
-                  </div>
+                  <span className={`inline-flex mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${e.status === "pago" ? "bg-emerald-100 text-emerald-700" : e.status === "vencido" ? "bg-red-100 text-red-700" : e.status === "cancelado" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
+                    {{ pago: "Pago", vencido: "Vencida", cancelado: "Cancelada", pendente: "Pendente" }[e.status] || e.status}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-1.5 mt-2">
                 {e.status === "pendente" && (
                   <Button size="sm" variant="outline" className="h-8" onClick={() => { setPayOpen(e); setPayDate(todayISO()); }}>
-                    Marcar Paga
+                    Pago
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" className="h-8" onClick={() => openEdit(e)}>

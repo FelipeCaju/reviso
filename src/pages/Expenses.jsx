@@ -188,37 +188,30 @@ export default function Expenses() {
           <div className="text-sm font-medium text-blue-900">Despesas Recorrentes</div>
           <div className="space-y-1.5">
             {groupedRecurringExpenses.map(({ template, entries }) => (
-              <div key={template.id} className="rounded-lg border border-blue-100 bg-card overflow-hidden">
-                <div className="flex items-center justify-between gap-2 p-2.5">
+              entries.length > 0 ? entries.map((e) => (
+                <div key={e.id} className="rounded-lg border border-blue-100 bg-card p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{template.description}</div>
-                    <div className="text-xs text-muted-foreground">{template.category} · {formatCurrency(template.amount)} · {template.recurrence_period} · venc. dia {template.recurrence_day}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Lançamento: {formatDate(e.date)}</div>
+                    <div className="text-xs text-muted-foreground">Vencimento: {formatDate(e.due_date || e.date)}</div>
                   </div>
-                  <button onClick={() => openEdit(template)} className="p-1 rounded hover:bg-accent shrink-0" aria-label={`Editar recorrência ${template.description}`}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right">
+                      <div className="text-sm font-semibold">{formatCurrency(e.amount)}</div>
+                      <span className={`inline-flex mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${e.status === "pago" ? "bg-emerald-100 text-emerald-700" : e.status === "vencido" ? "bg-red-100 text-red-700" : e.status === "cancelado" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
+                        {{ pago: "Pago", vencido: "Vencida", cancelado: "Cancelada", pendente: "Pendente" }[e.status] || e.status}
+                      </span>
+                    </div>
+                    {e.status === "pendente" && <Button size="sm" variant="outline" className="h-8" onClick={() => { setPayOpen(e); setPayDate(todayISO()); }}>Pago</Button>}
+                    <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => openEdit(template)} aria-label={`Editar recorrência ${template.description}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                  </div>
                 </div>
-                {entries.length > 0 ? (
-                  <div className="border-t border-blue-100 divide-y divide-blue-100">
-                    {entries.map((e) => (
-                      <div key={e.id} className="flex items-center justify-between gap-2 px-2.5 py-2 bg-blue-50/30">
-                        <div className="min-w-0">
-                          <div className="text-xs font-medium">Lançamento de {formatDate(e.date)}</div>
-                          <div className="text-xs text-muted-foreground">Vencimento: {formatDate(e.due_date || e.date)}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="text-right">
-                            <div className="text-sm font-semibold">{formatCurrency(e.amount)}</div>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${e.status === "pago" ? "bg-emerald-100 text-emerald-700" : e.status === "vencido" ? "bg-red-100 text-red-700" : e.status === "cancelado" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
-                              {{ pago: "Pago", vencido: "Vencida", cancelado: "Cancelada", pendente: "Pendente" }[e.status] || e.status}
-                            </span>
-                          </div>
-                          {e.status === "pendente" && <Button size="sm" variant="outline" className="h-8" onClick={() => { setPayOpen(e); setPayDate(todayISO()); }}>Pago</Button>}
-                          <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => openEdit(e)} aria-label={`Editar lançamento ${template.description}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : <div className="border-t border-blue-100 px-2.5 py-2 text-xs text-muted-foreground">Nenhum lançamento encontrado para os filtros selecionados.</div>}
-              </div>
+              )) : (
+                <div key={template.id} className="rounded-lg border border-blue-100 bg-card p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0"><div className="text-sm font-medium truncate">{template.description}</div><div className="text-xs text-muted-foreground mt-0.5">Próximo vencimento: dia {template.recurrence_day}</div></div>
+                  <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => openEdit(template)} aria-label={`Editar recorrência ${template.description}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                </div>
+              )
             ))}
           </div>
         </div>

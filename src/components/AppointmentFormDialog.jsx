@@ -30,9 +30,10 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
   });
   const [saving, setSaving] = useState(false);
   const [quickCustomerOpen, setQuickCustomerOpen] = useState(false);
-  const [quickCustomer, setQuickCustomer] = useState({ name: "", phone: "", whatsapp: "" });
+  const [quickCustomer, setQuickCustomer] = useState({ name: "", phone: "", whatsapp: "", vehiclePlate: "", vehicleModel: "" });
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [createdCustomers, setCreatedCustomers] = useState([]);
+  const [createdVehicles, setCreatedVehicles] = useState([]);
 
   useEffect(() => {
     if (open) {
@@ -54,8 +55,8 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
 
   const customerOptions = [...customers, ...createdCustomers];
   const vehicleOptions = form.customer_id
-    ? vehicles.filter((v) => v.current_owner_id === form.customer_id)
-    : vehicles;
+    ? [...vehicles, ...createdVehicles].filter((v) => v.current_owner_id === form.customer_id)
+    : [...vehicles, ...createdVehicles];
 
   const isPastDateTime = () => {
     const today = todayISO();
@@ -79,7 +80,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     setSaving(true);
     try {
       const cust = customerOptions.find((c) => c.id === form.customer_id);
-      const veh = vehicles.find((v) => v.id === form.vehicle_id);
+      const veh = [...vehicles, ...createdVehicles].find((v) => v.id === form.vehicle_id);
       const payload = {
         ...form,
         customer_name_snapshot: cust?.name || "",
@@ -99,7 +100,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
   };
 
   const saveQuickCustomer = async () => {
-    if (!quickCustomer.name.trim()) return;
+    if (!quickCustomer.name.trim() || !quickCustomer.vehiclePlate.trim()) return;
     setSavingCustomer(true);
     try {
       const created = await base44.entities.Customer.create(withWorkshop({
@@ -108,12 +109,27 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
         whatsapp: quickCustomer.whatsapp.trim(),
         active: true,
       }));
+      const vehicle = await base44.entities.Vehicle.create(withWorkshop({
+        plate: normalizePlate(quickCustomer.vehiclePlate),
+        model: quickCustomer.vehicleModel.trim(),
+        current_owner_id: created.id,
+        type: "carro",
+        active: true,
+      }));
+      await base44.entities.VehicleOwner.create(withWorkshop({
+        vehicle_id: vehicle.id,
+        customer_id: created.id,
+        customer_name_snapshot: created.name,
+        start_date: new Date().toISOString(),
+        active: true,
+      }));
       setCreatedCustomers((current) => [...current, created]);
+      setCreatedVehicles((current) => [...current, vehicle]);
       set("customer_id", created.id);
-      set("vehicle_id", "");
-      setQuickCustomer({ name: "", phone: "", whatsapp: "" });
+      set("vehicle_id", vehicle.id);
+      setQuickCustomer({ name: "", phone: "", whatsapp: "", vehiclePlate: "", vehicleModel: "" });
       setQuickCustomerOpen(false);
-      toast({ title: "Cliente cadastrado e selecionado" });
+      toast({ title: "Cliente e veículo cadastrados e selecionados" });
     } catch (error) {
       toast({ title: "Erro ao cadastrar cliente", description: error.message, variant: "destructive" });
     } finally {
@@ -197,10 +213,14 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
             <div className="space-y-1.5"><Label>Nome / Razão Social *</Label><Input value={quickCustomer.name} onChange={(event) => setQuickCustomer((current) => ({ ...current, name: event.target.value }))} autoFocus /></div>
             <div className="space-y-1.5"><Label>Telefone</Label><Input value={quickCustomer.phone} onChange={(event) => setQuickCustomer((current) => ({ ...current, phone: event.target.value }))} /></div>
             <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={quickCustomer.whatsapp} onChange={(event) => setQuickCustomer((current) => ({ ...current, whatsapp: event.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>Placa *</Label><Input value={quickCustomer.vehiclePlate} onChange={(event) => setQuickCustomer((current) => ({ ...current, vehiclePlate: event.target.value.toUpperCase() }))} placeholder="ABC1D23" /></div>
+              <div className="space-y-1.5"><Label>Modelo</Label><Input value={quickCustomer.vehicleModel} onChange={(event) => setQuickCustomer((current) => ({ ...current, vehicleModel: event.target.value }))} placeholder="Ex: Onix" /></div>
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={saveQuickCustomer} disabled={savingCustomer || !quickCustomer.name.trim()}>{savingCustomer ? "Salvando..." : "Salvar cliente"}</Button>
+            <Button onClick={saveQuickCustomer} disabled={savingCustomer || !quickCustomer.name.trim() || !quickCustomer.vehiclePlate.trim()}>{savingCustomer ? "Salvando..." : "Salvar cliente"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

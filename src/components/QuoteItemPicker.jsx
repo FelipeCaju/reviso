@@ -70,7 +70,6 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
       approved: true,
     });
     reset();
-    onClose();
   };
 
   const addManual = () => {
@@ -88,7 +87,6 @@ export default function QuoteItemPicker({ open, onClose, onAdd, materials = [], 
       approved: true,
     });
     reset();
-    onClose();
   };
 
   const s = q.toLowerCase();

@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 
 const TYPES = Object.entries(appointmentTypeInfo).map(([k, v]) => ({ value: k, label: v.label }));
 
-export default function AppointmentFormDialog({ open, onClose, onSaved, prefill = {}, appointment = null, customers = [], vehicles = [] }) {
+export default function AppointmentFormDialog({ open, onClose, onSaved, prefill = {}, appointment = null, customers = [], vehicles = [], settings = null }) {
   const [form, setForm] = useState({
     customer_id: "",
     vehicle_id: "",
@@ -71,10 +71,22 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
     return false;
   };
 
+  const isSchedulingEnabled = () => {
+    if (!settings) return true;
+    const day = new Date(form.scheduled_date + "T00:00:00").getDay();
+    const enabledKeys = ["schedule_sunday", "schedule_monday", "schedule_tuesday", "schedule_wednesday", "schedule_thursday", "schedule_friday", "schedule_saturday"];
+    const legacyCapacityKeys = ["capacity_sunday", "capacity_monday", "capacity_tuesday", "capacity_wednesday", "capacity_thursday", "capacity_friday", "capacity_saturday"];
+    return settings[enabledKeys[day]] ?? (settings[legacyCapacityKeys[day]] ?? 1) > 0;
+  };
+
   const save = async () => {
     if (!form.customer_id || !form.vehicle_id || !form.scheduled_date) return;
     if (!appointment && isPastDateTime()) {
       toast({ title: "Não é possível agendar no passado", description: "Selecione uma data e horário futuros.", variant: "destructive" });
+      return;
+    }
+    if (!isSchedulingEnabled()) {
+      toast({ title: "Este dia está fechado para agendamentos", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -200,7 +212,7 @@ export default function AppointmentFormDialog({ open, onClose, onSaved, prefill 
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-          <Button onClick={save} disabled={saving || !form.customer_id || !form.vehicle_id || !form.scheduled_date || (!appointment && isPastDateTime())}>
+          <Button onClick={save} disabled={saving || !form.customer_id || !form.vehicle_id || !form.scheduled_date || (!appointment && isPastDateTime()) || !isSchedulingEnabled()}>
             {saving ? "Salvando..." : appointment ? "Salvar" : "Agendar"}
           </Button>
         </DialogFooter>

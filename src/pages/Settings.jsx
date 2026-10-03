@@ -22,19 +22,14 @@ const DEFAULT = {
   default_capacity: 8,
   is_demo: false,
   demo_email: "", demo_password: "",
-  capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
-  capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+  schedule_monday: true, schedule_tuesday: true, schedule_wednesday: true,
+  schedule_thursday: true, schedule_friday: true, schedule_saturday: false, schedule_sunday: false,
   expense_categories: ["Água", "Energia", "Internet", "Aluguel", "Funcionários", "Impostos", "Contabilidade", "Material de limpeza", "Combustível", "Ferramentas", "Manutenção", "Alimentação", "Compras", "Outros"],
 };
 
-const DAYS = [
-  ["capacity_monday", "Segunda"],
-  ["capacity_tuesday", "Terça"],
-  ["capacity_wednesday", "Quarta"],
-  ["capacity_thursday", "Quinta"],
-  ["capacity_friday", "Sexta"],
-  ["capacity_saturday", "Sábado"],
-  ["capacity_sunday", "Domingo"],
+const SCHEDULE_DAYS = [
+  ["schedule_monday", "Segunda"], ["schedule_tuesday", "Terça"], ["schedule_wednesday", "Quarta"],
+  ["schedule_thursday", "Quinta"], ["schedule_friday", "Sexta"], ["schedule_saturday", "Sábado"], ["schedule_sunday", "Domingo"],
 ];
 
 export default function Settings() {
@@ -62,7 +57,7 @@ export default function Settings() {
     setSaving(true);
     try {
       if (!id || id !== getWorkshopId()) throw new Error("Oficina não autorizada.");
-      const protectedFields = ['id', 'created_date', 'updated_date', 'created_by', 'plan', 'plan_value', 'trial_started_at', 'is_demo', 'demo_email', 'demo_password', 'fiscal_module_enabled'];
+      const protectedFields = ['id', 'created_date', 'updated_date', 'created_by', 'owner_email', 'plan', 'plan_value', 'trial_started_at', 'is_demo', 'demo_email', 'demo_password', 'fiscal_module_enabled'];
       const data = Object.fromEntries(Object.entries(form).filter(([key]) => !protectedFields.includes(key)));
       await base44.entities.WorkshopSetting.update(id, data);
       toast({ title: "Configurações salvas" });
@@ -196,14 +191,14 @@ export default function Settings() {
       </section>
 
       <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
-        <h2 className="font-medium">Capacidade por Dia da Semana</h2>
-        <p className="text-xs text-muted-foreground">Use 0 para dias fechados. A capacidade é um guia — não bloqueia agendamentos.</p>
+        <h2 className="font-medium">Dias de Atendimento</h2>
+        <p className="text-xs text-muted-foreground">Dias desmarcados ficam bloqueados para novos agendamentos na Agenda.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {DAYS.map(([key, label]) => (
-            <div key={key} className="space-y-1.5">
-              <Label>{label}</Label>
-              <Input type="number" value={form[key]} onChange={(e) => set(key, Number(e.target.value))} />
-            </div>
+          {SCHEDULE_DAYS.map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm cursor-pointer">
+              <Switch checked={form[key]} onCheckedChange={(value) => set(key, value)} />
+              {label}
+            </label>
           ))}
         </div>
       </section>

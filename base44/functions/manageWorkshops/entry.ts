@@ -84,6 +84,17 @@ export default async function(req) {
       const workshopId = user.workshop_id;
       const workshop = await db.WorkshopSetting.get(workshopId);
       if (!workshop?.id) return deny();
+      const workshopGrants = await db.WorkshopAccess.filter({ workshop_id: workshopId }, 'created_date', 500);
+      let workshopOwnerEmail = normalize(workshop.owner_email);
+      if (!workshopOwnerEmail) {
+        workshopOwnerEmail = normalize(workshopGrants.find((grant) => grant.role === 'admin')?.email);
+        if (!workshopOwnerEmail) {
+          const existingMembers = await db.User.filter({ workshop_id: workshopId }, 'created_date', 500);
+          workshopOwnerEmail = normalize(existingMembers.find((member) => member.role === 'admin')?.email);
+        }
+        if (workshopOwnerEmail) await db.WorkshopSetting.update(workshopId, { owner_email: workshopOwnerEmail });
+      }
+      const isWorkshopOwner = !!workshopOwnerEmail && normalize(user.email) === workshopOwnerEmail;
       if (body.action === 'listEmployees') {
         const members = await db.User.filter({ workshop_id: workshopId }, '-created_date', 500);
         const pending = await db.WorkshopAccess.filter({ workshop_id: workshopId }, '-created_date', 500);
@@ -93,14 +104,15 @@ export default async function(req) {
             users.push({ id: `pending_${g.id}`, email: g.email, full_name: '', role: g.role });
           }
         }
-        return Response.json({ users });
+        return Response.json({ users, currentUserId: user.id, isWorkshopOwner });
       }
+      if (!isWorkshopOwner) return deny();
       if (body.action === 'inviteEmployee') {
         const email = normalize(body.email);
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !['admin', 'user'].includes(body.role)) {
           return Response.json({ error: 'E-mail ou perfil inválido.' }, { status: 400 });
         }
-        if (email === ownerEmail) return deny();
+        if (email === ownerEmail || email === workshopOwnerEmail || email === normalize(user.email)) return deny();
         const existing = await db.User.filter({ email }, '-created_date', 2);
         const grants = await db.WorkshopAccess.filter({ email }, '-created_date', 2);
         if (existing.length > 1 || grants.length || existing.some((u) => u.workshop_id)) {
@@ -128,7 +140,8 @@ export default async function(req) {
         target = await db.User.get(body.userId);
         if (target?.workshop_id !== workshopId) return deny();
       }
-      if (target && (target.workshop_id && target.workshop_id !== workshopId || target.id === user.id || normalize(target.email) === ownerEmail)) return deny();
+      if (target && (target.workshop_id && target.workshop_id !== workshopId || target.id === user.id || normalize(target.email) === ownerEmail || normalize(target.email) === workshopOwnerEmail)) return deny();
+      if (grant && normalize(grant.email) === workshopOwnerEmail) return deny();
       const email = grant?.email || normalize(target?.email);
       const grants = await db.WorkshopAccess.filter({ email, workshop_id: workshopId }, '-created_date', 100);
       if (body.action === 'removeEmployee') {
@@ -164,8 +177,8 @@ export default async function(req) {
         name: body.name.trim(), razao_social: body.razao_social || '', cnpj: body.cnpj || '',
         phone: body.phone, whatsapp: body.whatsapp || '', email: body.email, address: body.address,
         plan: 'free', plan_value: 0, fiscal_module_enabled: !!body.fiscal_module_enabled, is_active: true, trial_started_at: new Date().toISOString(),
-        default_capacity: 8, capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
-        capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+        owner_email: email, default_capacity: 8, schedule_monday: true, schedule_tuesday: true, schedule_wednesday: true,
+        schedule_thursday: true, schedule_friday: true, schedule_saturday: false, schedule_sunday: false,
       });
       // Persist the e-mail even when the owner has never logged in.
       await db.WorkshopAccess.create({ email, workshop_id: workshop.id, role: 'admin' });
@@ -258,9 +271,9 @@ export default async function(req) {
         fiscal_module_enabled: !!fiscal_module_enabled,
         is_active: true,
         trial_started_at: new Date().toISOString(),
-        default_capacity: 8,
-        capacity_monday: 8, capacity_tuesday: 8, capacity_wednesday: 8,
-        capacity_thursday: 8, capacity_friday: 6, capacity_saturday: 3, capacity_sunday: 0,
+        owner_email: normalize(target.email), default_capacity: 8,
+        schedule_monday: true, schedule_tuesday: true, schedule_wednesday: true,
+        schedule_thursday: true, schedule_friday: true, schedule_saturday: false, schedule_sunday: false,
       });
 
       await base44.asServiceRole.entities.User.update(userId, {

@@ -82,16 +82,14 @@ export default function Appointments() {
   const weekStartDate = new Date(weekStart + "T00:00:00");
   const days = useMemo(() => Array.from({ length: 6 }, (_, i) => addDaysISO(i, weekStartDate)), [weekStart]);
 
-  const capacityFor = (dateStr) => {
-    if (!settings) return 8;
+  const isDayEnabled = (dateStr) => {
+    if (!settings) return true;
     const day = new Date(dateStr + "T00:00:00").getDay();
-    const map = [
-      settings.capacity_sunday, settings.capacity_monday, settings.capacity_tuesday,
-      settings.capacity_wednesday, settings.capacity_thursday, settings.capacity_friday,
-      settings.capacity_saturday,
-    ];
-    return map[day] ?? settings.default_capacity ?? 8;
+    const enabledKeys = ["schedule_sunday", "schedule_monday", "schedule_tuesday", "schedule_wednesday", "schedule_thursday", "schedule_friday", "schedule_saturday"];
+    const legacyCapacityKeys = ["capacity_sunday", "capacity_monday", "capacity_tuesday", "capacity_wednesday", "capacity_thursday", "capacity_friday", "capacity_saturday"];
+    return settings[enabledKeys[day]] ?? (settings[legacyCapacityKeys[day]] ?? 1) > 0;
   };
+  const capacityFor = (dateStr) => isDayEnabled(dateStr) ? settings?.default_capacity ?? 8 : 0;
 
   const apptsForDay = (dateStr) =>
     appointments
@@ -134,8 +132,8 @@ export default function Appointments() {
     const { destination, source, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
     const newDate = destination.droppableId;
-    if (newDate < todayISO()) {
-      toast({ title: "Não é possível agendar em datas passadas", variant: "destructive" });
+    if (newDate < todayISO() || !isDayEnabled(newDate)) {
+      toast({ title: newDate < todayISO() ? "Não é possível agendar em datas passadas" : "Este dia está fechado para agendamentos", variant: "destructive" });
       return;
     }
     const appt = appointments.find((a) => a.id === draggableId);
@@ -201,6 +199,7 @@ export default function Appointments() {
     const count = list.length;
     const isToday = d === todayISO();
     const isPast = d < todayISO();
+    const isClosed = !isDayEnabled(d);
     const ratio = cap > 0 ? count / cap : 0;
     const capColor = cap === 0 ? "text-muted-foreground" : ratio > 1 ? "text-rose-600" : ratio >= 1 ? "text-amber-600" : "text-emerald-600";
     return (
@@ -211,7 +210,7 @@ export default function Appointments() {
               <div className="text-xs font-medium uppercase text-muted-foreground">{DAY_NAMES[i]}</div>
               <div className="text-sm font-semibold">{new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</div>
             </div>
-            <div className={`text-xs font-medium ${capColor}`}>{cap === 0 ? "Fechado" : `${count}/${cap}`}</div>
+            <div className={`text-xs font-medium ${capColor}`}>{isClosed ? "Fechado" : `${count}/${cap}`}</div>
           </div>
         </div>
         {isDesktop ? (
@@ -221,10 +220,10 @@ export default function Appointments() {
                 ref={prov.innerRef} {...prov.droppableProps}
                 className={`border border-t-0 border-border rounded-b-lg bg-card min-h-[120px] p-1.5 space-y-1.5 ${snap.isDraggingOver ? "bg-primary/5" : ""}`}
               >
-                {!isPast && (
+                {!isPast && !isClosed && (
                   <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>
                 )}
-                {isPast && list.length === 0 ? (
+                {(isPast || isClosed) && list.length === 0 ? (
                   <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
                 ) : list.map((a) => renderCard(a, true))}
                 {prov.placeholder}
@@ -233,10 +232,10 @@ export default function Appointments() {
           </Droppable>
         ) : (
           <div className="border border-t-0 border-border rounded-b-lg bg-card min-h-[120px] p-1.5 space-y-1.5">
-            {!isPast && (
+            {!isPast && !isClosed && (
               <button onClick={() => { setFormPrefill({ scheduled_date: d }); setFormOpen(true); }} className="w-full text-xs text-muted-foreground py-1.5 hover:bg-accent rounded border border-dashed border-border">+ agendar</button>
             )}
-            {isPast && list.length === 0 ? (
+            {(isPast || isClosed) && list.length === 0 ? (
               <div className="w-full text-xs text-muted-foreground/40 py-4 text-center">—</div>
             ) : list.map((a) => renderCard(a, false))}
           </div>
@@ -285,7 +284,7 @@ export default function Appointments() {
         )}
       </div>
 
-      <AppointmentFormDialog open={formOpen} onClose={() => { setFormOpen(false); setEditingAppt(null); }} onSaved={load} prefill={formPrefill} appointment={editingAppt} customers={customers} vehicles={vehicles} />
+      <AppointmentFormDialog open={formOpen} onClose={() => { setFormOpen(false); setEditingAppt(null); }} onSaved={load} prefill={formPrefill} appointment={editingAppt} customers={customers} vehicles={vehicles} settings={settings} />
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-w-md">

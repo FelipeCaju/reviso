@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 
 // Mostra os próximos 14 dias com a capacidade (x/cap) e permite escolher um dia.
-// Capacidade é um guia — não bloqueia; avisa se lotado/acima.
 export default function SchedulePicker({ open, onClose, onConfirm, settings }) {
   const [days, setDays] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -17,16 +16,14 @@ export default function SchedulePicker({ open, onClose, onConfirm, settings }) {
   const [time, setTime] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const capacityFor = (dateStr) => {
-    if (!settings) return 8;
+  const isDayEnabled = (dateStr) => {
+    if (!settings) return true;
     const day = new Date(dateStr + "T00:00:00").getDay();
-    const map = [
-      settings.capacity_sunday, settings.capacity_monday, settings.capacity_tuesday,
-      settings.capacity_wednesday, settings.capacity_thursday, settings.capacity_friday,
-      settings.capacity_saturday,
-    ];
-    return map[day] ?? settings.default_capacity ?? 8;
+    const enabledKeys = ["schedule_sunday", "schedule_monday", "schedule_tuesday", "schedule_wednesday", "schedule_thursday", "schedule_friday", "schedule_saturday"];
+    const legacyCapacityKeys = ["capacity_sunday", "capacity_monday", "capacity_tuesday", "capacity_wednesday", "capacity_thursday", "capacity_friday", "capacity_saturday"];
+    return settings[enabledKeys[day]] ?? (settings[legacyCapacityKeys[day]] ?? 1) > 0;
   };
+  const capacityFor = (dateStr) => isDayEnabled(dateStr) ? settings?.default_capacity ?? 8 : 0;
 
   useEffect(() => {
     if (!open) return;

@@ -18,7 +18,8 @@ export async function sendWhatsAppDocument({ blob, fileName, phone, recipientNam
   if (!/^55\d{10,11}$/.test(normalizedPhone)) throw new Error("Número de Telefone incorreto");
 
   const file = new File([blob], fileName, { type: "application/pdf" });
-  const { file_url: documentUrl } = await base44.integrations.Core.UploadPublicFile({ file });
+  const core = /** @type {any} */ (base44.integrations.Core);
+  const { file_url: documentUrl } = await core.UploadPublicFile({ file });
   const { data } = await base44.functions.invoke("sendWhatsAppDocument", {
     phone: normalizedPhone,
     documentUrl,

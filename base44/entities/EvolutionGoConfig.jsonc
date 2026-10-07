@@ -1,0 +1,18 @@
+{
+  "name": "EvolutionGoConfig",
+  "type": "object",
+  "properties": {
+    "workshop_id": { "type": "string", "minLength": 1, "title": "Oficina" },
+    "base_url": { "type": "string", "format": "uri", "title": "URL do Evolution GO" },
+    "instance_name": { "type": "string", "minLength": 1, "title": "Nome da instância" },
+    "api_key": { "type": "string", "minLength": 1, "title": "Chave da API", "rls": { "read": false, "write": false } },
+    "api_key_last4": { "type": "string", "title": "Sufixo da chave", "rls": { "read": false, "write": false } }
+  },
+  "required": ["workshop_id", "base_url", "instance_name", "api_key"],
+  "rls": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
+}

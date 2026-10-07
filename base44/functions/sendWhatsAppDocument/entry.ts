@@ -38,12 +38,10 @@ export default async function(req: Request) {
     const workshop = await db.WorkshopSetting.get(user.workshop_id);
     if (!workshop?.id) return Response.json({ error: 'Oficina não encontrada.' }, { status: 403 });
 
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const instanceToken = Deno.env.get('ZAPI_INSTANCE_TOKEN');
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
-    const connectedNumber = Deno.env.get('ZAPI_WHATSAPP_NUMBER');
-    if (!instanceId || !instanceToken || !clientToken || !connectedNumber) {
-      return Response.json({ error: 'Integração do WhatsApp não configurada.' }, { status: 503 });
+    const configs = await db.EvolutionGoConfig.filter({ workshop_id: workshop.id }, '-created_date', 2);
+    const config = configs[0];
+    if (!config?.base_url || !config?.instance_name || !config?.api_key) {
+      return Response.json({ error: 'Evolution GO não configurado para esta oficina. Solicite a configuração ao administrador.' }, { status: 503 });
     }
 
     const recipientName = String(body.recipientName || '').trim();
@@ -51,23 +49,23 @@ export default async function(req: Request) {
     const greeting = recipientName ? `Olá, ${recipientName}!` : 'Olá!';
     const referenceText = reference ? ` #${reference}` : '';
     const caption = `${greeting}\n\nAqui é ${workshop.name || 'a oficina'}.\nSegue ${labels[documentType]}${referenceText} para sua análise.\n\nFicamos à disposição.`;
-    const response = await fetch(`https://api.z-api.io/instances/${encodeURIComponent(instanceId)}/token/${encodeURIComponent(instanceToken)}/send-document/pdf`, {
+    const response = await fetch(`${String(config.base_url).replace(/\/$/, '')}/send/media`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-      body: JSON.stringify({ phone, document: documentUrl, fileName, caption }),
+      headers: { 'Content-Type': 'application/json', apikey: config.api_key },
+      body: JSON.stringify({ number: phone, url: documentUrl, type: 'document', filename: fileName, caption }),
     });
     const payload = await response.json().catch(() => ({}));
-    const messageId = payload.zaapId || payload.messageId || payload.id || null;
+    const messageId = payload?.data?.Info?.ID || payload.messageId || payload.id || null;
     const providerRejected = payload.success === false || payload.sent === false || payload.status === 'error' || !!payload.error || !!payload.errorMessage;
     if (!response.ok || providerRejected || !messageId) {
       const providerMessage = JSON.stringify(payload).toLowerCase();
       if (providerMessage.includes('invalid') && (providerMessage.includes('phone') || providerMessage.includes('number'))) return invalidPhone();
-      console.error('Z-API did not confirm the document send', { status: response.status, providerMessage: payload.message || payload.error || null });
-      return Response.json({ error: 'Não foi possível enviar o WhatsApp. Verifique a conexão da instância Z-API.' }, { status: 502 });
+      console.error('Evolution GO did not confirm the document send', { status: response.status, providerMessage: payload.message || payload.error || null });
+      return Response.json({ error: 'Não foi possível enviar o WhatsApp. Verifique a conexão da instância Evolution GO.' }, { status: 502 });
     }
     return Response.json({ success: true, messageId });
   } catch (error) {
-    console.error('Z-API WhatsApp document error', error);
+    console.error('Evolution GO WhatsApp document error', error);
     return Response.json({ error: 'Não foi possível enviar o WhatsApp.' }, { status: 500 });
   }
 }

@@ -70,6 +70,7 @@ export default async function(req) {
         'VehicleOwner', 'WorkOrder', 'WorkOrderItem',
       ];
       for (const entityName of tenantEntities) await db[entityName].deleteMany({ workshop_id: workshopId });
+      await db.EvolutionGoConfig.deleteMany({ workshop_id: workshopId });
       await db.WorkshopAccess.deleteMany({ workshop_id: workshopId });
       const members = await db.User.filter({ workshop_id: workshopId }, '-created_date', 500);
       for (const member of members) await db.User.update(member.id, { workshop_id: '', role: 'user' });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Users, ArrowRight, Mail, Crown, Clock, CheckCircle2, Pencil, Power, Trash2 } from "lucide-react";
+import { Building2, Plus, Users, ArrowRight, Mail, Crown, Clock, CheckCircle2, Pencil, Power, Trash2, KeyRound } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,11 @@ export default function AdminOnboarding() {
   const [editEmailField, setEditEmailField] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editFiscalEnabled, setEditFiscalEnabled] = useState(false);
+  const [evolutionBaseUrl, setEvolutionBaseUrl] = useState("");
+  const [evolutionInstanceName, setEvolutionInstanceName] = useState("");
+  const [evolutionApiKey, setEvolutionApiKey] = useState("");
+  const [evolutionApiKeyMask, setEvolutionApiKeyMask] = useState("");
+  const [loadingEvolutionConfig, setLoadingEvolutionConfig] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [workshopAction, setWorkshopAction] = useState(null);
   const [processingWorkshopAction, setProcessingWorkshopAction] = useState(false);
@@ -97,7 +102,7 @@ export default function AdminOnboarding() {
     }
   };
 
-  const openEdit = (ws) => {
+  const openEdit = async (ws) => {
     setEditWs(ws);
     setEditPlan(ws.plan || "free");
     setEditValue(ws.plan_value || 0);
@@ -109,6 +114,23 @@ export default function AdminOnboarding() {
     setEditEmailField(ws.email || "");
     setEditAddress(ws.address || "");
     setEditFiscalEnabled(!!ws.fiscal_module_enabled);
+    setEvolutionBaseUrl("");
+    setEvolutionInstanceName("");
+    setEvolutionApiKey("");
+    setEvolutionApiKeyMask("");
+    if (!ws.isOrphan) {
+      setLoadingEvolutionConfig(true);
+      try {
+        const response = await base44.functions.invoke("manageEvolutionGoConfig", { action: "get", workshopId: ws.id });
+        setEvolutionBaseUrl(response.data.baseUrl || "");
+        setEvolutionInstanceName(response.data.instanceName || "");
+        setEvolutionApiKeyMask(response.data.apiKeyMask || "");
+      } catch (error) {
+        toast({ title: "Não foi possível carregar o Evolution GO", description: error.response?.data?.error || error.message, variant: "destructive" });
+      } finally {
+        setLoadingEvolutionConfig(false);
+      }
+    }
   };
 
   const savePlan = async () => {
@@ -152,6 +174,18 @@ export default function AdminOnboarding() {
           plan_value: Number(editValue) || 0,
           fiscal_module_enabled: editFiscalEnabled,
         });
+        const hasEvolutionValues = evolutionBaseUrl.trim() || evolutionInstanceName.trim() || evolutionApiKey.trim() || evolutionApiKeyMask;
+        if (hasEvolutionValues) {
+          const result = await base44.functions.invoke("manageEvolutionGoConfig", {
+            action: "save",
+            workshopId: editWs.id,
+            baseUrl: evolutionBaseUrl,
+            instanceName: evolutionInstanceName,
+            apiKey: evolutionApiKey,
+          });
+          setEvolutionApiKeyMask(result.data.apiKeyMask || evolutionApiKeyMask);
+          setEvolutionApiKey("");
+        }
         toast({ title: "Dados atualizados!", description: `${editName || editWs.name} agora está no plano ${PLAN_LABELS[editPlan].label}.` });
       }
       setEditWs(null);
@@ -456,6 +490,33 @@ export default function AdminOnboarding() {
                 <div><Label htmlFor="edit-workshop-fiscal">Oficina fiscal</Label><p className="text-xs text-muted-foreground">Pode ser ativada ou desativada depois; os documentos já emitidos permanecem preservados.</p></div>
                 <Switch id="edit-workshop-fiscal" checked={editFiscalEnabled} onCheckedChange={setEditFiscalEnabled} />
               </div>
+              {!editWs.isOrphan && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div>
+                    <h3 className="flex items-center gap-2 font-medium text-sm"><KeyRound className="w-4 h-4" /> Evolution GO</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Configuração exclusiva desta oficina. A API key não é exibida novamente após ser salva.</p>
+                  </div>
+                  {loadingEvolutionConfig ? (
+                    <p className="text-sm text-muted-foreground">Carregando configuração...</p>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="evolution-base-url">URL da Evolution</Label>
+                        <Input id="evolution-base-url" type="url" value={evolutionBaseUrl} onChange={(event) => setEvolutionBaseUrl(event.target.value)} placeholder="https://evolution.seudominio.com" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="evolution-instance-name">Nome da instância</Label>
+                        <Input id="evolution-instance-name" value={evolutionInstanceName} onChange={(event) => setEvolutionInstanceName(event.target.value)} placeholder="oficina-jessica" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="evolution-api-key">API key ou token da instância</Label>
+                        <Input id="evolution-api-key" type="password" value={evolutionApiKey} onChange={(event) => setEvolutionApiKey(event.target.value)} placeholder={evolutionApiKeyMask ? `${evolutionApiKeyMask} — deixe vazio para manter` : "Cole a chave da instância"} />
+                        <p className="text-xs text-muted-foreground">{evolutionApiKeyMask ? `Já existe uma chave salva (${evolutionApiKeyMask}). Preencha somente para substituí-la.` : "A chave será armazenada de forma privada e usada apenas pelo servidor."}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

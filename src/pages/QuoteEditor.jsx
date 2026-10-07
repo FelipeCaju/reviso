@@ -24,7 +24,7 @@ import {
   normalizePlate, vehicleDescription, formatCurrency, formatDate, todayISO, addDaysISO,
 } from "@/lib/format";
 import { generateQuotePDF, generateQuotePDFBlob } from "@/lib/pdf";
-import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/evolutionGo";
 import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 

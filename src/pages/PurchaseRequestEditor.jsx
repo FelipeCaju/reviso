@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { generatePurchaseRequestPDFBlob } from "@/lib/pdf";
-import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/evolutionGo";
 import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 

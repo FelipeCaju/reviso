@@ -21,7 +21,7 @@ import {
   normalizePlate, vehicleDescription, formatCurrency, formatDateTime,
 } from "@/lib/format";
 import { generateNonFiscalReceiptPDF, generateWorkOrderPDF, generateWorkOrderPDFBlob } from "@/lib/pdf";
-import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/zapi";
+import { getWhatsAppDocumentPreview, getWhatsAppErrorMessage, sendWhatsAppDocument } from "@/lib/evolutionGo";
 import WhatsAppPreviewDialog from "@/components/WhatsAppPreviewDialog";
 import { toast } from "@/components/ui/use-toast";
 import OSPayments from "@/components/OSPayments";

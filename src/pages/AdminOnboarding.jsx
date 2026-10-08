@@ -422,7 +422,7 @@ export default function AdminOnboarding() {
 
       {/* Dialog de edição de plano */}
       <Dialog open={!!editWs} onOpenChange={(open) => !open && setEditWs(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto md:max-w-[70rem]">
           <DialogHeader>
             <DialogTitle>
               {editWs?.isOrphan ? "Cadastrar Oficina — Novo Usuário" : `Gerenciar Plano — ${editWs?.name}`}
@@ -444,51 +444,55 @@ export default function AdminOnboarding() {
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ex: Auto Mecânica do João" />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 <div className="space-y-1.5"><Label>Razão Social</Label><Input value={editRazao} onChange={(e) => setEditRazao(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>CNPJ</Label><Input value={editCnpj} onChange={(e) => setEditCnpj(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>Telefone *</Label><Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={editWhatsapp} onChange={(e) => setEditWhatsapp(e.target.value)} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>E-mail *</Label><Input value={editEmailField} onChange={(e) => setEditEmailField(e.target.value)} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Endereço *</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>E-mail *</Label><Input value={editEmailField} onChange={(e) => setEditEmailField(e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2 md:col-span-3"><Label>Endereço *</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} /></div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Plano</Label>
-                <Select value={editPlan} onValueChange={setEditPlan}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-600" /> Free (24h)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="normal">
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-4 h-4 text-emerald-600" /> Normal (Assinatura ativa)
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {editPlan === "free"
-                    ? "Acesso limitado a 24 horas. Altere para Normal após receber o pagamento."
-                    : "Assinatura ativa. Acesso completo sem limite de tempo."}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Valor Mensal (R$)</Label>
-                <Input
-                  type="number" min="0" step="0.01"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
-                <div><Label htmlFor="edit-workshop-fiscal">Oficina fiscal</Label><p className="text-xs text-muted-foreground">Pode ser ativada ou desativada depois; os documentos já emitidos permanecem preservados.</p></div>
-                <Switch id="edit-workshop-fiscal" checked={editFiscalEnabled} onCheckedChange={setEditFiscalEnabled} />
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label>Plano</Label>
+                  <Select value={editPlan} onValueChange={setEditPlan}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600" /> Free (24h)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="normal">
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-4 h-4 text-emerald-600" /> Normal (Assinatura ativa)
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {editPlan === "free"
+                      ? "Acesso limitado a 24 horas. Altere para Normal após receber o pagamento."
+                      : "Assinatura ativa. Acesso completo sem limite de tempo."}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Valor Mensal (R$)</Label>
+                  <Input
+                    type="number" min="0" step="0.01"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-workshop-fiscal">Oficina fiscal</Label>
+                  <div className="flex h-10 items-center justify-between rounded-md border border-input px-3">
+                    <span className="text-sm text-muted-foreground">Ativar módulo fiscal</span>
+                    <Switch id="edit-workshop-fiscal" checked={editFiscalEnabled} onCheckedChange={setEditFiscalEnabled} />
+                  </div>
+                </div>
               </div>
               {!editWs.isOrphan && (
                 <div className="space-y-3 rounded-lg border border-border p-3">
@@ -500,13 +504,15 @@ export default function AdminOnboarding() {
                     <p className="text-sm text-muted-foreground">Carregando configuração...</p>
                   ) : (
                     <>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="evolution-base-url">URL da Evolution</Label>
-                        <Input id="evolution-base-url" type="url" value={evolutionBaseUrl} onChange={(event) => setEvolutionBaseUrl(event.target.value)} placeholder="https://evolution.seudominio.com" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="evolution-instance-name">Nome da instância</Label>
-                        <Input id="evolution-instance-name" value={evolutionInstanceName} onChange={(event) => setEvolutionInstanceName(event.target.value)} placeholder="oficina-jessica" />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="evolution-base-url">URL da Evolution</Label>
+                          <Input id="evolution-base-url" type="url" value={evolutionBaseUrl} onChange={(event) => setEvolutionBaseUrl(event.target.value)} placeholder="https://evolution.seudominio.com" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="evolution-instance-name">Nome da instância</Label>
+                          <Input id="evolution-instance-name" value={evolutionInstanceName} onChange={(event) => setEvolutionInstanceName(event.target.value)} placeholder="oficina-jessica" />
+                        </div>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="evolution-api-key">API key ou token da instância</Label>

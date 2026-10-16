@@ -1,6 +1,6 @@
 import { getWorkshopId } from "@/lib/workshop";
 import { useEffect, useState, useRef } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Smartphone, RefreshCw, QrCode } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Image as ImgCmp } from "@/components/ui/image";
 import DemoUserManager from "@/components/DemoUserManager";
 import EmployeeManager from "@/components/EmployeeManager";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const DEFAULT = {
   name: "Minha Oficina",
@@ -33,11 +35,16 @@ const SCHEDULE_DAYS = [
 ];
 
 export default function Settings() {
+  const { user } = useAuth();
   const [form, setForm] = useState(DEFAULT);
   const [id, setId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [whatsAppStatus, setWhatsAppStatus] = useState(null);
+  const [loadingWhatsApp, setLoadingWhatsApp] = useState(false);
+  const [qrCode, setQrCode] = useState("");
+  const [qrOpen, setQrOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const load = async () => {
@@ -52,6 +59,41 @@ export default function Settings() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const invokeWhatsApp = async (action) => {
+    const response = await base44.functions.invoke("manageMyWhatsAppInstance", { action });
+    return response.data;
+  };
+
+  const loadWhatsAppStatus = async () => {
+    if (user?.role !== "admin") return;
+    setLoadingWhatsApp(true);
+    try {
+      setWhatsAppStatus(await invokeWhatsApp("status"));
+    } catch (err) {
+      setWhatsAppStatus(null);
+      toast({ title: "Não foi possível consultar o WhatsApp", description: err.response?.data?.error || err.message, variant: "destructive" });
+    } finally {
+      setLoadingWhatsApp(false);
+    }
+  };
+
+  useEffect(() => { loadWhatsAppStatus(); }, [user?.role]);
+
+  const connectWhatsApp = async (create) => {
+    setLoadingWhatsApp(true);
+    try {
+      if (create) await invokeWhatsApp("create");
+      const result = await invokeWhatsApp("connect");
+      setWhatsAppStatus({ configured: true, instanceName: result.instanceName, connectionStatus: "aguardando leitura do QR Code" });
+      setQrCode(result.qrCode);
+      setQrOpen(true);
+    } catch (err) {
+      toast({ title: "Não foi possível conectar o WhatsApp", description: err.response?.data?.error || err.message, variant: "destructive" });
+    } finally {
+      setLoadingWhatsApp(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -203,6 +245,38 @@ export default function Settings() {
         </div>
       </section>
 
+      {user?.role === "admin" && (
+        <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 font-medium"><Smartphone className="h-4 w-4" /> WhatsApp</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Crie a instância desta oficina e conecte o número pelo QR Code. As chaves não são exibidas aqui.</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={loadWhatsAppStatus} disabled={loadingWhatsApp}>
+              <RefreshCw className="mr-1 h-4 w-4" /> Atualizar estado
+            </Button>
+          </div>
+          {whatsAppStatus?.configured ? (
+            <div className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">Instância {whatsAppStatus.instanceName}</p>
+                <p className="text-xs text-muted-foreground">Estado: {whatsAppStatus.connectionStatus || "não informado"}</p>
+              </div>
+              <Button type="button" onClick={() => connectWhatsApp(false)} disabled={loadingWhatsApp}>
+                <QrCode className="mr-1 h-4 w-4" /> Conectar por QR Code
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">Nenhuma instância Evolution GO foi criada para esta oficina.</p>
+              <Button type="button" onClick={() => connectWhatsApp(true)} disabled={loadingWhatsApp}>
+                <Smartphone className="mr-1 h-4 w-4" /> Criar instância e conectar
+              </Button>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
         <h2 className="font-medium">Categorias de Despesa</h2>
         <p className="text-xs text-muted-foreground">Categorias usadas no cadastro de despesas. Adicione ou remova conforme necessário.</p>
@@ -282,6 +356,17 @@ export default function Settings() {
           {saving ? "Salvando..." : "Salvar Configurações"}
         </Button>
       </div>
+
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Conectar WhatsApp</DialogTitle>
+            <DialogDescription>Abra o WhatsApp no celular, acesse Dispositivos conectados e leia este QR Code.</DialogDescription>
+          </DialogHeader>
+          {qrCode && <img src={qrCode} alt="QR Code para conectar o WhatsApp" className="mx-auto aspect-square w-full max-w-64 rounded-lg border bg-white p-2" />}
+          <p className="text-center text-xs text-muted-foreground">O código expira. Se necessário, feche esta janela e gere outro QR Code.</p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

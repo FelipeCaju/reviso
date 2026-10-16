@@ -1265,12 +1265,13 @@ declare module '@base44/sdk' {
   }
 
   interface FunctionNameRegistry {
+    "manageAccountingCenter": true;
+    "manageEvolutionGoConfig": true;
     "getDemoAccess": true;
     "manageFiscal": true;
-    "manageAccountingCenter": true;
-    "manageWorkshops": true;
-    "manageEvolutionGoConfig": true;
     "manageInboundFiscal": true;
+    "manageMyWhatsAppInstance": true;
     "sendWhatsAppDocument": true;
+    "manageWorkshops": true;
   }
 }

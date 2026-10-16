@@ -17,6 +17,12 @@ function instanceNameFor(workshopId: string) {
   return `oficina-${suffix || crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
 }
 
+function hasValidBrazilianWhatsApp(value: unknown) {
+  let phone = String(value || '').replace(/\D/g, '');
+  if (phone.length === 10 || phone.length === 11) phone = `55${phone}`;
+  return /^55\d{10,11}$/.test(phone);
+}
+
 function responseError(status: number, error: string) {
   return Response.json({ error }, { status });
 }
@@ -60,6 +66,9 @@ export default async function(req: Request) {
     const workshop = await db.WorkshopSetting.get(user.workshop_id);
     if (!workshop?.id || workshop.is_active === false) {
       return responseError(403, 'Oficina não autorizada.');
+    }
+    if ((action === 'create' || action === 'connect') && !hasValidBrazilianWhatsApp(workshop.whatsapp)) {
+      return responseError(422, 'Informe e salve um número de WhatsApp brasileiro válido nos dados da oficina antes de conectar.');
     }
 
     const configs = await db.EvolutionGoConfig.filter({ workshop_id: workshop.id }, '-created_date', 2);

@@ -81,6 +81,11 @@ export default function Settings() {
   useEffect(() => { loadWhatsAppStatus(); }, [user?.role]);
 
   const connectWhatsApp = async (create) => {
+    const digits = String(form.whatsapp || "").replace(/\D/g, "");
+    if (digits.length < 10 || digits.length > 13) {
+      toast({ title: "Informe o WhatsApp da oficina", description: "Preencha e salve um número brasileiro válido antes de conectar.", variant: "destructive" });
+      return;
+    }
     setLoadingWhatsApp(true);
     try {
       if (create) await invokeWhatsApp("create");
@@ -163,8 +168,8 @@ export default function Settings() {
             <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>WhatsApp</Label>
-            <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
+            <Label>WhatsApp *</Label>
+            <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="(00) 00000-0000" />
           </div>
           <div className="space-y-1.5 md:col-span-2 xl:col-span-3">
             <Label>Endereço legado</Label>
@@ -250,7 +255,7 @@ export default function Settings() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="flex items-center gap-2 font-medium"><Smartphone className="h-4 w-4" /> WhatsApp</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Crie a instância desta oficina e conecte o número pelo QR Code. As chaves não são exibidas aqui.</p>
+              <p className="mt-1 text-xs text-muted-foreground">O WhatsApp cadastrado acima é obrigatório. Salve-o antes de criar a instância e conecte o número pelo QR Code. As chaves não são exibidas aqui.</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={loadWhatsAppStatus} disabled={loadingWhatsApp}>
               <RefreshCw className="mr-1 h-4 w-4" /> Atualizar estado

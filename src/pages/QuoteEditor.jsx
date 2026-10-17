@@ -158,10 +158,18 @@ export default function QuoteEditor() {
   }, [plateQ, vehicles, customers]);
 
   const applyCustomer = (cust) => {
+    const customerVehicles = vehicles.filter((vehicle) => vehicle.current_owner_id === cust.id);
+    if (customerVehicles.length === 1) {
+      applyVehicle(customerVehicles[0]);
+      return;
+    }
     setQuote((q) => ({
       ...q,
       customer_id: cust.id,
       customer_name_snapshot: cust.name,
+      vehicle_id: "",
+      plate_snapshot: "",
+      vehicle_description_snapshot: "",
     }));
     setPlateQ("");
     setShowPlateResults(false);

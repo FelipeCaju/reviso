@@ -163,10 +163,18 @@ export default function WorkOrderEditor() {
   };
 
   const applyCustomer = (cust) => {
+    const customerVehicles = vehicles.filter((vehicle) => vehicle.current_owner_id === cust.id);
+    if (customerVehicles.length === 1) {
+      applyVehicle(customerVehicles[0]);
+      return;
+    }
     setWo((w) => ({
       ...w,
       customer_id: cust.id,
       customer_name_snapshot: cust.name,
+      vehicle_id: "",
+      plate_snapshot: "",
+      vehicle_description_snapshot: "",
     }));
     setPlateQ("");
     setShowPlateResults(false);

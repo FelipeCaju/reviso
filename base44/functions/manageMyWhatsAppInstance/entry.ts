@@ -55,6 +55,8 @@ function findQrDataUri(value: unknown, depth = 0): string | null {
 }
 
 function providerState(payload: any) {
+  if (payload?.data?.Connected === true || payload?.data?.LoggedIn === true) return 'conectado';
+  if (payload?.data?.Connected === false || payload?.data?.LoggedIn === false) return 'desconectado';
   const state = payload?.data?.status || payload?.data?.state || payload?.status || payload?.state || '';
   return typeof state === 'string' ? state.slice(0, 80) : '';
 }

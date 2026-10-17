@@ -177,6 +177,8 @@ export default function Settings() {
     }
   };
 
+  const whatsAppIsConnected = isWhatsAppConnected(whatsAppStatus?.connectionStatus);
+
   if (loading) return <div className="text-sm text-muted-foreground py-8 text-center">Carregando...</div>;
 
   return (
@@ -314,10 +316,15 @@ export default function Settings() {
                     return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${badge.className}`}>{badge.label}</span>;
                   })()}
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {whatsAppIsConnected ? "Esta é a única instância desta oficina." : "Reconectar reutiliza esta mesma instância; nenhuma nova será criada."}
+                </p>
               </div>
-              <Button type="button" onClick={() => connectWhatsApp(false)} disabled={loadingWhatsApp}>
-                <QrCode className="mr-1 h-4 w-4" /> Conectar por QR Code
-              </Button>
+              {!whatsAppIsConnected && (
+                <Button type="button" onClick={() => connectWhatsApp(false)} disabled={loadingWhatsApp}>
+                  <QrCode className="mr-1 h-4 w-4" /> Reconectar por QR Code
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-3 sm:flex-row sm:items-center sm:justify-between">

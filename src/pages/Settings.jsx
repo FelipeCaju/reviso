@@ -34,6 +34,11 @@ const SCHEDULE_DAYS = [
   ["schedule_thursday", "Quinta"], ["schedule_friday", "Sexta"], ["schedule_saturday", "Sábado"], ["schedule_sunday", "Domingo"],
 ];
 
+const isWhatsAppConnected = (status) => {
+  const value = String(status || "").toLowerCase();
+  return /connected|online|\bopen\b|active/.test(value) && !/disconnected|offline|close/.test(value);
+};
+
 export default function Settings() {
   const { user } = useAuth();
   const [form, setForm] = useState(DEFAULT);
@@ -79,6 +84,31 @@ export default function Settings() {
   };
 
   useEffect(() => { loadWhatsAppStatus(); }, [user?.role]);
+
+  useEffect(() => {
+    if (!qrOpen) return undefined;
+    let active = true;
+    const checkConnection = async () => {
+      try {
+        const status = await invokeWhatsApp("status");
+        if (!active) return;
+        setWhatsAppStatus(status);
+        if (isWhatsAppConnected(status.connectionStatus)) {
+          setQrOpen(false);
+          setQrCode("");
+          toast({ title: "WhatsApp conectado", description: "A instância está pronta para enviar mensagens." });
+        }
+      } catch {
+        // The dialog remains available so the user can finish scanning a valid QR Code.
+      }
+    };
+    const interval = window.setInterval(checkConnection, 3000);
+    checkConnection();
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [qrOpen]);
 
   const connectWhatsApp = async (create) => {
     const digits = String(form.whatsapp || "").replace(/\D/g, "");
@@ -370,7 +400,7 @@ export default function Settings() {
             <DialogDescription>Abra o WhatsApp no celular, acesse Dispositivos conectados e leia este QR Code.</DialogDescription>
           </DialogHeader>
           {qrCode && <img src={qrCode} alt="QR Code para conectar o WhatsApp" className="mx-auto aspect-square w-full max-w-64 rounded-lg border bg-white p-2" />}
-          <p className="text-center text-xs text-muted-foreground">O código expira. Se necessário, feche esta janela e gere outro QR Code.</p>
+          <p className="text-center text-xs text-muted-foreground">A janela fecha automaticamente após a conexão. O código expira; se necessário, gere outro QR Code.</p>
         </DialogContent>
       </Dialog>
     </div>

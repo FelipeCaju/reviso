@@ -83,14 +83,14 @@ export default function FinanceReports() {
   // OS data
   const woInPeriod = workOrders.filter((w) => inRange(w.entry_date) && (!filterCustomer || w.customer_id === filterCustomer));
   const woFinished = woInPeriod.filter((w) => w.status === "finalizada");
-  const woTotal = woInPeriod.reduce((s, w) => s + (w.total || 0), 0);
+  const woTotal = woInPeriod.reduce((s, w) => s + (w.accounting_total ?? w.total ?? 0), 0);
   const woPaid = woInPeriod.reduce((s, w) => s + (w.paid_amount || 0), 0);
 
   // Quotes
   const quotesInPeriod = quotes.filter((q) => inRange(q.date));
   const quotesApproved = quotesInPeriod.filter((q) => ["aprovado", "parcialmente_aprovado"].includes(q.status));
   const quotesConverted = quotesInPeriod.filter((q) => q.status === "convertido_os");
-  const quotesTotal = quotesInPeriod.reduce((s, q) => s + (q.total || 0), 0);
+  const quotesTotal = quotesInPeriod.reduce((s, q) => s + (q.accounting_total ?? q.total ?? 0), 0);
 
   // Orders by supplier
   const ordersFiltered = orders.filter((o) => inRange(o.date) && (!filterSupplier || o.supplier_id === filterSupplier));

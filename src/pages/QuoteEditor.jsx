@@ -108,6 +108,7 @@ export default function QuoteEditor() {
             subtotal_parts: 0,
             subtotal_labor: 0,
             total: 0,
+            accounting_total: 0,
             images: [],
           });
           // pre-fill from vehicle if provided
@@ -167,9 +168,11 @@ export default function QuoteEditor() {
   };
 
   // Totals
-  const partsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
+  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
+  const accountingPartsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
   const grandTotal = Math.max(0, partsSub + laborSub + (quote?.socorro || 0) - (quote?.discount || 0));
+  const accountingTotal = Math.max(0, accountingPartsSub + laborSub + (quote?.socorro || 0) - (quote?.discount || 0));
 
   const updateItem = (idx, patch) => {
     setItems((arr) => arr.map((it, i) => {
@@ -214,6 +217,7 @@ export default function QuoteEditor() {
         subtotal_parts: partsSub,
         subtotal_labor: laborSub,
         total: grandTotal,
+        accounting_total: accountingTotal,
         status: statusOverride || quote.status,
       };
       let quoteId = id;
@@ -248,7 +252,7 @@ export default function QuoteEditor() {
       vehicle_id: quote.vehicle_id, plate_snapshot: quote.plate_snapshot, vehicle_description_snapshot: quote.vehicle_description_snapshot,
       mileage_in: quote.mileage || 0, entry_date: new Date().toISOString(), expected_delivery: quote.forecast || "",
       customer_report: quote.customer_report || "", diagnosis: quote.diagnosis || "", internal_notes: quote.notes || "", status: "aberta",
-      subtotal_parts: partsSub, subtotal_labor: laborSub, socorro: quote.socorro || 0, discount: quote.discount || 0, total: grandTotal, quote_id: id,
+      subtotal_parts: partsSub, subtotal_labor: laborSub, socorro: quote.socorro || 0, discount: quote.discount || 0, total: grandTotal, accounting_total: accountingTotal, quote_id: id,
     }));
     if (items.length) await base44.entities.WorkOrderItem.bulkCreate(items.map(({ id: _id, quote_id: _quoteId, created_date: _created, updated_date: _updated, ...item }) => withWorkshop({
       ...item, work_order_id: order.id, added_after_approval: false, approval_status: "aprovado",
@@ -647,7 +651,7 @@ export default function QuoteEditor() {
                 </div>
                 {it.type === "material" && <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
                   <input type="checkbox" checked={!!it.customer_provided} onChange={(event) => updateItem(idx, { customer_provided: event.target.checked })} />
-                  Peça do cliente <span className="text-muted-foreground">(não entra no total)</span>
+                  Peça do cliente <span className="text-muted-foreground">(não entra na contabilidade da oficina)</span>
                 </label>}
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
               </div>

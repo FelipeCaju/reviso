@@ -107,6 +107,7 @@ export default function WorkOrderEditor() {
             subtotal_parts: 0,
             subtotal_labor: 0,
             total: 0,
+            accounting_total: 0,
             quote_id: fromQuoteId,
           });
           setItems(qi.map((it) => ({
@@ -123,7 +124,7 @@ export default function WorkOrderEditor() {
             entry_date: new Date().toISOString(), expected_delivery: "",
             customer_report: "", diagnosis: "", mechanic_id: "",
             internal_notes: "", customer_notes: "", status: "aberta",
-            discount: 0, socorro: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0, images: [],
+            discount: 0, socorro: 0, subtotal_parts: 0, subtotal_labor: 0, total: 0, accounting_total: 0, images: [],
           });
         }
       } finally {
@@ -171,9 +172,11 @@ export default function WorkOrderEditor() {
     setShowPlateResults(false);
   };
 
-  const partsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
+  const partsSub = items.filter((i) => i.type === "material").reduce((s, i) => s + (i.total || 0), 0);
+  const accountingPartsSub = items.filter((i) => i.type === "material" && !i.customer_provided).reduce((s, i) => s + (i.total || 0), 0);
   const laborSub = items.filter((i) => i.type === "servico").reduce((s, i) => s + (i.total || 0), 0);
   const grandTotal = Math.max(0, partsSub + laborSub + (wo?.socorro || 0) - (wo?.discount || 0));
+  const accountingTotal = Math.max(0, accountingPartsSub + laborSub + (wo?.socorro || 0) - (wo?.discount || 0));
 
   const pastApproval = editing && wo && ["em_execucao", "aguardando_pecas"].includes(wo.status);
 
@@ -229,7 +232,7 @@ export default function WorkOrderEditor() {
       const payload = {
         ...wo,
         customer_name_snapshot: customers.find((c) => c.id === wo.customer_id)?.name || wo.customer_name_snapshot,
-        subtotal_parts: partsSub, subtotal_labor: laborSub, total: grandTotal,
+        subtotal_parts: partsSub, subtotal_labor: laborSub, total: grandTotal, accounting_total: accountingTotal,
         status: statusOverride || wo.status,
       };
       let woId = id;
@@ -245,7 +248,7 @@ export default function WorkOrderEditor() {
           await base44.entities.Quote.update(fromQuoteId, { status: "convertido_os" });
         }
       }
-      setWo((w) => ({ ...w, subtotal_parts: partsSub, subtotal_labor: laborSub, total: grandTotal, status: statusOverride || wo.status }));
+      setWo((w) => ({ ...w, subtotal_parts: partsSub, subtotal_labor: laborSub, total: grandTotal, accounting_total: accountingTotal, status: statusOverride || wo.status }));
       toast({ title: "OS salva" });
       navigate(`/os/${woId}`);
     } catch (e) {
@@ -628,7 +631,7 @@ export default function WorkOrderEditor() {
                 </div>
                 {it.type === "material" && <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
                   <input type="checkbox" checked={!!it.customer_provided} onChange={(event) => updateItem(idx, { customer_provided: event.target.checked })} />
-                  Peça do cliente <span className="text-muted-foreground">(não entra no total)</span>
+                  Peça do cliente <span className="text-muted-foreground">(não entra na contabilidade da oficina)</span>
                 </label>}
                 {settings?.fiscal_module_enabled && <div className="mt-2 max-w-xs"><Label className="text-[10px] text-muted-foreground">Tratamento fiscal</Label><Select value={it.fiscal_treatment || "automatico"} onValueChange={(value) => updateItem(idx, { fiscal_treatment: value })}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="automatico">Automático pelo tipo</SelectItem><SelectItem value="excluir">Não incluir</SelectItem></SelectContent></Select></div>}
                 <div className="mt-1 text-right text-sm font-medium">{formatCurrency(it.total)}</div>
@@ -672,7 +675,7 @@ export default function WorkOrderEditor() {
       {/* Payments + Notification (editing only) */}
       {editing && (
         <>
-          <OSPayments workOrderId={id} wo={wo} total={grandTotal} onPaymentsChange={setPayments} onWorkOrderUpdate={(patch) => setWo((current) => ({ ...current, ...patch }))} />
+          <OSPayments workOrderId={id} wo={wo} total={accountingTotal} onPaymentsChange={setPayments} onWorkOrderUpdate={(patch) => setWo((current) => ({ ...current, ...patch }))} />
           <OSNotification wo={wo} onUpdate={(patch) => setWo((w) => ({ ...w, ...patch }))} onWhatsAppNotify={openNotificationWhatsAppPreview} />
         </>
       )}

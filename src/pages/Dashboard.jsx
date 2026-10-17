@@ -66,7 +66,7 @@ export default function Dashboard() {
     const d = new Date(w.entry_date);
     return w.status === "finalizada" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
-  const monthRevenue = monthWO.reduce((s, w) => s + (w.total || 0), 0);
+  const monthRevenue = monthWO.reduce((s, w) => s + (w.accounting_total ?? w.total ?? 0), 0);
 
   // Financial indicators
   const monthTx = transactions.filter((t) => {
@@ -77,8 +77,8 @@ export default function Dashboard() {
   const monthSaidas = monthTx.filter((t) => t.type === "saida").reduce((s, t) => s + (t.amount || 0), 0);
   const monthResultado = monthEntradas - monthSaidas;
   const aReceber = workOrders
-    .filter((w) => w.total > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada")
-    .reduce((s, w) => s + ((w.total || 0) - (w.paid_amount || 0)), 0);
+    .filter((w) => (w.accounting_total ?? w.total ?? 0) > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada")
+    .reduce((s, w) => s + ((w.accounting_total ?? w.total ?? 0) - (w.paid_amount || 0)), 0);
 
   const withTime = activeToday.filter((a) => a.scheduled_time).sort((a, b) => (a.scheduled_time || "").localeCompare(b.scheduled_time || ""));
   const noTime = activeToday.filter((a) => !a.scheduled_time);

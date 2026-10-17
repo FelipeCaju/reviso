@@ -112,6 +112,11 @@
       "default": 0,
       "title": "Total"
     },
+    "accounting_total": {
+      "type": "number",
+      "default": 0,
+      "title": "Total contábil"
+    },
     "quote_id": {
       "type": "string",
       "title": "Or\u00e7amento de Origem"

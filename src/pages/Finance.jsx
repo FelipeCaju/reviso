@@ -126,12 +126,13 @@ export default function Finance() {
   // A receber: OS com saldo pendente
   const aReceber = useMemo(() => {
     return workOrders
-      .filter((w) => w.total > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada" && (!filterCustomer || w.customer_id === filterCustomer))
+      .filter((w) => (w.accounting_total ?? w.total ?? 0) > 0 && w.payment_status !== "pago" && w.payment_status !== "isento_cancelado" && w.status !== "cancelada" && (!filterCustomer || w.customer_id === filterCustomer))
       .map((w) => {
         const woPayments = payments.filter((p) => p.work_order_id === w.id && p.status === "ativo");
         const paid = woPayments.reduce((s, p) => s + (p.amount || 0), 0);
-        const balance = (w.total || 0) - paid;
-        return { ...w, paid, balance };
+        const accountingTotal = w.accounting_total ?? w.total ?? 0;
+        const balance = accountingTotal - paid;
+        return { ...w, accountingTotal, paid, balance };
       })
       .filter((w) => w.balance > 0.01);
   }, [workOrders, payments, filterCustomer]);
@@ -264,7 +265,7 @@ export default function Finance() {
                 <button key={w.id} onClick={() => navigate(`/os/${w.id}`)} className="flex w-full items-center justify-between gap-2 text-left py-1.5 hover:bg-accent/30 rounded px-2 -mx-2">
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">#{w.number} · {w.customer_name_snapshot}</div>
-                    <div className="text-xs text-muted-foreground">Total: {formatCurrency(w.total)} · Pago: {formatCurrency(w.paid)}</div>
+                    <div className="text-xs text-muted-foreground">Total: {formatCurrency(w.accountingTotal)} · Pago: {formatCurrency(w.paid)}</div>
                   </div>
                   <div className="text-sm font-semibold text-emerald-600 shrink-0">{formatCurrency(w.balance)}</div>
                 </button>

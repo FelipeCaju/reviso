@@ -174,7 +174,8 @@ export default function Reports() {
   const aReceber = useMemo(() => workOrders.filter((w) => {
     if (filterScope !== "cliente") return false;
     if (w.status === "cancelada" || w.payment_status === "pago" || w.payment_status === "isento_cancelado") return false;
-    const balance = (w.total || 0) - (w.paid_amount || 0);
+    const accountingTotal = w.accounting_total ?? w.total ?? 0;
+    const balance = accountingTotal - (w.paid_amount || 0);
     if (balance <= 0.01) return false;
     if (filterCustomer && w.customer_id !== filterCustomer) return false;
     if (filterStatus && w.payment_status !== filterStatus) return false;
@@ -182,9 +183,9 @@ export default function Reports() {
   }).map((w) => ({
     cliente: w.customer_name_snapshot || "—",
     os: w.number || "—",
-    total: w.total || 0,
+    total: w.accounting_total ?? w.total ?? 0,
     recebido: w.paid_amount || 0,
-    saldo: (w.total || 0) - (w.paid_amount || 0),
+    saldo: (w.accounting_total ?? w.total ?? 0) - (w.paid_amount || 0),
   })), [workOrders, filterScope, filterCustomer, filterStatus]);
 
   const totalAReceber = aReceber.reduce((s, r) => s + r.saldo, 0);

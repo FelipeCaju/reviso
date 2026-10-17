@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /** Fonte única da versão exibida no aplicativo. */
-const APP_VERSION = '1.4.30';
+const APP_VERSION = '1.4.31';
 const APP_BUILD = '20261016.8';
 
 function app_version_label(): string

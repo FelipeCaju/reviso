@@ -31,6 +31,29 @@ async function readJson(response: Response) {
   return response.json().catch(() => ({}));
 }
 
+function qrDataUri(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const qr = value.trim();
+  if (qr.startsWith('data:image/')) return qr;
+  // Evolution GO versions may return the PNG base64 without the data URI prefix.
+  if (/^iVBORw0KGgo/.test(qr)) return `data:image/png;base64,${qr}`;
+  if (/^\/9j\//.test(qr)) return `data:image/jpeg;base64,${qr}`;
+  if (/^PHN2Zy/.test(qr)) return `data:image/svg+xml;base64,${qr}`;
+  return null;
+}
+
+function findQrDataUri(value: unknown, depth = 0): string | null {
+  if (depth > 3 || !value) return null;
+  const direct = qrDataUri(value);
+  if (direct) return direct;
+  if (typeof value !== 'object') return null;
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    const found = findQrDataUri(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 function providerState(payload: any) {
   const state = payload?.data?.status || payload?.data?.state || payload?.status || payload?.state || '';
   return typeof state === 'string' ? state.slice(0, 80) : '';
@@ -42,8 +65,14 @@ async function getQrCode(baseUrl: string, apiKey: string) {
     signal: AbortSignal.timeout(15_000),
   });
   const payload = await readJson(response);
-  const qrCode = payload?.data?.code || payload?.code || payload?.data?.qrcode || payload?.qrcode;
-  return { ok: response.ok && typeof qrCode === 'string' && qrCode.startsWith('data:image/'), qrCode, status: response.status };
+  const qrCode = findQrDataUri(payload);
+  return {
+    ok: response.ok && !!qrCode,
+    qrCode,
+    status: response.status,
+    responseKeys: Object.keys(payload || {}).slice(0, 10),
+    dataKeys: payload?.data && typeof payload.data === 'object' ? Object.keys(payload.data).slice(0, 10) : [],
+  };
 }
 
 export default async function(req: Request) {
@@ -154,7 +183,7 @@ export default async function(req: Request) {
     }
     const qr = await getQrCode(currentBaseUrl, currentConfig.api_key);
     if (!qr.ok) {
-      console.warn('Evolution GO QR code unavailable', { status: qr.status });
+      console.warn('Evolution GO QR code unavailable', { status: qr.status, responseKeys: qr.responseKeys, dataKeys: qr.dataKeys });
       return responseError(502, 'Não foi possível obter o QR Code da instância. Tente novamente.');
     }
     return Response.json({ configured: true, instanceName: currentConfig.instance_name, qrCode: qr.qrCode });

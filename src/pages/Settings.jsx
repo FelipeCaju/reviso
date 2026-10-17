@@ -60,8 +60,8 @@ export default function Settings() {
 
   useEffect(() => { load(); }, []);
 
-  const invokeWhatsApp = async (action) => {
-    const response = await base44.functions.invoke("manageMyWhatsAppInstance", { action });
+  const invokeWhatsApp = async (action, data = {}) => {
+    const response = await base44.functions.invoke("manageMyWhatsAppInstance", { action, ...data });
     return response.data;
   };
 
@@ -88,8 +88,9 @@ export default function Settings() {
     }
     setLoadingWhatsApp(true);
     try {
-      if (create) await invokeWhatsApp("create");
-      const result = await invokeWhatsApp("connect");
+      const data = { whatsapp: form.whatsapp.trim() };
+      if (create) await invokeWhatsApp("create", data);
+      const result = await invokeWhatsApp("connect", data);
       setWhatsAppStatus({ configured: true, instanceName: result.instanceName, connectionStatus: "aguardando leitura do QR Code" });
       setQrCode(result.qrCode);
       setQrOpen(true);
@@ -255,7 +256,7 @@ export default function Settings() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="flex items-center gap-2 font-medium"><Smartphone className="h-4 w-4" /> WhatsApp</h2>
-              <p className="mt-1 text-xs text-muted-foreground">O WhatsApp cadastrado acima é obrigatório. Salve-o antes de criar a instância e conecte o número pelo QR Code. As chaves não são exibidas aqui.</p>
+              <p className="mt-1 text-xs text-muted-foreground">O WhatsApp cadastrado acima é obrigatório e será salvo ao criar a instância. Depois, conecte o número pelo QR Code. As chaves não são exibidas aqui.</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={loadWhatsAppStatus} disabled={loadingWhatsApp}>
               <RefreshCw className="mr-1 h-4 w-4" /> Atualizar estado

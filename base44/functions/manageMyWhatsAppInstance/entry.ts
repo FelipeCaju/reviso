@@ -67,8 +67,17 @@ export default async function(req: Request) {
     if (!workshop?.id || workshop.is_active === false) {
       return responseError(403, 'Oficina não autorizada.');
     }
-    if ((action === 'create' || action === 'connect') && !hasValidBrazilianWhatsApp(workshop.whatsapp)) {
-      return responseError(422, 'Informe e salve um número de WhatsApp brasileiro válido nos dados da oficina antes de conectar.');
+    const requestedWhatsApp = String(body.whatsapp || '').trim();
+    const whatsAppToUse = requestedWhatsApp || workshop.whatsapp;
+    if (action === 'create' || action === 'connect') {
+      if (!hasValidBrazilianWhatsApp(whatsAppToUse)) {
+        return responseError(422, 'Informe um número de WhatsApp brasileiro válido para a oficina antes de conectar.');
+      }
+      // This endpoint can update only the caller's own workshop and only this validated field.
+      if (requestedWhatsApp && requestedWhatsApp !== workshop.whatsapp) {
+        await db.WorkshopSetting.update(workshop.id, { whatsapp: requestedWhatsApp });
+        workshop.whatsapp = requestedWhatsApp;
+      }
     }
 
     const configs = await db.EvolutionGoConfig.filter({ workshop_id: workshop.id }, '-created_date', 2);

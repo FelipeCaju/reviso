@@ -43,7 +43,7 @@ async function getQrCode(baseUrl: string, apiKey: string) {
   });
   const payload = await readJson(response);
   const qrCode = payload?.data?.code || payload?.code || payload?.data?.qrcode || payload?.qrcode;
-  return { ok: response.ok && typeof qrCode === 'string' && qrCode.startsWith('data:image/'), qrCode };
+  return { ok: response.ok && typeof qrCode === 'string' && qrCode.startsWith('data:image/'), qrCode, status: response.status };
 }
 
 export default async function(req: Request) {
@@ -97,6 +97,7 @@ export default async function(req: Request) {
       const providerRejected = createPayload?.success === false || createPayload?.status === 'error' || !!createPayload?.error;
       if (!createResponse.ok || providerRejected) {
         // Do not include provider output: some providers echo request details in errors.
+        console.warn('Evolution GO instance creation rejected', { status: createResponse.status, providerRejected });
         return responseError(502, 'Não foi possível criar a instância no Evolution GO. Verifique a chave global e tente novamente.');
       }
 
@@ -139,10 +140,14 @@ export default async function(req: Request) {
       signal: AbortSignal.timeout(15_000),
     });
     if (!connectResponse.ok) {
+      console.warn('Evolution GO instance connection rejected', { status: connectResponse.status });
       return responseError(502, 'Não foi possível iniciar a conexão da instância.');
     }
     const qr = await getQrCode(currentBaseUrl, currentConfig.api_key);
-    if (!qr.ok) return responseError(502, 'Não foi possível obter o QR Code da instância. Tente novamente.');
+    if (!qr.ok) {
+      console.warn('Evolution GO QR code unavailable', { status: qr.status });
+      return responseError(502, 'Não foi possível obter o QR Code da instância. Tente novamente.');
+    }
     return Response.json({ configured: true, instanceName: currentConfig.instance_name, qrCode: qr.qrCode });
   } catch (error) {
     console.error('Evolution GO self-service error', error instanceof Error ? error.name : 'unknown');

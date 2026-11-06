@@ -53,6 +53,10 @@ export default function VehicleForm() {
 
   const save = async () => {
     const plate = normalizePlate(form.plate);
+    if (!form.type) {
+      toast({ title: "Informe o tipo do veículo", variant: "destructive" });
+      return;
+    }
     if (!plate) {
       toast({ title: "Informe a placa", variant: "destructive" });
       return;
@@ -113,7 +117,7 @@ export default function VehicleForm() {
 
       <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border bg-card p-4">
         <div className="space-y-1.5">
-          <Label>Tipo</Label>
+          <Label>Tipo *</Label>
           <Select value={form.type} onValueChange={(v) => set("type", v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -174,7 +178,7 @@ export default function VehicleForm() {
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-        <Button onClick={save} disabled={saving || !form.plate.trim()}>
+        <Button onClick={save} disabled={saving || !form.type || !form.plate.trim()}>
           {saving ? "Salvando..." : "Salvar"}
         </Button>
       </div>

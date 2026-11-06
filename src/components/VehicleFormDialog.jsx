@@ -46,6 +46,11 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
 
   const save = async () => {
     const plate = normalizePlate(form.plate);
+    if (!form.type) {
+      setErrors({ type: "Informe o tipo do veículo." });
+      toast({ title: "Informe o tipo do veículo", variant: "destructive" });
+      return;
+    }
     if (!plate) {
       setErrors({ plate: "Informe a placa do veículo." });
       toast({ title: "Informe a placa", variant: "destructive" });
@@ -88,15 +93,16 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2 max-h-[60vh] overflow-y-auto pr-1">
           <div className="space-y-1.5">
-            <Label>Tipo</Label>
-            <Select value={form.type} onValueChange={(v) => set("type", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Label>Tipo *</Label>
+            <Select value={form.type} onValueChange={(v) => { set("type", v); setErrors((current) => ({ ...current, type: "" })); }}>
+              <SelectTrigger aria-invalid={!!errors.type} className={errors.type ? "border-destructive" : ""}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(vehicleTypeLabel).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Placa *</Label>
@@ -155,7 +161,7 @@ export default function VehicleFormDialog({ open, onOpenChange, onSaved, prePlat
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || !form.type || !form.plate.trim()}>
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>

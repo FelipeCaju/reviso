@@ -80,6 +80,7 @@
     }
   },
   "required": [
+    "type",
     "plate",
     "workshop_id"
   ],
